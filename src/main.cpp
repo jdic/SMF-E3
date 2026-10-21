@@ -2,6 +2,7 @@
 #include "config/hardware_pins.hpp"
 #include "config/process_params.hpp"
 #include "types/station_types.hpp"
+#include "digital_sensor.hpp"
 
 void setup()
 {
