@@ -3,6 +3,7 @@
 #include "config/process_params.hpp"
 #include "types/station_types.hpp"
 #include "digital_sensor.hpp"
+#include "fill_pump.hpp"
 
 void setup()
 {
