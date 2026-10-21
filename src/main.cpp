@@ -5,6 +5,7 @@
 #include "digital_sensor.hpp"
 #include "fill_pump.hpp"
 #include "bottle_gate.hpp"
+#include "dc_motor_bts7960.hpp"
 
 void setup()
 {
