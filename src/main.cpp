@@ -4,6 +4,7 @@
 #include "types/station_types.hpp"
 #include "digital_sensor.hpp"
 #include "fill_pump.hpp"
+#include "bottle_gate.hpp"
 
 void setup()
 {
