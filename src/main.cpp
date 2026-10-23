@@ -10,8 +10,14 @@
 #include "conveyor_controller.hpp"
 #include "stepper_axis.hpp"
 
+DigitalSensor sensor(2, 30, false, true);
+
 void setup()
 {
+    Serial.begin(115200);
+
+    sensor.init();
+
     // Inicializacion base de la Estacion 3 (Llenado y Tapado)
     pinMode(HardwarePins::PIN_STATUS_LED, OUTPUT);
     digitalWrite(HardwarePins::PIN_STATUS_LED, LOW);
@@ -20,4 +26,8 @@ void setup()
 void loop()
 {
     // Planificador cooperativo pendiente de integracion
+    sensor.update();
+
+    printf("A");
+    printf(sensor.isTriggered() ? "PRESIONADO" : "NO PRESIONADO");
 }

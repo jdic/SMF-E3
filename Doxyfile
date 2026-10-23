@@ -1,0 +1,87 @@
+PROJECT_NAME           = "SMF-E3: Estación 3 de Llenado y Tapado"
+PROJECT_NUMBER         = "1.0.0"
+PROJECT_BRIEF          = "Firmware de control en tiempo real cooperativo e ISR para Arduino Mega 2560"
+OUTPUT_DIRECTORY       = docs
+CREATE_SUBDIRS         = NO
+ALLOW_UNICODE_NAMES    = YES
+OUTPUT_LANGUAGE        = Spanish
+
+# Configuración de análisis de código C++17 / Embedded
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = NO
+EXTRACT_STATIC         = YES
+HIDE_UNDOC_MEMBERS     = NO
+HIDE_UNDOC_CLASSES     = NO
+BRIEF_MEMBER_DESC      = YES
+REPEAT_BRIEF           = YES
+ALWAYS_DETAILED_SEC    = NO
+INLINE_INHERITED_MEMB  = YES
+FULL_PATH_NAMES        = YES
+STRIP_FROM_PATH        = include lib src
+SHORT_NAMES            = NO
+JAVADOC_AUTOBRIEF      = YES
+MULTILINE_CPP_IS_BRIEF = NO
+INHERIT_DOCS           = YES
+SEPARATE_MEMBER_PAGES  = NO
+TAB_SIZE               = 4
+
+# Entradas del proyecto
+INPUT                  = ARCHITECTURE.md \
+                         include \
+                         lib \
+                         src
+INPUT_ENCODING         = UTF-8
+FILE_PATTERNS          = *.hpp \
+                         *.h \
+                         *.cpp \
+                         *.md
+RECURSIVE              = YES
+EXCLUDE                = docs/doxygen-awesome-css \
+                         docs/html \
+                         .pio
+USE_MDFILE_AS_MAINPAGE = ARCHITECTURE.md
+
+# Advertencias estrictas de documentación
+QUIET                  = NO
+WARNINGS               = YES
+WARN_IF_UNDOCUMENTED   = YES
+WARN_IF_DOC_ERROR      = YES
+WARN_NO_PARAMDOC       = YES
+
+# Navegación de código fuente
+SOURCE_BROWSER         = YES
+INLINE_SOURCES         = NO
+STRIP_CODE_COMMENTS    = YES
+REFERENCED_BY_RELATION = YES
+REFERENCES_RELATION    = YES
+
+# Salida HTML y configuración de Doxygen Awesome
+GENERATE_HTML          = YES
+HTML_OUTPUT            = html
+GENERATE_TREEVIEW      = YES
+DISABLE_INDEX          = NO
+FULL_SIDEBAR           = NO
+
+# Hojas de estilo de Doxygen Awesome
+HTML_EXTRA_STYLESHEET  = docs/doxygen-awesome-css/doxygen-awesome.css \
+                         docs/doxygen-awesome-css/doxygen-awesome-sidebar-only.css \
+                         docs/doxygen-awesome-css/doxygen-awesome-sidebar-only-darkmode-toggle.css
+
+# Scripts auxiliares (Modo oscuro, botón de copiar código e índice interactivo)
+HTML_EXTRA_FILES       = docs/doxygen-awesome-css/doxygen-awesome-darkmode-toggle.js \
+                         docs/doxygen-awesome-css/doxygen-awesome-fragment-copy-button.js \
+                         docs/doxygen-awesome-css/doxygen-awesome-interactive-toc.js
+
+# Desactivación de formatos innecesarios
+GENERATE_LATEX         = NO
+GENERATE_MAN           = NO
+GENERATE_RTF           = NO
+GENERATE_XML           = NO
+
+# Preprocesador
+ENABLE_PREPROCESSING   = YES
+MACRO_EXPANSION        = YES
+EXPAND_ONLY_PREDEF     = NO
+SEARCH_INCLUDES        = YES
+INCLUDE_PATH           = include \
+                         lib

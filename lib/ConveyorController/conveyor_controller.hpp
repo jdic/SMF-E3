@@ -9,20 +9,21 @@
 #include "interrupt_encoder.hpp"
 
 /**
- * @brief Parametros de hardware, lazo PI y proteccion de atasco para ConveyorController.
+ * @struct ConveyorConfig
+ * @brief Parámetros de hardware, ganancias del lazo PI y umbrales de protección de atasco para la banda.
  */
 struct ConveyorConfig
 {
-    uint8_t  rpwmPin;      // Pin PWM por hardware del BTS7960 de la banda (HardwarePins)
-    uint8_t  enPin;        // Pin de habilitacion EN del BTS7960 de la banda (HardwarePins)
-    uint8_t  encPinA;      // Pin de interrupcion externa canal A del encoder (HardwarePins)
-    uint8_t  encPinB;      // Pin digital canal B del encoder (HardwarePins)
-    uint16_t encoderPpr;   // Pulsos por revolucion del encoder de la banda [PPR]
-    uint16_t targetRpm;    // Consigna de velocidad angular en modo Running [RPM]
-    uint8_t  kpTenths;     // Ganancia proporcional en decimas (Kp = kpTenths / 10)
-    uint8_t  kiTenths;     // Ganancia integral en decimas por ciclo (Ki = kiTenths / 10)
-    uint16_t stallTimeMs;  // Ventana sin pulsos con PWM activo para declarar atasco ERR-303 [ms]
-    uint8_t  stallMinPwm;  // Umbral minimo de PWM [0..255] a partir del cual se evalua atasco
+    uint8_t  rpwmPin;     ///< Pin PWM por hardware del BTS7960 de la banda (HardwarePins)
+    uint8_t  enPin;       ///< Pin de habilitación EN del BTS7960 de la banda (HardwarePins)
+    uint8_t  encPinA;     ///< Pin de interrupción externa canal A del encoder (HardwarePins)
+    uint8_t  encPinB;     ///< Pin digital canal B del encoder (HardwarePins)
+    uint16_t encoderPpr;  ///< Pulsos nominales por revolución del encoder de la banda [PPR]
+    uint16_t targetRpm;   ///< Consigna de velocidad angular en modo Running [RPM]
+    uint8_t  kpTenths;    ///< Ganancia proporcional en décimas (Kp = kpTenths / 10)
+    uint8_t  kiTenths;    ///< Ganancia integral en décimas por ciclo de 20 ms (Ki = kiTenths / 10)
+    uint16_t stallTimeMs; ///< Ventana sin pulsos con PWM activo para declarar atasco ERR-303 [ms]
+    uint8_t  stallMinPwm; ///< Umbral mínimo de PWM [0..255] a partir del cual se evalúa atasco
 };
 
 /**
@@ -36,9 +37,9 @@ struct ConveyorConfig
 class ConveyorController
 {
 public:
-    static constexpr int32_t PI_SCALE        = 10;
-    static constexpr int32_t MAX_PWM         = 255;
-    static constexpr int32_t MIN_ACTIVE_PWM  = 1;
+    static constexpr int32_t PI_SCALE       = 10;  ///< Factor de escala divisor para ganancias PI en décimas
+    static constexpr int32_t MAX_PWM        = 255; ///< Límite superior de saturación del modulador PWM
+    static constexpr int32_t MIN_ACTIVE_PWM = 1;   ///< Límite inferior de PWM mientras la banda está en marcha
 
     /**
      * @brief Construye el controlador de banda integrando su puente H BTS7960 y su encoder de cuadratura.
@@ -48,54 +49,58 @@ public:
     explicit ConveyorController(const ConveyorConfig& config);
 
     /**
-     * @brief Inicializa el driver BTS7960 y el encoder por interrupcion, dejando la banda detenida.
+     * @brief Inicializa el driver BTS7960 y el encoder por interrupción, dejando la banda detenida.
      */
     void init();
 
     /**
-     * @brief Inicia el giro continuo de la banda bajo regulacion PI hacia targetRpm.
+     * @brief Habilita el giro continuo de la banda bajo regulación PI hacia targetRpm.
      *
-     * Si la banda ya se encontraba en marcha, no reinicia el integrador ni los temporizadores.
+     * Función no bloqueante. Si la banda ya se encontraba en marcha, conserva el estado del integrador.
      */
     void start();
 
     /**
-     * @brief Detiene la banda en parada libre (EN = LOW, PWM = 0) y desactiva el lazo PI.
+     * @brief Deshabilita el lazo PI y detiene el motor en parada libre (EN = LOW, PWM = 0).
+     *
+     * Función no bloqueante.
      */
     void stop();
 
     /**
-     * @brief Aplica frenado dinamico inmediato al motor de la banda y desactiva el lazo PI.
+     * @brief Deshabilita el lazo PI y aplica frenado dinámico inmediato al motor de la banda.
+     *
+     * Función no bloqueante.
      */
     void brake();
 
     /**
-     * @brief Ejecuta una iteracion del lazo PI de velocidad y verifica la condicion de atasco (ERR-303).
+     * @brief Ejecuta una iteración del lazo PI de velocidad y verifica la condición de atasco (ERR-303).
      *
-     * Debe invocarse periodicamente desde la tarea de perfiles de movimiento (cada 20 ms).
+     * Función no bloqueante. Debe invocarse periódicamente desde la tarea de perfiles de movimiento (cada 20 ms).
      */
     void update();
 
     /**
-     * @brief Indica si se detecto un atasco mecanico de la banda (PWM aplicado sin pulsos de encoder).
-     * @return true si ocurrio la condicion de fallo ERR-303; false en operacion normal.
+     * @brief Evalúa si se detectó un atasco mecánico de la banda (PWM >= stallMinPwm sin pulsos durante stallTimeMs).
+     * @return true si se disparó la protección ERR-303; false en operación normal.
      */
     bool isStalled() const;
 
     /**
-     * @brief Limpia la bandera de atasco tras un rearme validado por el operador.
+     * @brief Restablece la bandera de atasco tras un rearme validado por el operador.
      */
     void clearStall();
 
     /**
-     * @brief Consulta la ultima velocidad angular medida en la banda.
-     * @return Velocidad actual en revoluciones por minuto [RPM].
+     * @brief Consulta la última velocidad angular medida en el eje de la banda.
+     * @return Velocidad angular actual en revoluciones por minuto [RPM].
      */
     uint16_t getSpeedRpm() const;
 
     /**
-     * @brief Consulta si el lazo de control de la banda se encuentra activo.
-     * @return true si la banda esta en modo de giro continuo; false si esta detenida o en fallo.
+     * @brief Consulta si el lazo PI de giro continuo se encuentra activo.
+     * @return true si la banda está regulando velocidad en modo continuo; false si está detenida o en fallo.
      */
     bool isRunning() const;
 

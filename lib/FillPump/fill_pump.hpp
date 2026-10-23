@@ -1,6 +1,6 @@
 /**
  * @file fill_pump.hpp
- * @brief Controlador HAL no bloqueante para la bomba de llenado ON/OFF con corte autonomo por tiempo maximo.
+ * @brief Controlador HAL no bloqueante para la bomba de llenado ON/OFF con corte autónomo por tiempo máximo.
  */
 
 #pragma once
@@ -8,10 +8,10 @@
 
 /**
  * @class FillPump
- * @brief Gestiona la etapa de potencia de la bomba de llenado con proteccion contra encendido prolongado.
+ * @brief Gestiona la etapa de potencia de la bomba de llenado con protección contra encendido prolongado.
  *
- * Impone un tiempo maximo continuo de bombeo (maxOnTimeMs) evaluado en update() para prevenir
- * desbordamientos incluso ante bloqueos logicos del automata superior.
+ * Impone un límite temporal absoluto (maxOnTimeMs) evaluado en update() para prevenir
+ * desbordamientos de líquido incluso ante bloqueos lógicos de la máquina de estados superior.
  */
 class FillPump
 {
@@ -19,39 +19,42 @@ public:
     /**
      * @brief Construye el controlador de la bomba de llenado.
      *
-     * @param pin Numero de pin GPIO conectado al rele o MOSFET de la bomba (definido en HardwarePins).
-     * @param maxOnTimeMs Tiempo maximo continuo permitido con la bomba encendida en milisegundos [ms]
-     *                    (MAX_PUMP_ON_MS en ProcessParams).
-     * @param activeHigh true si la etapa de potencia activa la bomba con nivel HIGH (pull-down externo);
+     * @param pin Número de pin GPIO conectado al relé o MOSFET de la bomba (definido en HardwarePins).
+     * @param maxOnTimeMs Tiempo máximo continuo permitido con la bomba encendida en milisegundos [ms].
+     * @param activeHigh true si la etapa de potencia se activa con nivel HIGH (pull-down externo);
      *                   false si es activa en nivel bajo (LOW).
      */
     FillPump(uint8_t pin, uint16_t maxOnTimeMs, bool activeHigh = true);
 
     /**
-     * @brief Configura el pin como salida digital y asegura que la bomba inicie apagada.
+     * @brief Configura el pin como salida digital garantizando estado apagado previo para evitar pulsos de arranque.
      */
     void init();
 
     /**
-     * @brief Enciende la bomba e inicia el temporizador interno de seguridad.
+     * @brief Energiza la bomba e inicia el temporizador interno de seguridad con millis().
+     *
+     * Función no bloqueante. Si ya estaba encendida, conserva la marca temporal original.
      */
     void on();
 
     /**
-     * @brief Apaga inmediatamente la bomba de llenado.
+     * @brief Desenergiza inmediatamente la etapa de potencia de la bomba.
+     *
+     * Función no bloqueante.
      */
     void off();
 
     /**
-     * @brief Supervisa el tiempo de encendido continuo y corta la bomba si rebasa maxOnTimeMs.
+     * @brief Supervisa el tiempo de bombeo acumulado y corta la salida si alcanza maxOnTimeMs.
      *
-     * Debe invocarse periodicamente desde la tarea de control del super-loop (cada 1 ms).
+     * Función no bloqueante. Debe invocarse desde la tarea de control del super-loop (cada 1 ms).
      */
     void update();
 
     /**
-     * @brief Consulta si la bomba se encuentra actualmente energizada.
-     * @return true si la salida esta activa; false si esta apagada.
+     * @brief Consulta si la etapa de potencia de la bomba se encuentra actualmente energizada.
+     * @return true si la salida está activa; false si está apagada.
      */
     bool isOn() const;
 

@@ -1,43 +1,44 @@
 /**
  * @file interrupt_encoder.hpp
- * @brief Decodificador HAL de cuadratura x2 por interrupcion externa (PORTD) con lectura atomica y calculo de RPM.
+ * @brief Decodificador HAL de cuadratura x2 por interrupción externa (PORTD) con lectura atómica y cálculo de RPM.
  */
 
 #pragma once
 #include <Arduino.h>
 
 /**
- * @brief Ranura de interrupcion estatica asignada a cada instancia de InterruptEncoder.
+ * @enum EncoderSlot
+ * @brief Ranura de interrupción estática asignada a cada instancia de InterruptEncoder.
  */
 enum class EncoderSlot : uint8_t
 {
-    Chuck    = 0, // Cabezal de apriete (INT0 / INT1 en PD0 / PD1)
-    Conveyor = 1  // Banda transportadora (INT2 / INT3 en PD2 / PD3)
+    Chuck    = 0, ///< Cabezal de apriete (INT0 / INT1 en PD0 / PD1, pines 21 y 20)
+    Conveyor = 1  ///< Banda transportadora (INT2 / INT3 en PD2 / PD3, pines 19 y 18)
 };
 
 /**
  * @class InterruptEncoder
  * @brief Abstrae un encoder incremental de cuadratura conectado a pines del puerto D (INT0..INT3).
  *
- * La rutina de servicio de interrupcion (ISR) lee directamente el registro PIND en un ciclo de reloj
- * con decodificacion x2 sobre el canal A. Todas las lecturas del contador de 32 bits desde el
- * super-loop se protegen mediante bloques atomicos (ATOMIC_BLOCK).
+ * La rutina de servicio de interrupción (ISR) lee directamente el registro PIND en un ciclo de reloj
+ * con decodificación x2 sobre el canal A. Todas las lecturas del contador de 32 bits desde el
+ * super-loop se protegen mediante bloques atómicos (ATOMIC_BLOCK).
  */
 class InterruptEncoder
 {
 public:
-    static constexpr uint8_t  MAX_SLOTS        = 2;
-    static constexpr uint8_t  EDGES_PER_PULSE  = 2;     // Decodificacion x2 (CHANGE en canal A)
-    static constexpr uint32_t MS_PER_MINUTE    = 60000UL;
+    static constexpr uint8_t  MAX_SLOTS       = 2;       ///< Cantidad máxima de encoders soportados en PORTD
+    static constexpr uint8_t  EDGES_PER_PULSE = 2;       ///< Factor de multiplicación x2 (CHANGE en canal A)
+    static constexpr uint32_t MS_PER_MINUTE   = 60000UL; ///< Factor de conversión de milisegundos a minutos [ms/min]
 
     /**
-     * @brief Construye una instancia de encoder asociada a una ranura de interrupcion y dos pines de PORTD.
+     * @brief Construye una instancia de encoder asociada a una ranura de interrupción y dos pines de PORTD.
      *
-     * @param slot Ranura estatica (EncoderSlot::Chuck o EncoderSlot::Conveyor).
-     * @param pinA Pin de interrupcion externa del canal A (pines 18..21 del Mega 2560, PORTD).
+     * @param slot Ranura estática (EncoderSlot::Chuck o EncoderSlot::Conveyor).
+     * @param pinA Pin de interrupción externa del canal A (pines 18..21 del Mega 2560, PORTD).
      * @param pinB Pin digital del canal B en el mismo puerto D (pines 18..21 del Mega 2560, PORTD).
-     * @param pulsesPerRev Pulsos nominales por revolucion [PPR] del encoder antes de multiplicacion x2.
-     * @param usePullup true para activar resistencias INPUT_PULLUP internas; false si hay pull-up externo.
+     * @param pulsesPerRev Pulsos nominales por revolución [PPR] del encoder antes de multiplicación x2 (máx. recomendado 600).
+     * @param usePullup true para activar resistencias INPUT_PULLUP internas; false si existe pull-up externo.
      */
     InterruptEncoder(
         EncoderSlot slot,
@@ -47,35 +48,37 @@ public:
         bool usePullup = true);
 
     /**
-     * @brief Configura los pines de entrada, calcula las mascaras de bit en PIND y registra la ISR.
+     * @brief Configura los pines de entrada, calcula las máscaras de bit en PIND y registra la ISR externa.
      */
     void init();
 
     /**
-     * @brief Obtiene de forma atomica el conteo acumulado de flancos (con signo) desde el ultimo reset().
+     * @brief Copia de forma atómica el conteo acumulado de flancos (con signo) desde el último reset().
      *
-     * Seguro para invocarse desde el super-loop mientras la ISR esta activa.
+     * Función no bloqueante. Segura para invocarse desde el super-loop mientras la ISR está activa.
      *
-     * @return Conteo acumulado de flancos (2 flancos = 1 pulso PPR).
+     * @return Conteo acumulado de flancos de cuadratura [flancos] (2 flancos = 1 pulso PPR).
      */
     int32_t getPulses() const;
 
     /**
-     * @brief Reinicia de forma atomica el contador de pulsos y el historial de velocidad a cero.
+     * @brief Reinicia de forma atómica el contador de pulsos y el historial de velocidad a cero.
+     *
+     * Función no bloqueante. Segura para invocarse desde el super-loop.
      */
     void reset();
 
     /**
-     * @brief Actualiza el calculo de velocidad angular en RPM a partir del incremento de pulsos y el tiempo transcurrido.
+     * @brief Calcula la velocidad angular en RPM a partir del incremento de flancos y el tiempo transcurrido en millis().
      *
-     * Debe invocarse a intervalo fijo desde la tarea de perfiles de movimiento (ej. cada 20 ms).
+     * Función no bloqueante. Debe invocarse a intervalo periódico desde el super-loop (cada 20 ms).
      *
-     * @return Velocidad angular actual estimada en revoluciones por minuto [RPM].
+     * @return Velocidad angular estimada en revoluciones por minuto [RPM].
      */
     uint16_t updateSpeed();
 
     /**
-     * @brief Consulta la ultima velocidad angular calculada por updateSpeed().
+     * @brief Consulta la última velocidad angular calculada por updateSpeed() sin alterar las muestras.
      * @return Velocidad angular en revoluciones por minuto [RPM].
      */
     uint16_t getSpeedRpm() const;

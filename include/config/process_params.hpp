@@ -1,96 +1,103 @@
 /**
  * @file process_params.hpp
- * @brief Parametros cinematicos, temporales, de control y calibracion de la Estacion 3.
+ * @brief Parámetros cinemáticos, temporales, de control y calibración de la Estación 3.
  *
- * Regla arquitectonica: este archivo contiene UNICAMENTE cantidades (pasos, velocidades,
- * tiempos, angulos, ganancias y umbrales). Los pines fisicos residen en hardware_pins.hpp.
+ * Regla arquitectónica (§1.5): este archivo contiene ÚNICAMENTE cantidades (pasos, velocidades,
+ * tiempos, ángulos, ganancias y umbrales). Los pines físicos residen en hardware_pins.hpp.
  */
 
 #pragma once
 #include <Arduino.h>
 
+/**
+ * @namespace ProcessParams
+ * @brief Constantes de ingeniería de proceso y tablas de perfiles de botella.
+ */
 namespace ProcessParams
 {
     // ==========================================
     // SENSORES DIGITALES (antirrebote)
     // ==========================================
-    constexpr uint16_t SENSOR_DEBOUNCE_MS      = 25;    // Ventana de estabilidad para entradas digitales [ms]
+    constexpr uint16_t SENSOR_DEBOUNCE_MS      = 25;    ///< Ventana de estabilidad antirrebote para entradas digitales [ms]
 
     // ==========================================
     // EJES Z (motores a pasos de llenado y tapado)
     // ==========================================
-    constexpr uint16_t Z_STEPS_PER_MM          = 400;   // 200 pasos/rev x 16 micropasos / 8 mm de avance (AJUSTAR)
-    constexpr uint16_t Z_CRUISE_SPEED          = 4000;  // Velocidad de crucero [step/s] (max. 8000)
-    constexpr uint16_t Z_HOMING_SPEED          = 1000;  // Busqueda del fin de carrera [step/s]
-    constexpr uint16_t Z_ACCEL                 = 8000;  // Aceleracion [step/s^2]
-    constexpr uint16_t Z_HOME_BACKOFF_STEPS    = 200;   // Retroceso tras tocar el fin de carrera [step]
-    constexpr uint16_t Z_JOG_STEPS             = 400;   // Paso de jog en ManualRecovery [step]
-    constexpr int32_t  FILL_Z_MAX_TRAVEL_STEPS = 24000; // Soft limit eje de llenado [step] (AJUSTAR)
-    constexpr int32_t  CAP_Z_MAX_TRAVEL_STEPS  = 24000; // Soft limit eje de tapado [step] (AJUSTAR)
-    constexpr uint16_t Z_MOVE_TIMEOUT_MS       = 5000;  // Guardia de bajada / subida [ms]
-    constexpr uint16_t Z_HOMING_TIMEOUT_MS     = 10000; // Guardia de Boot [ms]
+    constexpr uint16_t Z_STEPS_PER_MM          = 400;   ///< Relación cinemática: 200 pasos/rev x 16 micropasos / 8 mm [step/mm] (AJUSTAR)
+    constexpr uint16_t Z_CRUISE_SPEED          = 4000;  ///< Velocidad de crucero en desplazamientos verticales [step/s] (máx. 8000)
+    constexpr uint16_t Z_HOMING_SPEED          = 1000;  ///< Velocidad de búsqueda del fin de carrera superior [step/s]
+    constexpr uint16_t Z_ACCEL                 = 8000;  ///< Aceleración y desaceleración de la rampa trapezoidal [step/s^2]
+    constexpr uint16_t Z_HOME_BACKOFF_STEPS    = 200;   ///< Retroceso descendente tras accionar el fin de carrera [step]
+    constexpr uint16_t Z_JOG_STEPS             = 400;   ///< Desplazamiento ascendente por cada pulso táctil en ManualRecovery [step]
+    constexpr int32_t  FILL_Z_MAX_TRAVEL_STEPS = 24000; ///< Cota máxima descendente por software del eje Z de llenado [step] (AJUSTAR)
+    constexpr int32_t  CAP_Z_MAX_TRAVEL_STEPS  = 24000; ///< Cota máxima descendente por software del eje Z de tapado [step] (AJUSTAR)
+    constexpr uint16_t Z_MOVE_TIMEOUT_MS       = 5000;  ///< Tiempo máximo de guardia para bajada o subida de un eje Z [ms]
+    constexpr uint16_t Z_HOMING_TIMEOUT_MS     = 10000; ///< Tiempo máximo de guardia para completar el homing en Boot [ms]
 
     // ==========================================
     // BANDA TRANSPORTADORA (motor 24 V + encoder)
     // ==========================================
-    constexpr uint16_t BELT_TARGET_RPM         = 60;    // Consigna del lazo PI [RPM] (AJUSTAR)
-    constexpr uint16_t BELT_ENCODER_PPR        = 600;   // Pulsos por vuelta del encoder (AJUSTAR)
-    constexpr uint8_t  BELT_PI_KP              = 20;    // Ganancia proporcional (punto fijo, /10)
-    constexpr uint8_t  BELT_PI_KI              = 5;     // Ganancia integral (punto fijo, /10)
-    constexpr uint16_t BELT_STALL_MS           = 500;   // PWM aplicado sin pulsos (ERR-303) [ms]
-    constexpr uint8_t  BELT_STALL_MIN_PWM      = 40;    // PWM minimo (0-255) para evaluar atasco
+    constexpr uint16_t BELT_TARGET_RPM         = 60;    ///< Consigna de velocidad angular del lazo PI de la banda [RPM] (AJUSTAR)
+    constexpr uint16_t BELT_ENCODER_PPR        = 600;   ///< Pulsos nominales por revolución del encoder de la banda [PPR] (AJUSTAR)
+    constexpr uint8_t  BELT_PI_KP              = 20;    ///< Ganancia proporcional del lazo PI en punto fijo (Kp = valor / 10)
+    constexpr uint8_t  BELT_PI_KI              = 5;     ///< Ganancia integral del lazo PI en punto fijo (Ki = valor / 10)
+    constexpr uint16_t BELT_STALL_MS           = 500;   ///< Tiempo máximo con PWM activo sin pulsos antes de declarar ERR-303 [ms]
+    constexpr uint8_t  BELT_STALL_MIN_PWM      = 40;    ///< Umbral mínimo de PWM [0..255] para evaluar atasco de la banda
 
     // ==========================================
-    // BRAZOS CON SERVOMOTOR (angulos en grados, tiempos en ms)
+    // BRAZOS CON SERVOMOTOR (ángulos en grados, tiempos en ms)
     // ==========================================
-    constexpr uint8_t  FILL_STOP_UP_DEG        = 10;    // Brazo de tope - llenado (AJUSTAR)
-    constexpr uint8_t  FILL_STOP_DOWN_DEG      = 100;
-    constexpr uint8_t  FILL_CLAMP_UP_DEG       = 10;    // Brazo de sujecion - llenado (AJUSTAR)
-    constexpr uint8_t  FILL_CLAMP_DOWN_DEG     = 95;
-    constexpr uint8_t  CAP_STOP_UP_DEG         = 10;    // Brazo de tope - tapado (AJUSTAR)
-    constexpr uint8_t  CAP_STOP_DOWN_DEG       = 100;
-    constexpr uint8_t  CAP_CLAMP_UP_DEG        = 10;    // Brazo de sujecion - tapado (AJUSTAR)
-    constexpr uint8_t  CAP_CLAMP_DOWN_DEG      = 95;
-    constexpr uint16_t CLAMP_DELAY_MS          = 1000;  // Espera entre bajar el tope y bajar la sujecion [ms]
-    constexpr uint16_t ARM_MOVE_MS             = 600;   // Recorrido de un servo sin retroalimentacion [ms]
-    constexpr uint16_t RELEASE_GAP_MS          = 500;   // Entre subir sujecion y subir tope [ms]
-    constexpr uint16_t RELEASE_MS              = 1500;  // Hasta que la botella libera el sensor [ms]
+    constexpr uint8_t  FILL_STOP_UP_DEG        = 10;    ///< Ángulo de reposo (arriba) del brazo de tope en llenado [grados, 0..180] (AJUSTAR)
+    constexpr uint8_t  FILL_STOP_DOWN_DEG      = 100;   ///< Ángulo de bloqueo (abajo) del brazo de tope en llenado [grados, 0..180] (AJUSTAR)
+    constexpr uint8_t  FILL_CLAMP_UP_DEG       = 10;    ///< Ángulo de reposo (arriba) del brazo de sujeción en llenado [grados, 0..180] (AJUSTAR)
+    constexpr uint8_t  FILL_CLAMP_DOWN_DEG     = 95;    ///< Ángulo de retención (abajo) del brazo de sujeción en llenado [grados, 0..180] (AJUSTAR)
+    constexpr uint8_t  CAP_STOP_UP_DEG         = 10;    ///< Ángulo de reposo (arriba) del brazo de tope en tapado [grados, 0..180] (AJUSTAR)
+    constexpr uint8_t  CAP_STOP_DOWN_DEG       = 100;   ///< Ángulo de bloqueo (abajo) del brazo de tope en tapado [grados, 0..180] (AJUSTAR)
+    constexpr uint8_t  CAP_CLAMP_UP_DEG        = 10;    ///< Ángulo de reposo (arriba) del brazo de sujeción en tapado [grados, 0..180] (AJUSTAR)
+    constexpr uint8_t  CAP_CLAMP_DOWN_DEG      = 95;    ///< Ángulo de retención (abajo) del brazo de sujeción en tapado [grados, 0..180] (AJUSTAR)
+    constexpr uint16_t CLAMP_DELAY_MS          = 1000;  ///< Espera entre bajar el brazo de tope y bajar el de sujeción [ms]
+    constexpr uint16_t ARM_MOVE_MS             = 600;   ///< Tiempo estimado de recorrido físico de un servomotor [ms]
+    constexpr uint16_t RELEASE_GAP_MS          = 500;   ///< Pausa escalonada entre subir el brazo de sujeción y subir el de tope [ms]
+    constexpr uint16_t RELEASE_MS              = 1500;  ///< Tiempo total de liberación hasta que la botella despeja el sensor [ms]
 
     // ==========================================
     // LLENADO (bomba)
     // ==========================================
-    constexpr uint16_t DRIP_MS                 = 1000;  // Goteo con bomba apagada [ms]
-    constexpr uint16_t MAX_PUMP_ON_MS          = 8000;  // Limite absoluto de bomba encendida (FillPump) [ms]
+    constexpr uint16_t DRIP_MS                 = 1000;  ///< Espera de escurrimiento de boquilla con la bomba apagada [ms]
+    constexpr uint16_t MAX_PUMP_ON_MS          = 8000;  ///< Límite absoluto de seguridad para bomba encendida continua [ms]
 
     // ==========================================
     // TAPADO (motor DC del cabezal)
     // ==========================================
-    constexpr uint16_t TIGHTEN_MS              = 2500;  // Tiempo de apriete [ms]
-    constexpr uint8_t  CHUCK_PWM               = 200;   // PWM de apriete (0-255) (AJUSTAR)
-    constexpr uint16_t CHUCK_CURRENT_LIMIT_ADC = 600;   // Umbral ADC (0-1023) de sobrecorriente (AJUSTAR)
-    constexpr uint16_t CHUCK_STALL_MS          = 150;   // PWM activo sin pulsos del encoder (ERR-302) [ms]
+    constexpr uint16_t TIGHTEN_MS              = 2500;  ///< Duración nominal de la fase de apriete de tapa [ms]
+    constexpr uint8_t  CHUCK_PWM               = 200;   ///< Ciclo de trabajo PWM durante el apriete de tapa [0..255] (AJUSTAR)
+    constexpr uint16_t CHUCK_CURRENT_LIMIT_ADC = 600;   ///< Umbral de sobrecorriente del cabezal en cuentas ADC [0..1023] (AJUSTAR)
+    constexpr uint16_t CHUCK_STALL_MS          = 150;   ///< Ventana sin pulsos de encoder con PWM activo para declarar ERR-302 [ms]
 
     // ==========================================
-    // PANTALLA TACTIL (calibrar con setRotation(1) ya aplicada)
+    // PANTALLA TÁCTIL (calibrar con setRotation(1) ya aplicada)
     // ==========================================
-    constexpr int16_t  TS_MINX                 = 120;   // AJUSTAR con TouchScreen_Calibr_native
-    constexpr int16_t  TS_MAXX                 = 900;
-    constexpr int16_t  TS_MINY                 = 70;
-    constexpr int16_t  TS_MAXY                 = 920;
-    constexpr int16_t  TS_MIN_PRESSURE         = 200;
-    constexpr int16_t  TS_MAX_PRESSURE         = 1000;
+    constexpr int16_t  TS_MINX                 = 120;   ///< Lectura ADC mínima en eje X del panel resistivo [0..1023] (AJUSTAR)
+    constexpr int16_t  TS_MAXX                 = 900;   ///< Lectura ADC máxima en eje X del panel resistivo [0..1023] (AJUSTAR)
+    constexpr int16_t  TS_MINY                 = 70;    ///< Lectura ADC mínima en eje Y del panel resistivo [0..1023] (AJUSTAR)
+    constexpr int16_t  TS_MAXY                 = 920;   ///< Lectura ADC máxima en eje Y del panel resistivo [0..1023] (AJUSTAR)
+    constexpr int16_t  TS_MIN_PRESSURE         = 200;   ///< Presión mínima válida Z para aceptar un toque [cuentas]
+    constexpr int16_t  TS_MAX_PRESSURE         = 1000;  ///< Presión máxima válida Z para aceptar un toque [cuentas]
 
     /**
-     * @brief Parametros dependientes del tamano de botella.
+     * @struct BottleProfileParams
+     * @brief Parámetros de proceso dependientes del formato de botella seleccionado.
      */
     struct BottleProfileParams
     {
-        int32_t  fillZSteps; // Cota de llenado desde home [step]
-        int32_t  capZSteps;  // Cota de tapado desde home [step]
-        uint16_t fillMs;     // Tiempo de bombeo [ms]
+        int32_t  fillZSteps; ///< Cota descendente de llenado medida desde home [step]
+        int32_t  capZSteps;  ///< Cota descendente de tapado medida desde home [step]
+        uint16_t fillMs;     ///< Tiempo de activación de la bomba de llenado [ms]
     };
 
-    // Indice = static_cast<uint8_t>(BottleProfile)
+    /**
+     * @brief Tabla de perfiles indexada por static_cast<uint8_t>(BottleProfile).
+     */
     constexpr BottleProfileParams BOTTLE_PROFILES[] =
     {
         { 0, 0, 0 }, // Small: calibrar antes de operar con botellas
