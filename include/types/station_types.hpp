@@ -68,14 +68,15 @@ enum class BottleProfile : uint8_t
  */
 enum class FillState : uint8_t
 {
-    Idle,            ///< Brazos arriba y bomba apagada; aguardando flanco/nivel de presencia
-    StopArmDown,     ///< Baja el brazo de tope; espera CLAMP_DELAY_MS con la banda en movimiento
-    ClampArmDown,    ///< Baja el brazo de sujeción y valida permanencia de la botella
-    LoweringNozzle,  ///< Desciende el eje Z de llenado hasta la cota del perfil activo
-    Filling,         ///< Energiza la bomba de llenado durante fillMs del perfil activo
-    Draining,        ///< Espera DRIP_MS con la bomba apagada para escurrimiento de boquilla
-    RaisingNozzle,   ///< Asciende el eje Z de llenado hasta accionar el fin de carrera superior
-    ReleasingBottle  ///< Sube el brazo de sujeción y, tras RELEASE_GAP_MS, sube el de tope
+    Idle,             ///< Brazos arriba y bomba apagada; aguardando flanco/nivel de presencia
+    StopArmDown,      ///< Baja el brazo de tope; espera CLAMP_DELAY_MS con la banda en movimiento
+    ClampArmDown,     ///< Baja el brazo de sujeción y valida permanencia de la botella
+    LoweringNozzle,   ///< Desciende el eje Z de llenado hasta la cota del perfil activo
+    Filling,          ///< Energiza la bomba de llenado durante fillMs del perfil activo
+    Draining,         ///< Espera DRIP_MS con la bomba apagada para escurrimiento de boquilla
+    RaisingNozzle,    ///< Asciende el eje Z de llenado hasta accionar el fin de carrera superior
+    WaitingQueueSlot, ///< Retiene la botella llena si la cola intermedia alcanzó MAX_INTERSTAGE_QUEUE
+    ReleasingBottle   ///< Sube el brazo de sujeción y, tras RELEASE_GAP_MS, sube el de tope
 };
 
 /**
@@ -121,6 +122,7 @@ struct DisplaySnapshot
     FillState     fillState;   ///< Fase activa del autómata de llenado
     CappingState  capState;    ///< Fase activa del autómata de tapado
     BottleProfile profile;     ///< Perfil de botella seleccionado
+    uint8_t       queueCount;  ///< Botellas actualmente en la cola intermedia entre Llenado y Tapado [unidades]
     uint32_t      bottleCount; ///< Conteo acumulado de botellas completadas desde el arranque [unidades]
 };
 
@@ -135,6 +137,7 @@ struct TelemetrySnapshot
     FillState     fillState;    ///< Fase activa del autómata de llenado
     CappingState  capState;     ///< Fase activa del autómata de tapado
     BottleProfile profile;      ///< Perfil de botella seleccionado
+    uint8_t       queueCount;   ///< Botellas actualmente en la cola intermedia entre Llenado y Tapado [unidades]
     uint16_t      beltRpm;      ///< Velocidad angular medida en la banda transportadora [RPM]
     uint32_t      bottleCount;  ///< Conteo acumulado de botellas producidas [unidades]
     bool          presenceFill; ///< Estado filtrado del sensor de presencia en llenado

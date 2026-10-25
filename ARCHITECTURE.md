@@ -21,7 +21,7 @@ La estación es **lineal**: una banda transportadora que gira en un único senti
 2. La **banda no se detiene**: sigue girando y la botella, retenida por el brazo de tope, **resbala sobre la banda**. Tras `CLAMP_DELAY_MS` (1 s) baja el **brazo de sujeción**, que inmoviliza la botella.
 3. Se ejecuta el proceso (llenado o tapado) y, al terminar, ambos brazos suben y la botella continúa arrastrada por la banda.
 
-Como la banda gira de forma continua en modo `Running`, una botella retenida en un autómata **no afecta** al otro: las botellas de los demás tramos siguen avanzando.
+Como la banda gira de forma continua en modo `Running`, una botella retenida en un autómata **no afecta** al otro: las botellas de los demás tramos siguen avanzando. Para evitar saturar el tramo intermedio si el tapado demora más que el llenado, `StationController` administra una **cola intermedia (`interstageQueueCount_`, limitada por `MAX_INTERSTAGE_QUEUE`)**: si la cola está llena, el autómata de llenado aguarda en `WaitingQueueSlot` (con la boquilla ya arriba y los brazos abajo reteniendo la botella llena) hasta que el autómata de tapado libere un lugar.
 
 ## 1. Reglas de Idioma y Nomenclatura del Código
 
@@ -291,13 +291,14 @@ enum class BottleProfile : uint8_t
 enum class FillState : uint8_t
 {
     Idle,
-    StopArmDown,    // Baja el brazo de tope; espera CLAMP_DELAY_MS (1 s) con la banda girando
-    ClampArmDown,   // Baja el brazo de sujeción y confirma presencia
+    StopArmDown,      // Baja el brazo de tope; espera CLAMP_DELAY_MS (1 s) con la banda girando
+    ClampArmDown,     // Baja el brazo de sujeción y confirma presencia
     LoweringNozzle,
     Filling,
-    Draining,       // Espera de goteo con la bomba apagada
+    Draining,         // Espera de goteo con la bomba apagada
     RaisingNozzle,
-    ReleasingBottle // Sube brazo de sujeción y después el de tope
+    WaitingQueueSlot, // Retiene la botella llena si la cola hacia Tapado alcanzó MAX_INTERSTAGE_QUEUE
+    ReleasingBottle   // Sube brazo de sujeción y después el de tope
 };
 
 enum class CappingState : uint8_t
@@ -337,6 +338,7 @@ struct DisplaySnapshot
     FillState fillState;
     CappingState capState;
     BottleProfile profile;
+    uint8_t queueCount;
     uint32_t bottleCount;
 };
 ```
@@ -463,7 +465,7 @@ Elimina el acoplamiento cruzado entre actuadores, sensores y pantallas.
 
   * Despacha comandos a los módulos de hardware según el estado activo de cada autómata, evitando que los periféricos se conozcan o se invoquen entre sí.
 
-  * **Gobierna la banda:** la mantiene en giro continuo durante el modo `Running` y la detiene en `Boot`, `ErrorStop` y `ManualRecovery`.
+  * **Gobierna la banda y la cola intermedia:** mantiene la banda en giro continuo durante el modo `Running` y la detiene en `Boot`, `ErrorStop` y `ManualRecovery`. Administra el contador `interstageQueueCount_` (incrementa cuando `FillingAutomaton` entra en `ReleasingBottle` y decrementa cuando `CappingAutomaton` entra en `ReleasingBottle`, reiniciándose a `0` en `Boot`), autorizando la salida de `WaitingQueueSlot` únicamente mientras `interstageQueueCount_ < MAX_INTERSTAGE_QUEUE`.
 
   * **Detiene ambos autómatas** ante cualquier error (modo `ErrorStop`) y filtra los comandos táctiles según la seta E-STOP (§3.3).
 
@@ -547,7 +549,10 @@ En `Running`, el mediador mantiene la banda girando de forma continua. El brazo 
 [RaisingNozzle]                                               │
       │                                                       │
       ▼ (Fin de carrera superior activado)                    │
-[ReleasingBottle]                                             │
+[WaitingQueueSlot]                                            │
+      │                                                       │
+      ▼ (interstageQueueCount_ < MAX_INTERSTAGE_QUEUE)        │
+[ReleasingBottle]  (interstageQueueCount_++)                  │
       │                                                       │
       └────── (Transcurre RELEASE_MS; needsClear_ = true) ────┘
 ```
@@ -602,8 +607,9 @@ Vigilancia continua en `Running`: `conveyor.isStalled()` → `ERR-303` → `Erro
 | `LoweringNozzle` | Mover eje Z a `profile.fillZSteps`. | `fillZ.isTargetReached()` | 5000 ms | `ERR-203` → `ErrorStop` (soft limit: `ERR-202`) |
 | `Filling` | Bomba ON. | `millis() - stageTimer_ >= profile.fillMs` | No aplica (salida por tiempo; `FillPump` impone `MAX_PUMP_ON_MS`) | → `Draining` |
 | `Draining` | Bomba OFF (en Exit de `Filling`); esperar goteo. | `millis() - stageTimer_ >= DRIP_MS` | Sin timeout | → `RaisingNozzle` |
-| `RaisingNozzle` | Subir eje Z hacia fin de carrera. | `limitSwitchFill.isTriggered()` | 5000 ms | `ERR-204` → `ErrorStop` |
-| `ReleasingBottle` | Subir brazo de sujeción; tras `RELEASE_GAP_MS`, subir el de tope; activar `needsClear_`. | `millis() - stageTimer_ >= RELEASE_MS` | Sin timeout | → `Idle` |
+| `RaisingNozzle` | Subir eje Z hacia fin de carrera. | `limitSwitchFill.isTriggered()` | 5000 ms | `ERR-204` → `ErrorStop` (éxito → `WaitingQueueSlot`) |
+| `WaitingQueueSlot` | Mantener brazos abajo reteniendo la botella llena con la boquilla arriba. | `canReleaseBottle_` (`interstageQueueCount_ < MAX_INTERSTAGE_QUEUE`) | Sin timeout | → `ReleasingBottle` |
+| `ReleasingBottle` | `interstageQueueCount_++`; subir brazo de sujeción; tras `RELEASE_GAP_MS`, subir el de tope; activar `needsClear_`. | `millis() - stageTimer_ >= RELEASE_MS` | Sin timeout | → `Idle` |
 
 #### Autómata de Tapado (`CappingState`)
 
@@ -615,7 +621,7 @@ Vigilancia continua en `Running`: `conveyor.isStalled()` → `ERR-303` → `Erro
 | `LoweringHead` | Mover eje Z a `profile.capZSteps`. | `capZ.isTargetReached()` | 5000 ms | `ERR-213` → `ErrorStop` (soft limit: `ERR-212`) |
 | `TighteningCap` | Encender motor DC con goma de apriete. | `millis() - stageTimer_ >= TIGHTEN_MS` | No aplica (salida por tiempo; fallos durante la fase) | Corriente excesiva: `ERR-301`; bloqueo prematuro: `ERR-302` → `ErrorStop` |
 | `RaisingHead` | Frenar motor DC; subir eje Z hacia fin de carrera. | `limitSwitchCap.isTriggered()` | 5000 ms | `ERR-214` → `ErrorStop` |
-| `ReleasingBottle` | `bottleCount++`; subir brazo de sujeción; tras `RELEASE_GAP_MS`, subir el de tope; activar `needsClear_`. | `millis() - stageTimer_ >= RELEASE_MS` | Sin timeout | → `Idle` |
+| `ReleasingBottle` | `bottleCount++`; si `interstageQueueCount_ > 0` entonces `interstageQueueCount_--`; subir brazo de sujeción; tras `RELEASE_GAP_MS`, subir el de tope; activar `needsClear_`. | `millis() - stageTimer_ >= RELEASE_MS` | Sin timeout | → `Idle` |
 
 ### 5.5 Parámetros de Proceso (`process_params.hpp`)
 
@@ -627,6 +633,11 @@ Archivo exclusivo para **cantidades**: pasos, velocidades, tiempos, ángulos, um
 
 namespace ProcessParams
 {
+    // ==========================================
+    // COLA INTERMEDIA ENTRE AUTÓMATAS (Buffer WIP Llenado -> Tapado)
+    // ==========================================
+    constexpr uint8_t  MAX_INTERSTAGE_QUEUE    = 2;     // Máximo de botellas en tránsito/espera hacia Tapado (AJUSTAR)
+
     // ==========================================
     // EJES Z (motores a pasos de llenado y tapado)
     // ==========================================

@@ -21,6 +21,11 @@ namespace ProcessParams
     constexpr uint16_t SENSOR_DEBOUNCE_MS      = 25;    ///< Ventana de estabilidad antirrebote para entradas digitales [ms]
 
     // ==========================================
+    // COLA INTERMEDIA ENTRE AUTÓMATAS (Buffer WIP Llenado -> Tapado)
+    // ==========================================
+    constexpr uint8_t  MAX_INTERSTAGE_QUEUE    = 2;     ///< Máximo de botellas en tránsito/espera entre Llenado y Tapado [unidades] (AJUSTAR)
+
+    // ==========================================
     // EJES Z (motores a pasos de llenado y tapado)
     // ==========================================
     constexpr uint16_t Z_STEPS_PER_MM          = 400;   ///< Relación cinemática: 200 pasos/rev x 16 micropasos / 8 mm [step/mm] (AJUSTAR)
