@@ -75,14 +75,18 @@ namespace ProcessParams
     constexpr uint16_t CHUCK_STALL_MS          = 150;   ///< Ventana sin pulsos de encoder con PWM activo para declarar ERR-302 [ms]
 
     // ==========================================
-    // PANTALLA TÁCTIL (calibrar con setRotation(1) ya aplicada)
+    // PANTALLA TÁCTIL (calibrada con setRotation(1) en el shield 2.4")
+    // En rotación horizontal: el eje X de pantalla (0..319) proviene de rawY (invertido)
+    // y el eje Y de pantalla (0..239) proviene de rawX (invertido).
     // ==========================================
-    constexpr int16_t  TS_MINX                 = 120;   ///< Lectura ADC mínima en eje X del panel resistivo [0..1023] (AJUSTAR)
-    constexpr int16_t  TS_MAXX                 = 900;   ///< Lectura ADC máxima en eje X del panel resistivo [0..1023] (AJUSTAR)
-    constexpr int16_t  TS_MINY                 = 70;    ///< Lectura ADC mínima en eje Y del panel resistivo [0..1023] (AJUSTAR)
-    constexpr int16_t  TS_MAXY                 = 920;   ///< Lectura ADC máxima en eje Y del panel resistivo [0..1023] (AJUSTAR)
-    constexpr int16_t  TS_MIN_PRESSURE         = 200;   ///< Presión mínima válida Z para aceptar un toque [cuentas]
+    constexpr int16_t  TS_MINX                 = 945;   ///< Lectura rawY en borde izquierdo (px = 0) [0..1023]
+    constexpr int16_t  TS_MAXX                 = 101;   ///< Lectura rawY en borde derecho (px = 319) [0..1023]
+    constexpr int16_t  TS_MINY                 = 925;   ///< Lectura rawX en borde superior (py = 0) [0..1023]
+    constexpr int16_t  TS_MAXY                 = 105;   ///< Lectura rawX en borde inferior (py = 239) [0..1023]
+    constexpr int16_t  TS_MIN_PRESSURE         = 80;    ///< Presión mínima válida Z para aceptar un toque estable [cuentas]
     constexpr int16_t  TS_MAX_PRESSURE         = 1000;  ///< Presión máxima válida Z para aceptar un toque [cuentas]
+    constexpr bool     TOUCH_DEBUG_COORDS      = false; ///< Flag: muestra en pantalla las coordenadas RAW y mapeadas
+    constexpr bool     TOUCH_DEBUG_MARKER      = false; ///< Flag: dibuja únicamente el marcador del último touch
 
     /**
      * @struct BottleProfileParams

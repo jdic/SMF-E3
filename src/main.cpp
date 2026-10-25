@@ -9,25 +9,23 @@
 #include "interrupt_encoder.hpp"
 #include "conveyor_controller.hpp"
 #include "stepper_axis.hpp"
+#include "display_manager.hpp"
 
-DigitalSensor sensor(2, 30, false, true);
+DisplayManager display;
 
 void setup()
 {
-    Serial.begin(115200);
-
-    sensor.init();
-
-    // Inicializacion base de la Estacion 3 (Llenado y Tapado)
+    // Inicialización base de la Estación 3 (Llenado y Tapado)
     pinMode(HardwarePins::PIN_STATUS_LED, OUTPUT);
     digitalWrite(HardwarePins::PIN_STATUS_LED, LOW);
+
+    // Inicializar pantalla TFT 2.4" y mostrar la vista Home con el Layout inferior
+    display.init();
+    display.showScreen(ScreenId::Home);
 }
 
 void loop()
 {
-    // Planificador cooperativo pendiente de integracion
-    sensor.update();
-
-    printf("A");
-    printf(sensor.isTriggered() ? "PRESIONADO" : "NO PRESIONADO");
+    // Permite cambiar entre Home y Settings tocando los iconos de la barra inferior
+    display.updateTouchNavigation();
 }

@@ -33,11 +33,11 @@ namespace HardwarePins
     constexpr uint8_t PIN_TFT_RST           = A4; ///< Reset por hardware del controlador ILI9341
     // Bus de datos paralelo de 8 bits (cableado 1 a 1 con el shield):
     // LCD_D0=8, LCD_D1=9, LCD_D2=2, LCD_D3=3, LCD_D4=4, LCD_D5=5, LCD_D6=6, LCD_D7=7
-    // Pines del panel táctil (ajustar según calibración de MCUFRIEND_kbv):
-    constexpr uint8_t PIN_TOUCH_XP          = 8;  ///< Terminal X+ del panel táctil resistivo (compartido con LCD_D0)
+    // Pines del panel táctil resistivo (calibrados para el shield 2.4" ILI9341):
+    constexpr uint8_t PIN_TOUCH_XP          = 6;  ///< Terminal X+ del panel táctil resistivo (compartido con LCD_D6)
     constexpr uint8_t PIN_TOUCH_XM          = A2; ///< Terminal X- analógico del panel táctil (compartido con LCD_RS)
-    constexpr uint8_t PIN_TOUCH_YP          = A3; ///< Terminal Y+ analógico del panel táctil (compartido con LCD_CS)
-    constexpr uint8_t PIN_TOUCH_YM          = 9;  ///< Terminal Y- del panel táctil resistivo (compartido con LCD_D1)
+    constexpr uint8_t PIN_TOUCH_YP          = A1; ///< Terminal Y+ analógico del panel táctil (compartido con LCD_WR)
+    constexpr uint8_t PIN_TOUCH_YM          = 7;  ///< Terminal Y- del panel táctil resistivo (compartido con LCD_D7)
 
     // ==========================================
     // ENTRADAS: Encoders de Cuadratura (Interrupción Externa en PORTD)
