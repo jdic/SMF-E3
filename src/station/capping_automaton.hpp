@@ -3,8 +3,8 @@
  * @brief Máquina de estados finitos (FSM) de tres fases para el Autómata 2 (Tapado).
  *
  * Implementa el patrón Enum FSM con ciclo de vida explícito (Entry, During, Exit),
- * supervisión de sobrecorriente (ERR-301) y bloqueo de encoder (ERR-302) durante el apriete,
- * y notificación de botella completada para actualizar producción y la cola intermedia.
+ * supervisión de sobrecorriente (ERR-301) y par de bloqueo prematuro por corriente (ERR-302)
+ * en el puente H BTS7960 durante el apriete, y notificación de botella completada.
  */
 
 #pragma once
@@ -14,7 +14,6 @@
 #include "bottle_gate.hpp"
 #include "stepper_axis.hpp"
 #include "dc_motor_bts7960.hpp"
-#include "interrupt_encoder.hpp"
 
 /**
  * @class CappingAutomaton
@@ -30,16 +29,14 @@ public:
      * @param[in] limitSwitch Fin de carrera superior del eje Z de tapado.
      * @param[in] gate Compuerta de doble servomotor (brazo de tope y brazo de sujeción) de tapado.
      * @param[in] zAxis Eje vertical paso a paso del cabezal de tapado.
-     * @param[in] chuckMotor Puente H BTS7960 del motor DC del cabezal de apriete.
-     * @param[in] chuckEncoder Encoder incremental de cuadratura del cabezal de apriete.
+     * @param[in] chuckMotor Puente H BTS7960 del motor DC del cabezal de apriete con sensado IS.
      */
     CappingAutomaton(
         DigitalSensor& presenceSensor,
         DigitalSensor& limitSwitch,
         BottleGate& gate,
         StepperAxis& zAxis,
-        DcMotorBts7960& chuckMotor,
-        InterruptEncoder& chuckEncoder);
+        DcMotorBts7960& chuckMotor);
 
     /**
      * @brief Reinicia la FSM al estado Idle, detiene el cabezal y limpia banderas de fallo y eventos.
@@ -119,22 +116,19 @@ private:
      */
     void triggerFault(ErrorCode error);
 
-    DigitalSensor&    presenceSensor_;       ///< Sensor óptico de presencia en la estación de tapado
-    DigitalSensor&    limitSwitch_;          ///< Fin de carrera superior del eje Z de tapado
-    BottleGate&       gate_;                 ///< Par de servomotores (tope y sujeción) de tapado
-    StepperAxis&      zAxis_;                ///< Actuador lineal paso a paso del cabezal
-    DcMotorBts7960&   chuckMotor_;           ///< Puente H BTS7960 del motor DC de apriete
-    InterruptEncoder& chuckEncoder_;         ///< Encoder de cuadratura del cabezal de apriete
+    DigitalSensor&  presenceSensor_;       ///< Sensor óptico de presencia en la estación de tapado
+    DigitalSensor&  limitSwitch_;          ///< Fin de carrera superior del eje Z de tapado
+    BottleGate&     gate_;                 ///< Par de servomotores (tope y sujeción) de tapado
+    StepperAxis&    zAxis_;                ///< Actuador lineal paso a paso del cabezal
+    DcMotorBts7960& chuckMotor_;           ///< Puente H BTS7960 del motor DC de apriete
 
-    CappingState      currentState_;         ///< Estado activo en el ciclo actual
-    CappingState      nextState_;            ///< Próximo estado solicitado por una transición
-    CappingState      previousState_;        ///< Estado anterior para trazabilidad de transiciones
-    BottleProfile     profile_;              ///< Perfil de botella activo (Small / Large)
-    ErrorCode         activeError_;          ///< Código de fallo retenido (ErrorCode::None si opera normal)
-    uint32_t          stageTimerMs_;         ///< Marca de tiempo millis() de inicio de la fase actual [ms]
-    uint32_t          lastPulseChangeMs_;    ///< Último instante en que se observaron pulsos en el cabezal [ms]
-    int32_t           lastEncoderPulses_;    ///< Última lectura de flancos del encoder para vigilancia de bloqueo
-    bool              isFirstRun_;           ///< Bandera para disparar onEntry() en el primer ciclo del estado
-    bool              needsClear_;           ///< Impide re-disparo en Idle hasta que la botella saliente despeje el sensor
-    bool              bottleCompletedEvent_; ///< Pulso de evento para incrementar bottleCount y descontar cola intermedia
+    CappingState    currentState_;         ///< Estado activo en el ciclo actual
+    CappingState    nextState_;            ///< Próximo estado solicitado por una transición
+    CappingState    previousState_;        ///< Estado anterior para trazabilidad de transiciones
+    BottleProfile   profile_;              ///< Perfil de botella activo (Small / Large)
+    ErrorCode       activeError_;          ///< Código de fallo retenido (ErrorCode::None si opera normal)
+    uint32_t        stageTimerMs_;         ///< Marca de tiempo millis() de inicio de la fase actual [ms]
+    bool            isFirstRun_;           ///< Bandera para disparar onEntry() en el primer ciclo del estado
+    bool            needsClear_;           ///< Impide re-disparo en Idle hasta que la botella saliente despeje el sensor
+    bool            bottleCompletedEvent_; ///< Pulso de evento para incrementar bottleCount y descontar cola intermedia
 };

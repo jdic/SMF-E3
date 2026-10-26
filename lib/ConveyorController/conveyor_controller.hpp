@@ -1,88 +1,78 @@
 /**
  * @file conveyor_controller.hpp
- * @brief Controlador HAL/lazo PI de velocidad y detector de atasco para la banda transportadora de 24 V.
+ * @brief Controlador HAL en lazo abierto PWM con detección de atasco por corriente (IS) para la banda de 24 V.
  */
 
 #pragma once
 #include <Arduino.h>
 #include "dc_motor_bts7960.hpp"
-#include "interrupt_encoder.hpp"
 
 /**
  * @struct ConveyorConfig
- * @brief Parámetros de hardware, ganancias del lazo PI y umbrales de protección de atasco para la banda.
+ * @brief Parámetros de hardware, consigna PWM y umbrales de protección de sobrecorriente para la banda.
  */
 struct ConveyorConfig
 {
-    uint8_t  rpwmPin;     ///< Pin PWM por hardware del BTS7960 de la banda (HardwarePins)
-    uint8_t  enPin;       ///< Pin de habilitación EN del BTS7960 de la banda (HardwarePins)
-    uint8_t  encPinA;     ///< Pin de interrupción externa canal A del encoder (HardwarePins)
-    uint8_t  encPinB;     ///< Pin digital canal B del encoder (HardwarePins)
-    uint16_t encoderPpr;  ///< Pulsos nominales por revolución del encoder de la banda [PPR]
-    uint16_t targetRpm;   ///< Consigna de velocidad angular en modo Running [RPM]
-    uint8_t  kpTenths;    ///< Ganancia proporcional en décimas (Kp = kpTenths / 10)
-    uint8_t  kiTenths;    ///< Ganancia integral en décimas por ciclo de 20 ms (Ki = kiTenths / 10)
-    uint16_t stallTimeMs; ///< Ventana sin pulsos con PWM activo para declarar atasco ERR-303 [ms]
-    uint8_t  stallMinPwm; ///< Umbral mínimo de PWM [0..255] a partir del cual se evalúa atasco
+    uint8_t  rpwmPin;         ///< Pin PWM por hardware del BTS7960 de la banda (HardwarePins)
+    uint8_t  enPin;           ///< Pin de habilitación EN del BTS7960 de la banda (HardwarePins)
+    uint8_t  currentSensePin; ///< Pin analógico conectado a la salida IS del BTS7960 de la banda (HardwarePins)
+    uint8_t  targetPwm;       ///< Ciclo de trabajo PWM nominal en modo Running [0..255]
+    uint16_t currentLimitAdc; ///< Umbral de sobrecorriente en cuentas ADC [0..1023] para evaluar atasco
+    uint16_t stallTimeMs;     ///< Tiempo continuo superando currentLimitAdc para declarar atasco ERR-303 [ms]
 };
 
 /**
  * @class ConveyorController
- * @brief Regula la velocidad continua de la banda de 24 V mediante un lazo PI en punto fijo y vigila atascos.
+ * @brief Gobierna el giro continuo de la banda de 24 V mediante PWM y supervisa su consumo de corriente.
  *
- * Compensa el rozamiento cuando las botellas retenidas por los brazos de tope resbalan sobre la banda.
- * Si el PWM supera stallMinPwm y el encoder no registra pulsos durante stallTimeMs, corta la etapa de
- * potencia y activa la bandera de fallo isStalled() (ERR-303).
+ * Si la corriente filtrada del puente H BTS7960 (pin IS) supera currentLimitAdc de forma ininterrumpida
+ * durante stallTimeMs, corta la etapa de potencia y activa la bandera de fallo isStalled() (ERR-303).
  */
 class ConveyorController
 {
 public:
-    static constexpr int32_t PI_SCALE       = 10;  ///< Factor de escala divisor para ganancias PI en décimas
-    static constexpr int32_t MAX_PWM        = 255; ///< Límite superior de saturación del modulador PWM
-    static constexpr int32_t MIN_ACTIVE_PWM = 1;   ///< Límite inferior de PWM mientras la banda está en marcha
-
     /**
-     * @brief Construye el controlador de banda integrando su puente H BTS7960 y su encoder de cuadratura.
+     * @brief Construye el controlador de banda integrando su puente H BTS7960 con sensado de corriente.
      *
-     * @param config Estructura con pines de hardware, ganancias PI y umbrales de atasco.
+     * @param[in] config Estructura con pines de hardware, ciclo PWM nominal y umbrales de sobrecorriente.
      */
     explicit ConveyorController(const ConveyorConfig& config);
 
     /**
-     * @brief Inicializa el driver BTS7960 y el encoder por interrupción, dejando la banda detenida.
+     * @brief Inicializa el driver BTS7960 dejando la banda detenida y sin banderas de fallo.
      */
     void init();
 
     /**
-     * @brief Habilita el giro continuo de la banda bajo regulación PI hacia targetRpm.
+     * @brief Habilita el giro continuo de la banda aplicando el ciclo de trabajo targetPwm.
      *
-     * Función no bloqueante. Si la banda ya se encontraba en marcha, conserva el estado del integrador.
+     * Función no bloqueante.
      */
     void start();
 
     /**
-     * @brief Deshabilita el lazo PI y detiene el motor en parada libre (EN = LOW, PWM = 0).
+     * @brief Deshabilita la etapa de potencia y detiene el motor en parada libre (EN = LOW, PWM = 0).
      *
      * Función no bloqueante.
      */
     void stop();
 
     /**
-     * @brief Deshabilita el lazo PI y aplica frenado dinámico inmediato al motor de la banda.
+     * @brief Deshabilita el avance y aplica frenado dinámico inmediato al motor de la banda.
      *
      * Función no bloqueante.
      */
     void brake();
 
     /**
-     * @brief Ejecuta una iteración del lazo PI de velocidad y verifica la condición de atasco (ERR-303).
+     * @brief Muestrea la corriente del puente H (IS) y verifica la condición de atasco por sobrecorriente (ERR-303).
      *
      * Función no bloqueante. Debe invocarse periódicamente desde la tarea de perfiles de movimiento (cada 20 ms).
      */
     void update();
 
     /**
-     * @brief Evalúa si se detectó un atasco mecánico de la banda (PWM >= stallMinPwm sin pulsos durante stallTimeMs).
+     * @brief Evalúa si se detectó un atasco mecánico de la banda por sobrecorriente sostenida (ERR-303).
      * @return true si se disparó la protección ERR-303; false en operación normal.
      */
     bool isStalled() const;
@@ -93,24 +83,28 @@ public:
     void clearStall();
 
     /**
-     * @brief Consulta la última velocidad angular medida en el eje de la banda.
-     * @return Velocidad angular actual en revoluciones por minuto [RPM].
+     * @brief Consulta el ciclo de trabajo PWM actualmente aplicado al motor de la banda.
+     * @return Valor PWM activo en el rango [0..255].
      */
-    uint16_t getSpeedRpm() const;
+    uint8_t getCurrentPwm() const;
 
     /**
-     * @brief Consulta si el lazo PI de giro continuo se encuentra activo.
-     * @return true si la banda está regulando velocidad en modo continuo; false si está detenida o en fallo.
+     * @brief Consulta el último valor filtrado de corriente del puente H de la banda.
+     * @return Corriente filtrada en cuentas ADC de 10 bits [0..1023].
+     */
+    uint16_t getFilteredCurrentAdc() const;
+
+    /**
+     * @brief Consulta si la banda se encuentra actualmente energizada en modo continuo.
+     * @return true si la banda está en marcha; false si está detenida o en estado de fallo.
      */
     bool isRunning() const;
 
 private:
-    ConveyorConfig   config_;
-    DcMotorBts7960   motor_;
-    InterruptEncoder encoder_;
-    int32_t          integralScaled_;
-    int32_t          lastStallPulses_;
-    uint32_t         lastPulseTimeMs_;
-    bool             running_;
-    bool             stalled_;
+    ConveyorConfig config_;             ///< Parámetros de configuración de pines, PWM y corriente
+    DcMotorBts7960 motor_;              ///< Instancia del driver BTS7960 unidireccional (LPWM a GND)
+    uint32_t       overcurrentStartMs_; ///< Marca temporal de inicio de condición de sobrecorriente [ms]
+    bool           inOvercurrent_;      ///< Indica si la lectura actual supera el umbral currentLimitAdc
+    bool           running_;            ///< Indica si la banda tiene orden de giro continuo activa
+    bool           stalled_;            ///< Bandera retenida (latch) de fallo por atasco ERR-303
 };

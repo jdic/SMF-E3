@@ -16,7 +16,6 @@
 #include "stepper_axis.hpp"
 #include "fill_pump.hpp"
 #include "dc_motor_bts7960.hpp"
-#include "interrupt_encoder.hpp"
 #include "conveyor_controller.hpp"
 #include "alarm_buzzer.hpp"
 #include "filling_automaton.hpp"
@@ -49,7 +48,7 @@ public:
     void update();
 
     /**
-     * @brief Actualiza las rampas trapezoidales de los dos ejes Z y el lazo PI de velocidad de la banda.
+     * @brief Actualiza las rampas trapezoidales de los dos ejes Z y la vigilancia de corriente de la banda.
      *
      * Función no bloqueante. Debe invocarse desde la tarea de perfiles de movimiento (cada 20 ms).
      */
@@ -148,8 +147,7 @@ private:
     StepperAxis        capZ_;                 ///< Eje Z paso a paso del cabezal de tapado
     FillPump           fillPump_;             ///< Bomba de llenado con corte autónomo por tiempo máximo
     DcMotorBts7960     chuckMotor_;           ///< Puente H BTS7960 del motor DC de apriete de tapa
-    InterruptEncoder   chuckEncoder_;         ///< Encoder incremental del cabezal de apriete (INT0/INT1)
-    ConveyorController conveyor_;             ///< Controlador PI y detector de atasco de la banda de 24 V
+    ConveyorController conveyor_;             ///< Controlador PWM y detector de sobrecorriente de la banda de 24 V
     AlarmBuzzer        buzzer_;               ///< Señalizador acústico no bloqueante por severidad de alarma
 
     // Autómatas de proceso

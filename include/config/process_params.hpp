@@ -40,14 +40,11 @@ namespace ProcessParams
     constexpr uint16_t Z_HOMING_TIMEOUT_MS     = 10000; ///< Tiempo máximo de guardia para completar el homing en Boot [ms]
 
     // ==========================================
-    // BANDA TRANSPORTADORA (motor 24 V + encoder)
+    // BANDA TRANSPORTADORA (motor DC 24 V en lazo abierto PWM + sensado IS en BTS7960)
     // ==========================================
-    constexpr uint16_t BELT_TARGET_RPM         = 60;    ///< Consigna de velocidad angular del lazo PI de la banda [RPM] (AJUSTAR)
-    constexpr uint16_t BELT_ENCODER_PPR        = 600;   ///< Pulsos nominales por revolución del encoder de la banda [PPR] (AJUSTAR)
-    constexpr uint8_t  BELT_PI_KP              = 20;    ///< Ganancia proporcional del lazo PI en punto fijo (Kp = valor / 10)
-    constexpr uint8_t  BELT_PI_KI              = 5;     ///< Ganancia integral del lazo PI en punto fijo (Ki = valor / 10)
-    constexpr uint16_t BELT_STALL_MS           = 500;   ///< Tiempo máximo con PWM activo sin pulsos antes de declarar ERR-303 [ms]
-    constexpr uint8_t  BELT_STALL_MIN_PWM      = 40;    ///< Umbral mínimo de PWM [0..255] para evaluar atasco de la banda
+    constexpr uint8_t  BELT_PWM                = 180;   ///< Ciclo de trabajo PWM nominal de la banda en modo Running [0..255] (AJUSTAR)
+    constexpr uint16_t BELT_CURRENT_LIMIT_ADC  = 650;   ///< Umbral de sobrecorriente de la banda en cuentas ADC [0..1023] (AJUSTAR)
+    constexpr uint16_t BELT_STALL_MS           = 500;   ///< Tiempo continuo en sobrecorriente antes de declarar atasco ERR-303 [ms]
 
     // ==========================================
     // BRAZOS CON SERVOMOTOR (ángulos en grados, tiempos en ms)
@@ -72,13 +69,13 @@ namespace ProcessParams
     constexpr uint16_t MAX_PUMP_ON_MS          = 8000;  ///< Límite absoluto de seguridad para bomba encendida continua [ms]
 
     // ==========================================
-    // TAPADO (motor DC del cabezal)
+    // TAPADO (motor DC del cabezal + sensado IS en BTS7960)
     // ==========================================
     constexpr uint16_t TIGHTEN_MS              = 2500;  ///< Duración nominal de la fase de apriete de tapa [ms]
     constexpr uint8_t  CHUCK_PWM               = 200;   ///< Ciclo de trabajo PWM durante el apriete de tapa [0..255] (AJUSTAR)
-    constexpr uint16_t CHUCK_ENCODER_PPR       = 600;   ///< Pulsos nominales por revolución del encoder del cabezal [PPR] (AJUSTAR)
-    constexpr uint16_t CHUCK_CURRENT_LIMIT_ADC = 600;   ///< Umbral de sobrecorriente del cabezal en cuentas ADC [0..1023] (AJUSTAR)
-    constexpr uint16_t CHUCK_STALL_MS          = 150;   ///< Ventana sin pulsos de encoder con PWM activo para declarar ERR-302 [ms]
+    constexpr uint16_t CHUCK_CURRENT_LIMIT_ADC = 600;   ///< Umbral de sobrecorriente crítica del cabezal en cuentas ADC [0..1023] (AJUSTAR)
+    constexpr uint16_t CHUCK_STALL_ADC         = 450;   ///< Umbral de par de bloqueo prematuro (rosca trasroscada) en cuentas ADC [0..1023] (AJUSTAR)
+    constexpr uint16_t CHUCK_MIN_TIGHTEN_MS    = 350;   ///< Ventana inicial donde superar CHUCK_STALL_ADC declara ERR-302 [ms]
 
     // ==========================================
     // SEÑALIZACIÓN ACÚSTICA (Buzzer activo 5 V no bloqueante)

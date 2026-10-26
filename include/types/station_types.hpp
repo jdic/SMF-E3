@@ -32,8 +32,8 @@ enum class ErrorCode : uint16_t
 
     // 300s: Apriete, Banda y Potencia
     ChuckOvercurrent        = 301, ///< ERR-301: Corriente excesiva en motor DC de apriete
-    ChuckStallPremature     = 302, ///< ERR-302: Bloqueo prematuro del cabezal (rosca trasroscada)
-    ConveyorStall           = 303, ///< ERR-303: Banda atascada (PWM aplicado y encoder sin pulsos)
+    ChuckStallPremature     = 302, ///< ERR-302: Bloqueo prematuro del cabezal por corriente (rosca trasroscada)
+    ConveyorStall           = 303, ///< ERR-303: Sobrecorriente sostenida / atasco en motor DC de la banda
 
     // 900s: Seguridad y Red
     EmergencyStopPressed    = 901, ///< ERR-901: Parada de emergencia por hardware activada
@@ -47,7 +47,7 @@ enum class ErrorCode : uint16_t
 enum class StationMode : uint8_t
 {
     Boot,           ///< Homing simultáneo de ambos ejes Z; brazos arriba; bomba y banda apagadas
-    Running,        ///< Banda en giro continuo bajo lazo PI; ambos autómatas operan en paralelo
+    Running,        ///< Banda en giro continuo por PWM; ambos autómatas operan en paralelo
     ErrorStop,      ///< Parada segura: bomba apagada, PWM a cero y drivers deshabilitados
     ManualRecovery  ///< Asistencia manual por pantalla táctil para despeje de línea
 };
@@ -89,7 +89,7 @@ enum class CappingState : uint8_t
     StopArmDown,     ///< Baja el brazo de tope; espera CLAMP_DELAY_MS con la banda en movimiento
     ClampArmDown,    ///< Baja el brazo de sujeción y valida permanencia de la botella
     LoweringHead,    ///< Desciende el eje Z de tapado hasta la cota del perfil activo
-    TighteningCap,   ///< Acciona el motor DC de apriete vigilando corriente y encoder
+    TighteningCap,   ///< Acciona el motor DC de apriete vigilando corriente en el puente H BTS7960
     RaisingHead,     ///< Frena el motor DC y asciende el eje Z hasta el fin de carrera superior
     ReleasingBottle  ///< Incrementa bottleCount y ejecuta la liberación escalonada de brazos
 };
@@ -151,7 +151,7 @@ struct TelemetrySnapshot
     CappingState  capState;     ///< Fase activa del autómata de tapado
     BottleProfile profile;      ///< Perfil de botella seleccionado
     uint8_t       queueCount;   ///< Botellas actualmente en la cola intermedia entre Llenado y Tapado [unidades]
-    uint16_t      beltRpm;      ///< Velocidad angular medida en la banda transportadora [RPM]
+    uint8_t       beltPwm;      ///< Ciclo de trabajo PWM activo en la banda transportadora [0..255]
     uint32_t      bottleCount;  ///< Conteo acumulado de botellas producidas [unidades]
     bool          presenceFill; ///< Estado filtrado del sensor de presencia en llenado
     bool          presenceCap;  ///< Estado filtrado del sensor de presencia en tapado

@@ -40,14 +40,6 @@ namespace HardwarePins
     constexpr uint8_t PIN_TOUCH_YM          = 7;  ///< Terminal Y- del panel táctil resistivo (compartido con LCD_D7)
 
     // ==========================================
-    // ENTRADAS: Encoders de Cuadratura (Interrupción Externa en PORTD)
-    // ==========================================
-    constexpr uint8_t PIN_ENC_CHUCK_A       = 21; ///< INT0 (PD0): Encoder cabezal de apriete canal A
-    constexpr uint8_t PIN_ENC_CHUCK_B       = 20; ///< INT1 (PD1): Encoder cabezal de apriete canal B
-    constexpr uint8_t PIN_ENC_CONV_A        = 19; ///< INT2 (PD2): Encoder banda canal A (inhabilita Serial1)
-    constexpr uint8_t PIN_ENC_CONV_B        = 18; ///< INT3 (PD3): Encoder banda canal B (inhabilita Serial1)
-
-    // ==========================================
     // ENTRADAS: Sensores Digitales (INPUT_PULLUP, PORTA)
     // ==========================================
     constexpr uint8_t PIN_PRESENCE_FILL     = 22; ///< PA0: Presencia de botella en autómata de llenado
@@ -58,9 +50,10 @@ namespace HardwarePins
     constexpr uint8_t PIN_BTN_RESET         = 28; ///< PA6: Pulsador físico de rearme (en paralelo al comando táctil)
 
     // ==========================================
-    // ENTRADA ANALÓGICA: Sensado de Corriente (A0-A4 ocupados por TFT)
+    // ENTRADAS ANALÓGICAS: Sensado de Corriente BTS7960 (A0-A4 ocupados por TFT)
     // ==========================================
-    constexpr uint8_t PIN_ADC_CHUCK_CURRENT = A8; ///< Salida IS_R / IS_L del BTS7960 de apriete
+    constexpr uint8_t PIN_ADC_CHUCK_CURRENT = A8; ///< Salida IS del BTS7960 del cabezal de apriete (ERR-301)
+    constexpr uint8_t PIN_ADC_CONV_CURRENT  = A9; ///< Salida IS del BTS7960 de la banda transportadora (ERR-303)
 
     // ==========================================
     // SALIDAS: Servomotores de Brazos (librería Servo, Timer5)

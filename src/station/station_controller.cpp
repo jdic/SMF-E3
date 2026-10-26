@@ -69,16 +69,12 @@ namespace
     ConveyorConfig makeConveyorConfig()
     {
         ConveyorConfig cfg{};
-        cfg.rpwmPin     = HardwarePins::PIN_BTS_CONV_RPWM;
-        cfg.enPin       = HardwarePins::PIN_BTS_CONV_EN;
-        cfg.encPinA     = HardwarePins::PIN_ENC_CONV_A;
-        cfg.encPinB     = HardwarePins::PIN_ENC_CONV_B;
-        cfg.encoderPpr  = ProcessParams::BELT_ENCODER_PPR;
-        cfg.targetRpm   = ProcessParams::BELT_TARGET_RPM;
-        cfg.kpTenths    = ProcessParams::BELT_PI_KP;
-        cfg.kiTenths    = ProcessParams::BELT_PI_KI;
-        cfg.stallTimeMs = ProcessParams::BELT_STALL_MS;
-        cfg.stallMinPwm = ProcessParams::BELT_STALL_MIN_PWM;
+        cfg.rpwmPin         = HardwarePins::PIN_BTS_CONV_RPWM;
+        cfg.enPin           = HardwarePins::PIN_BTS_CONV_EN;
+        cfg.currentSensePin = HardwarePins::PIN_ADC_CONV_CURRENT;
+        cfg.targetPwm       = ProcessParams::BELT_PWM;
+        cfg.currentLimitAdc = ProcessParams::BELT_CURRENT_LIMIT_ADC;
+        cfg.stallTimeMs     = ProcessParams::BELT_STALL_MS;
         return cfg;
     }
 }
@@ -127,12 +123,6 @@ StationController::StationController()
           HardwarePins::PIN_BTS_CHUCK_EN,
           HardwarePins::PIN_BTS_CHUCK_LPWM,
           HardwarePins::PIN_ADC_CHUCK_CURRENT),
-      chuckEncoder_(
-          EncoderSlot::Chuck,
-          HardwarePins::PIN_ENC_CHUCK_A,
-          HardwarePins::PIN_ENC_CHUCK_B,
-          ProcessParams::CHUCK_ENCODER_PPR,
-          true),
       conveyor_(makeConveyorConfig()),
       buzzer_(HardwarePins::PIN_BUZZER, true),
       fillingAutomaton_(
@@ -146,8 +136,7 @@ StationController::StationController()
           limitSwitchCap_,
           capGate_,
           capZ_,
-          chuckMotor_,
-          chuckEncoder_),
+          chuckMotor_),
       mode_(StationMode::Boot),
       activeError_(ErrorCode::None),
       profile_(BottleProfile::Small),
@@ -181,7 +170,6 @@ void StationController::init()
 
     fillPump_.init();
     chuckMotor_.init();
-    chuckEncoder_.init();
     conveyor_.init();
     buzzer_.init();
 
@@ -337,7 +325,6 @@ void StationController::updateMotionProfiles()
 {
     fillZ_.updateMotionProfile();
     capZ_.updateMotionProfile();
-    chuckEncoder_.updateSpeed();
     conveyor_.update();
 }
 
@@ -440,7 +427,7 @@ TelemetrySnapshot StationController::getTelemetry() const
     snap.capState     = cappingAutomaton_.getState();
     snap.profile      = profile_;
     snap.queueCount   = interstageQueueCount_;
-    snap.beltRpm      = conveyor_.getSpeedRpm();
+    snap.beltPwm      = conveyor_.getCurrentPwm();
     snap.bottleCount  = bottleCount_;
     snap.presenceFill = presenceFill_.isTriggered();
     snap.presenceCap  = presenceCap_.isTriggered();

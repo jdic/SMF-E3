@@ -6,22 +6,18 @@ CappingAutomaton::CappingAutomaton(
     DigitalSensor& limitSwitch,
     BottleGate& gate,
     StepperAxis& zAxis,
-    DcMotorBts7960& chuckMotor,
-    InterruptEncoder& chuckEncoder)
+    DcMotorBts7960& chuckMotor)
     : presenceSensor_(presenceSensor),
       limitSwitch_(limitSwitch),
       gate_(gate),
       zAxis_(zAxis),
       chuckMotor_(chuckMotor),
-      chuckEncoder_(chuckEncoder),
       currentState_(CappingState::Idle),
       nextState_(CappingState::Idle),
       previousState_(CappingState::Idle),
       profile_(BottleProfile::Small),
       activeError_(ErrorCode::None),
       stageTimerMs_(0),
-      lastPulseChangeMs_(0),
-      lastEncoderPulses_(0),
       isFirstRun_(true),
       needsClear_(false),
       bottleCompletedEvent_(false)
@@ -34,15 +30,12 @@ void CappingAutomaton::reset()
     zAxis_.stop();
     zAxis_.clearSoftLimitFault();
     gate_.raiseArmsImmediate();
-    chuckEncoder_.reset();
 
     currentState_ = CappingState::Idle;
     nextState_ = CappingState::Idle;
     previousState_ = CappingState::Idle;
     activeError_ = ErrorCode::None;
     stageTimerMs_ = millis();
-    lastPulseChangeMs_ = stageTimerMs_;
-    lastEncoderPulses_ = 0;
     isFirstRun_ = true;
     needsClear_ = false;
     bottleCompletedEvent_ = false;
@@ -152,9 +145,6 @@ void CappingAutomaton::onEntry(CappingState state)
         }
 
         case CappingState::TighteningCap:
-            chuckEncoder_.reset();
-            lastEncoderPulses_ = 0;
-            lastPulseChangeMs_ = stageTimerMs_;
             chuckMotor_.driveForward(ProcessParams::CHUCK_PWM);
             break;
 
@@ -174,8 +164,7 @@ void CappingAutomaton::onEntry(CappingState state)
 
 void CappingAutomaton::onDuring(CappingState state)
 {
-    const uint32_t nowMs = millis();
-    const uint32_t elapsedMs = nowMs - stageTimerMs_;
+    const uint32_t elapsedMs = millis() - stageTimerMs_;
 
     switch (state)
     {
@@ -231,14 +220,8 @@ void CappingAutomaton::onDuring(CappingState state)
                 break;
             }
 
-            const int32_t pulses = chuckEncoder_.getPulses();
-            if (pulses != lastEncoderPulses_)
-            {
-                lastEncoderPulses_ = pulses;
-                lastPulseChangeMs_ = nowMs;
-            }
-            else if ((ProcessParams::CHUCK_PWM > 0) &&
-                     (nowMs - lastPulseChangeMs_ >= ProcessParams::CHUCK_STALL_MS))
+            if ((elapsedMs < ProcessParams::CHUCK_MIN_TIGHTEN_MS) &&
+                (currentAdc >= ProcessParams::CHUCK_STALL_ADC))
             {
                 triggerFault(ErrorCode::ChuckStallPremature);
                 break;
