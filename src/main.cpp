@@ -9,6 +9,7 @@
 #include "interrupt_encoder.hpp"
 #include "conveyor_controller.hpp"
 #include "stepper_axis.hpp"
+#include "alarm_buzzer.hpp"
 #include "display_manager.hpp"
 
 DisplayManager display;

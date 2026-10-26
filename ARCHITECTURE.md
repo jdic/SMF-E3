@@ -453,6 +453,14 @@ Aísla el silicio del ATmega2560 y el hardware de potencia de la lógica de proc
 
    * Métodos: `init()`, `showBoot()`, `render(const DisplaySnapshot&)`, `pollTouchCommand()`, `update()`.
 
+9. **Clase `AlarmBuzzer`:**
+
+   * Controla un buzzer activo de 5 V (`PIN_BUZZER`) mediante temporización diferencial con `millis()` y `digitalWrite()`, sin emplear `tone()` para no interferir con el Timer2 (PWM de la banda transportadora en el pin 10).
+
+   * Emite patrones acústicos diferenciados según la severidad (`BuzzerPattern`): confirmación de arranque (`BootReady`, 2 pitidos cortos), advertencia no bloqueante (`Warning` para `ERR-902`), fallo de proceso (`Fault` para `ERR-101..303`) y parada de emergencia urgente (`EmergencyStop` para `ERR-901`). Se silencia automáticamente al reconocer la alarma (`ManualRecovery`).
+
+   * Métodos: `init()`, `setPattern()`, `triggerBootReady()`, `silence()`, `update()`.
+
 ### 4.2 Mediator Pattern (Coordinador de Estación)
 
 Elimina el acoplamiento cruzado entre actuadores, sensores y pantallas.
@@ -1013,9 +1021,10 @@ namespace HardwarePins
     constexpr uint8_t PIN_BTS_CONV_EN       = 41; // R_EN y L_EN unificados
 
     // ==========================================
-    // SALIDA: Indicador de Estado en Placa / Torreta
+    // SALIDA: Indicador de Estado en Placa / Torreta y Alarma Acústica
     // ==========================================
     constexpr uint8_t PIN_STATUS_LED        = 42;
+    constexpr uint8_t PIN_BUZZER            = 38; // Buzzer activo de 5 V para señalización acústica
 }
 ```
 
@@ -1044,6 +1053,7 @@ station3_filling_capping/
 │   ├── BottleGate/                  # Controlador: brazos de tope y sujeción (2 servos)
 │   ├── FillPump/                    # Controlador: bomba ON/OFF con límite de encendido
 │   ├── ConveyorController/          # Controlador: banda 24 V con lazo PI, paro y atasco por encoder
+│   ├── AlarmBuzzer/                 # HAL: buzzer activo 5 V con patrones acústicos no bloqueantes
 │   ├── DisplayManager/              # HAL: TFT 2.4" ILI9341 (8 bits) + Touch resistivo
 │   └── ScadaClient/                 # Red: Ethernet W5500 + MQTT + JSON para Node-RED
 └── src/

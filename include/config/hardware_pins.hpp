@@ -103,7 +103,8 @@ namespace HardwarePins
     constexpr uint8_t PIN_BTS_CONV_EN       = 41; ///< R_EN y L_EN unificados del BTS7960 de banda
 
     // ==========================================
-    // SALIDA: Indicador de Estado en Placa / Torreta
+    // SALIDA: Indicador de Estado en Placa / Torreta y Alarma Acústica
     // ==========================================
     constexpr uint8_t PIN_STATUS_LED        = 42; ///< Indicador visual de estado general
+    constexpr uint8_t PIN_BUZZER            = 38; ///< Buzzer activo de 5 V para señalización acústica de eventos y alarmas
 }

@@ -112,6 +112,19 @@ enum class TouchCommand : uint8_t
 };
 
 /**
+ * @enum BuzzerPattern
+ * @brief Patrones acústicos no bloqueantes emitidos por el driver AlarmBuzzer según severidad.
+ */
+enum class BuzzerPattern : uint8_t
+{
+    Silent = 0,    ///< Silencio total (operación nominal o alarma ya reconocida en ManualRecovery)
+    BootReady,     ///< Secuencia única de pitidos cortos al concluir Homing y pasar a Running
+    Warning,       ///< Pulso breve periódico para advertencias no bloqueantes (ERR-902)
+    Fault,         ///< Intermitencia media para fallos de proceso en ErrorStop (ERR-101..303)
+    EmergencyStop  ///< Intermitencia rápida urgente cuando la seta física está activa (ERR-901)
+};
+
+/**
  * @struct DisplaySnapshot
  * @brief Instantánea del estado de la celda para renderizado incremental en la pantalla TFT.
  */

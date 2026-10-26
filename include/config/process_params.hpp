@@ -80,6 +80,19 @@ namespace ProcessParams
     constexpr uint16_t CHUCK_STALL_MS          = 150;   ///< Ventana sin pulsos de encoder con PWM activo para declarar ERR-302 [ms]
 
     // ==========================================
+    // SEÑALIZACIÓN ACÚSTICA (Buzzer activo 5 V no bloqueante)
+    // ==========================================
+    constexpr uint16_t BUZZER_BOOT_ON_MS       = 80;    ///< Duración de cada pitido corto de confirmación de arranque [ms]
+    constexpr uint16_t BUZZER_BOOT_OFF_MS      = 80;    ///< Pausa entre pitidos cortos de confirmación de arranque [ms]
+    constexpr uint8_t  BUZZER_BOOT_PULSES      = 2;     ///< Número de pitidos cortos al entrar en modo Running [pulsos]
+    constexpr uint16_t BUZZER_WARN_ON_MS       = 100;   ///< Duración del pulso acústico de advertencia no bloqueante (ERR-902) [ms]
+    constexpr uint16_t BUZZER_WARN_OFF_MS      = 4900;  ///< Pausa entre avisos acústicos de advertencia no bloqueante [ms]
+    constexpr uint16_t BUZZER_FAULT_ON_MS      = 300;   ///< Tiempo encendido en patrón de fallo de proceso (ERR-1xx..3xx) [ms]
+    constexpr uint16_t BUZZER_FAULT_OFF_MS     = 300;   ///< Tiempo apagado en patrón de fallo de proceso (ERR-1xx..3xx) [ms]
+    constexpr uint16_t BUZZER_ESTOP_ON_MS      = 120;   ///< Tiempo encendido en patrón urgente de parada de emergencia (ERR-901) [ms]
+    constexpr uint16_t BUZZER_ESTOP_OFF_MS     = 120;   ///< Tiempo apagado en patrón urgente de parada de emergencia (ERR-901) [ms]
+
+    // ==========================================
     // PANTALLA TÁCTIL (calibrada con setRotation(1) en el shield 2.4")
     // En rotación horizontal: el eje X de pantalla (0..319) proviene de rawY (invertido)
     // y el eje Y de pantalla (0..239) proviene de rawX (invertido).
