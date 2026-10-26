@@ -202,6 +202,11 @@ void DisplayManager::updateTouchNavigation()
 {
     int16_t px = 0;
     int16_t py = 0;
+    (void)updateTouchNavigation(px, py);
+}
+
+bool DisplayManager::updateTouchNavigation(int16_t& px, int16_t& py)
+{
     const bool touched = readTouchPixel(px, py);
 
     btnNavHome_.press(touched && btnNavHome_.contains(px, py));
@@ -215,6 +220,8 @@ void DisplayManager::updateTouchNavigation()
     {
         showScreen(ScreenId::Settings);
     }
+
+    return touched;
 }
 
 ScreenId DisplayManager::getCurrentScreen() const

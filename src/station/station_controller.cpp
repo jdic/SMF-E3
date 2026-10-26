@@ -121,7 +121,7 @@ StationController::StationController()
       chuckMotor_(
           HardwarePins::PIN_BTS_CHUCK_RPWM,
           HardwarePins::PIN_BTS_CHUCK_EN,
-          HardwarePins::PIN_BTS_CHUCK_LPWM,
+          DcMotorBts7960::UNUSED_PIN,
           HardwarePins::PIN_ADC_CHUCK_CURRENT),
       conveyor_(makeConveyorConfig()),
       buzzer_(HardwarePins::PIN_BUZZER, true),

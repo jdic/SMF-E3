@@ -114,6 +114,16 @@ public:
     void jogUp(uint16_t steps, uint16_t speed);
 
     /**
+     * @brief Ejecuta un desplazamiento descendente relativo (jog) para pruebas y ajuste manual.
+     *
+     * Función no bloqueante.
+     *
+     * @param steps Cantidad de micropasos a bajar [step].
+     * @param speed Velocidad de desplazamiento manual en pasos por segundo [step/s] (máx. 8000).
+     */
+    void jogDown(uint16_t steps, uint16_t speed);
+
+    /**
      * @brief Detiene de forma atómica e inmediata la emisión de pulsos del eje manteniendo el par de retención.
      *
      * Función no bloqueante. Segura para invocarse desde el super-loop.

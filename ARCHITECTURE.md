@@ -976,16 +976,17 @@ namespace HardwarePins
     constexpr uint8_t PIN_BTN_RESET         = 28; // Pulsador físico de rearme (en paralelo al touch)
 
     // ==========================================
-    // ENTRADA ANALÓGICA: Sensado de Corriente (A0-A4 ocupados por TFT)
+    // ENTRADAS ANALÓGICAS: Sensado de Corriente BTS7960 (A0-A4 ocupados por TFT)
     // ==========================================
-    constexpr uint8_t PIN_ADC_CHUCK_CURRENT = A8; // IS_R / IS_L del BTS7960 de apriete
+    constexpr uint8_t PIN_ADC_CHUCK_CURRENT = A8; // L_IS del módulo BTS7960 (Tapado)
+    constexpr uint8_t PIN_ADC_CONV_CURRENT  = A9; // R_IS del módulo BTS7960 (Banda)
 
     // ==========================================
     // SALIDAS: Servomotores de Brazos (librería Servo, Timer5)
     // ==========================================
-    constexpr uint8_t PIN_SERVO_FILL_STOP   = 44; // Brazo de tope - llenado
-    constexpr uint8_t PIN_SERVO_FILL_CLAMP  = 45; // Brazo de sujeción - llenado
-    constexpr uint8_t PIN_SERVO_CAP_STOP    = 46; // Brazo de tope - tapado
+    constexpr uint8_t PIN_SERVO_FILL_STOP   = 29; // Brazo de tope - llenado
+    constexpr uint8_t PIN_SERVO_FILL_CLAMP  = 30; // Brazo de sujeción - llenado
+    constexpr uint8_t PIN_SERVO_CAP_STOP    = 31; // Brazo de tope - tapado
     constexpr uint8_t PIN_SERVO_CAP_CLAMP   = 47; // Brazo de sujeción - tapado
 
     // ==========================================
@@ -1008,17 +1009,15 @@ namespace HardwarePins
     constexpr uint8_t PIN_STEPPER_CAP_EN    = 32; // PC5
 
     // ==========================================
-    // SALIDAS: Puente H BTS7960 (Apriete de Tapa) - Timer1 PWM
+    // SALIDAS: Módulo BTS7960 Compartido (1 sola placa física controla ambos motores en un sentido)
+    // - Medio puente R (RPWM / R_EN / R_IS / borne M+): Motor DC Banda transportadora
+    // - Medio puente L (LPWM / L_EN / L_IS / borne M-): Motor DC Cabezal de tapado
+    // Ambos motores conectan su borne (+) a M+ o M- y su borne (-) al GND común (borne B-).
     // ==========================================
-    constexpr uint8_t PIN_BTS_CHUCK_RPWM    = 11; // OC1A (490 Hz)
-    constexpr uint8_t PIN_BTS_CHUCK_LPWM    = 12; // OC1B (490 Hz)
-    constexpr uint8_t PIN_BTS_CHUCK_EN      = 40; // R_EN y L_EN unificados
-
-    // ==========================================
-    // SALIDAS: Puente H BTS7960 (Banda 24 V, un sentido) - Timer2 PWM
-    // ==========================================
-    constexpr uint8_t PIN_BTS_CONV_RPWM     = 10; // OC2A (490 Hz); LPWM del módulo a GND
-    constexpr uint8_t PIN_BTS_CONV_EN       = 41; // R_EN y L_EN unificados
+    constexpr uint8_t PIN_BTS_CONV_RPWM     = 44; // OC5C (PWM): Al pin RPWM del módulo -> modula borne M+ (Banda)
+    constexpr uint8_t PIN_BTS_CONV_EN       = 41; // Al pin R_EN del módulo -> habilita medio puente R (Banda)
+    constexpr uint8_t PIN_BTS_CHUCK_RPWM    = 45; // OC5B (PWM): Al pin LPWM del módulo -> modula borne M- (Tapado)
+    constexpr uint8_t PIN_BTS_CHUCK_EN      = 40; // Al pin L_EN del módulo -> habilita medio puente L (Tapado)
 
     // ==========================================
     // SALIDA: Indicador de Estado en Placa / Torreta y Alarma Acústica

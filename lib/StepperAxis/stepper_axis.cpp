@@ -202,6 +202,28 @@ void StepperAxis::jogUp(uint16_t steps, uint16_t speed)
     }
 }
 
+void StepperAxis::jogDown(uint16_t steps, uint16_t speed)
+{
+    if (steps == 0U)
+    {
+        return;
+    }
+
+    const uint16_t clampedSpeed = (speed > MAX_ALLOWED_SPEED) ? MAX_ALLOWED_SPEED : speed;
+    setDriverEnabled(true);
+
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+    {
+        setDirectionDown(true);
+        targetSteps_ = currentSteps_ + static_cast<int32_t>(steps);
+        cruiseSpeedStepsPerSec_ = clampedSpeed;
+        currentSpeedStepsPerSec_ = clampedSpeed;
+        phaseAccumulator_ = 0;
+        ignoreSoftLimit_ = true;
+        moving_ = true;
+    }
+}
+
 void StepperAxis::stop()
 {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE)

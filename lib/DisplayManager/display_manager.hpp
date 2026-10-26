@@ -101,6 +101,15 @@ public:
     void updateTouchNavigation();
 
     /**
+     * @brief Lee el panel táctil, procesa la barra inferior y devuelve las coordenadas del toque actual.
+     *
+     * @param[out] px Coordenada X en píxeles [0..319] si hay toque válido.
+     * @param[out] py Coordenada Y en píxeles [0..239] si hay toque válido.
+     * @return true si el panel está siendo presionado; false en caso contrario.
+     */
+    bool updateTouchNavigation(int16_t& px, int16_t& py);
+
+    /**
      * @brief Consulta cuál es el identificador de pantalla actualmente en visualización.
      * @return Identificador ScreenId activo.
      */

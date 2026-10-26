@@ -57,10 +57,11 @@ namespace HardwarePins
 
     // ==========================================
     // SALIDAS: Servomotores de Brazos (librería Servo, Timer5)
+    // (Movidos temporalmente a 29-31 mientras el Shield TFT cubre 10-12 y usamos 44-46 para PWM BTS7960)
     // ==========================================
-    constexpr uint8_t PIN_SERVO_FILL_STOP   = 44; ///< Brazo de tope del autómata de llenado
-    constexpr uint8_t PIN_SERVO_FILL_CLAMP  = 45; ///< Brazo de sujeción del autómata de llenado
-    constexpr uint8_t PIN_SERVO_CAP_STOP    = 46; ///< Brazo de tope del autómata de tapado
+    constexpr uint8_t PIN_SERVO_FILL_STOP   = 29; ///< Brazo de tope del autómata de llenado (definitivo: 44)
+    constexpr uint8_t PIN_SERVO_FILL_CLAMP  = 30; ///< Brazo de sujeción del autómata de llenado (definitivo: 45)
+    constexpr uint8_t PIN_SERVO_CAP_STOP    = 31; ///< Brazo de tope del autómata de tapado (definitivo: 46)
     constexpr uint8_t PIN_SERVO_CAP_CLAMP   = 47; ///< Brazo de sujeción del autómata de tapado
 
     // ==========================================
@@ -83,17 +84,15 @@ namespace HardwarePins
     constexpr uint8_t PIN_STEPPER_CAP_EN    = 32; ///< PC5: Habilitación EN eje Z tapado
 
     // ==========================================
-    // SALIDAS: Puente H BTS7960 (Apriete de Tapa) - Timer1 PWM
+    // SALIDAS: Módulo BTS7960 Compartido (1 sola placa física controla ambos motores en un sentido)
+    // - Medio puente R (RPWM / R_EN / R_IS / borne M+): Motor DC Banda transportadora
+    // - Medio puente L (LPWM / L_EN / L_IS / borne M-): Motor DC Cabezal de tapado
+    // Ambos motores conectan su borne (+) a M+ o M- y su borne (-) al GND común (borne B-).
     // ==========================================
-    constexpr uint8_t PIN_BTS_CHUCK_RPWM    = 11; ///< OC1A (490 Hz): Giro directo del cabezal de apriete
-    constexpr uint8_t PIN_BTS_CHUCK_LPWM    = 12; ///< OC1B (490 Hz): Giro inverso del cabezal de apriete
-    constexpr uint8_t PIN_BTS_CHUCK_EN      = 40; ///< R_EN y L_EN unificados del BTS7960 de apriete
-
-    // ==========================================
-    // SALIDAS: Puente H BTS7960 (Banda 24 V, un sentido) - Timer2 PWM
-    // ==========================================
-    constexpr uint8_t PIN_BTS_CONV_RPWM     = 10; ///< OC2A (490 Hz): Giro directo de banda (LPWM conectado a GND)
-    constexpr uint8_t PIN_BTS_CONV_EN       = 41; ///< R_EN y L_EN unificados del BTS7960 de banda
+    constexpr uint8_t PIN_BTS_CONV_RPWM     = 44; ///< OC5C (PWM): Al pin RPWM del módulo -> modula borne M+ (Banda)
+    constexpr uint8_t PIN_BTS_CONV_EN       = 41; ///< Al pin R_EN del módulo -> habilita medio puente R (Banda)
+    constexpr uint8_t PIN_BTS_CHUCK_RPWM    = 45; ///< OC5B (PWM): Al pin LPWM del módulo -> modula borne M- (Tapado)
+    constexpr uint8_t PIN_BTS_CHUCK_EN      = 40; ///< Al pin L_EN del módulo -> habilita medio puente L (Tapado)
 
     // ==========================================
     // SALIDA: Indicador de Estado en Placa / Torreta y Alarma Acústica
