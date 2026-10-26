@@ -47,7 +47,7 @@ class StepperAxis
 {
 public:
     static constexpr uint8_t  MAX_SLOTS           = 2;      ///< Cantidad de ejes Z gobernados por Timer3
-    static constexpr uint16_t ISR_FREQ_HZ         = 20000U; ///< Frecuencia de interrupción de Timer3 COMPA [Hz]
+    static constexpr uint16_t ISR_FREQ_HZ         = 20000U; ///< Frecuencia de interrupción de Timer3 COMPB [Hz]
     static constexpr uint16_t MAX_ALLOWED_SPEED   = 8000U;  ///< Velocidad máxima admisible por eje [step/s]
     static constexpr uint16_t MIN_START_SPEED     = 200U;   ///< Velocidad mínima de arranque/parada de rampa [step/s]
     static constexpr uint8_t  PROFILE_PERIOD_MS   = 20U;    ///< Periodo de actualización de la rampa trapezoidal [ms]
@@ -176,7 +176,7 @@ public:
     int32_t getCurrentSteps() const;
 
     /**
-     * @brief Despachador estático invocado exclusivamente desde ISR(TIMER3_COMPA_vect) a 20 kHz.
+     * @brief Despachador estático invocado exclusivamente desde ISR(TIMER3_COMPB_vect) a 20 kHz.
      *
      * No debe invocarse desde el super-loop.
      */

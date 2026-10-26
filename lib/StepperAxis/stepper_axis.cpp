@@ -452,12 +452,15 @@ void StepperAxis::initTimer3Once()
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
     {
         // Configurar Timer3 en modo CTC (WGM32 = 1), prescaler = 8 (CS31 = 1 -> 2 MHz)
-        // OCR3A = 99 -> 2,000,000 / (99 + 1) = 20,000 Hz (periodo de 50 us)
+        // OCR3A = 99 fija el tope del contador -> 2,000,000 / (99 + 1) = 20,000 Hz (periodo de 50 us).
+        // Se habilita OCIE3B (TIMER3_COMPB_vect) porque la librería Servo declara TIMER3_COMPA_vect
+        // aunque solo utilice el Timer5 para los 4 servomotores.
         TCCR3A = 0;
         TCCR3B = static_cast<uint8_t>((1 << WGM32) | (1 << CS31));
         TCNT3  = 0;
         OCR3A  = 99;
-        TIMSK3 = static_cast<uint8_t>(1 << OCIE3A);
+        OCR3B  = 99;
+        TIMSK3 = static_cast<uint8_t>(1 << OCIE3B);
         timer3Initialized_ = true;
     }
 }
@@ -499,7 +502,7 @@ void StepperAxis::handleTimer3Isr()
     }
 }
 
-ISR(TIMER3_COMPA_vect)
+ISR(TIMER3_COMPB_vect)
 {
     StepperAxis::handleTimer3Isr();
 }

@@ -11,6 +11,7 @@
 #include "stepper_axis.hpp"
 #include "alarm_buzzer.hpp"
 #include "display_manager.hpp"
+#include "station/filling_automaton.hpp"
 
 DisplayManager display;
 
