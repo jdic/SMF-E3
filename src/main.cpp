@@ -13,6 +13,7 @@
 #include "display_manager.hpp"
 #include "station/filling_automaton.hpp"
 #include "station/capping_automaton.hpp"
+#include "station/station_controller.hpp"
 
 DisplayManager display;
 

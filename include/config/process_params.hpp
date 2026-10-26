@@ -76,6 +76,7 @@ namespace ProcessParams
     // ==========================================
     constexpr uint16_t TIGHTEN_MS              = 2500;  ///< Duración nominal de la fase de apriete de tapa [ms]
     constexpr uint8_t  CHUCK_PWM               = 200;   ///< Ciclo de trabajo PWM durante el apriete de tapa [0..255] (AJUSTAR)
+    constexpr uint16_t CHUCK_ENCODER_PPR       = 600;   ///< Pulsos nominales por revolución del encoder del cabezal [PPR] (AJUSTAR)
     constexpr uint16_t CHUCK_CURRENT_LIMIT_ADC = 600;   ///< Umbral de sobrecorriente del cabezal en cuentas ADC [0..1023] (AJUSTAR)
     constexpr uint16_t CHUCK_STALL_MS          = 150;   ///< Ventana sin pulsos de encoder con PWM activo para declarar ERR-302 [ms]
 
