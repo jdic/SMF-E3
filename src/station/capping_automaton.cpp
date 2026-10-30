@@ -3,11 +3,13 @@
 
 CappingAutomaton::CappingAutomaton(
     DigitalSensor& presenceSensor,
+    DigitalSensor& positionSensor,
     DigitalSensor& limitSwitch,
     BottleGate& gate,
     StepperAxis& zAxis,
     DcMotorBts7960& chuckMotor)
     : presenceSensor_(presenceSensor),
+      positionSensor_(positionSensor),
       limitSwitch_(limitSwitch),
       gate_(gate),
       zAxis_(zAxis),
@@ -61,8 +63,8 @@ void CappingAutomaton::update()
         return;
     }
 
-    // Limpiar el bloqueo de re-disparo en cuanto la botella saliente libere el sensor óptico
-    if (needsClear_ && !presenceSensor_.isTriggered())
+    // Limpiar el bloqueo de re-disparo en cuanto la botella saliente libere ambos sensores ópticos
+    if (needsClear_ && !presenceSensor_.isTriggered() && !positionSensor_.isTriggered())
     {
         needsClear_ = false;
     }
@@ -176,16 +178,23 @@ void CappingAutomaton::onDuring(CappingState state)
             break;
 
         case CappingState::StopArmDown:
-            if (elapsedMs >= ProcessParams::CLAMP_DELAY_MS)
+            // Cuando el 2do sensor (en medio de ambos brazos) detecta la botella, baja el 2do brazo
+            if (positionSensor_.isTriggered())
             {
                 nextState_ = CappingState::ClampArmDown;
+            }
+            else if (elapsedMs >= ProcessParams::CLAMP_SENSOR_TIMEOUT_MS)
+            {
+                triggerFault(ErrorCode::CapBottleLost);
             }
             break;
 
         case CappingState::ClampArmDown:
+            // Mientras el 2do brazo baja (ARM_MOVE_MS), StationController pausa la banda.
+            // Al concluir el descenso de ambos brazos, se valida el sensor de posición exacta.
             if (elapsedMs >= ProcessParams::ARM_MOVE_MS)
             {
-                if (presenceSensor_.isTriggered())
+                if (positionSensor_.isTriggered())
                 {
                     nextState_ = CappingState::LoweringHead;
                 }

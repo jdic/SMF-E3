@@ -4,8 +4,8 @@
  *
  * Concentra las instancias de todos los sensores y actuadores HAL, gobierna el modo global
  * de la estación (Boot, Running, ErrorStop, ManualRecovery), administra la cola intermedia
- * de botellas entre ambos autómatas, aplica el interbloqueo de la seta E-STOP y publica
- * instantáneas para la pantalla TFT y el cliente SCADA.
+ * de botellas entre ambos autómatas, pausa la banda mientras baja el segundo brazo de sujeción,
+ * aplica el interbloqueo de la seta E-STOP y publica instantáneas para la pantalla TFT y SCADA.
  */
 
 #pragma once
@@ -82,7 +82,7 @@ public:
 
     /**
      * @brief Construye y devuelve la instantánea completa de telemetría para su publicación por MQTT/JSON.
-     * @return Estructura TelemetrySnapshot con el estado actual de la celda, sensores y RPM de la banda.
+     * @return Estructura TelemetrySnapshot con el estado actual de la celda, sensores y PWM de la banda.
      */
     TelemetrySnapshot getTelemetry() const;
 
@@ -133,8 +133,10 @@ private:
     ErrorCode computeEffectiveError() const;
 
     // Sensores digitales con antirrebote
-    DigitalSensor      presenceFill_;         ///< Sensor óptico de presencia en llenado (PIN_PRESENCE_FILL)
-    DigitalSensor      presenceCap_;          ///< Sensor óptico de presencia en tapado (PIN_PRESENCE_CAP)
+    DigitalSensor      presenceFill_;         ///< 1er sensor IR en llenado: aproximación (PIN_PRESENCE_FILL = 22)
+    DigitalSensor      positionFill_;         ///< 2do sensor IR en llenado: en medio de ambos brazos (PIN_POS_FILL = 26)
+    DigitalSensor      presenceCap_;          ///< 1er sensor IR en tapado: aproximación (PIN_PRESENCE_CAP = 23)
+    DigitalSensor      positionCap_;          ///< 2do sensor IR en tapado: en medio de ambos brazos (PIN_POS_CAP = 48)
     DigitalSensor      limitSwitchFill_;      ///< Fin de carrera superior del eje Z de llenado (PIN_LIMIT_SWITCH_FILL)
     DigitalSensor      limitSwitchCap_;       ///< Fin de carrera superior del eje Z de tapado (PIN_LIMIT_SWITCH_CAP)
     DigitalSensor      estopAux_;             ///< Contacto auxiliar NC de la seta de emergencia (PIN_ESTOP_AUX)

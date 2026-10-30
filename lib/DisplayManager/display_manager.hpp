@@ -1,6 +1,6 @@
 /**
  * @file display_manager.hpp
- * @brief Controlador para el shield TFT 2.4" ILI9341 (320x240) con Layout persistente y pantallas de Lopaka.app.
+ * @brief Controlador HMI para el shield TFT 2.4" ILI9341 (320x240) con barra de navegación Lopaka y renderizado incremental.
  */
 
 #pragma once
@@ -10,6 +10,7 @@
 #include <TouchScreen.h>
 #include "config/hardware_pins.hpp"
 #include "config/process_params.hpp"
+#include "types/station_types.hpp"
 
 /**
  * @enum ScreenId
@@ -18,8 +19,8 @@
 enum class ScreenId : uint8_t
 {
     None = 0, ///< Sin pantalla activa
-    Home,     ///< Pantalla principal ("HOME")
-    Settings  ///< Pantalla de configuración ("SETTINGS")
+    Home,     ///< Pantalla principal de supervisión de proceso ("HOME")
+    Settings  ///< Pantalla de perfil de botella y recuperación manual ("SETTINGS")
 };
 
 /**
@@ -44,11 +45,12 @@ struct DisplayTouchConfig
 
 /**
  * @class DisplayManager
- * @brief Administra el Layout inferior fijo (barra de navegación) y las vistas de contenido de Lopaka.app.
+ * @brief Administra el Layout inferior fijo (barra de navegación Lopaka), el tablero Home y la vista Settings/Recuperación.
  *
  * El Layout inferior (Y = 183..239) se dibuja una sola vez y permanece fijo. Al cambiar entre
  * ScreenId::Home y ScreenId::Settings únicamente se limpia el área de contenido superior (Y = 0..182)
- * para evitar parpadeos en la barra inferior.
+ * para evitar parpadeos en la barra inferior. Dentro de cada vista sólo se redibujan los campos
+ * modificados (dirty flags).
  */
 class DisplayManager
 {
@@ -94,9 +96,27 @@ public:
     void showScreen(ScreenId screen, bool forceRedraw = false);
 
     /**
+     * @brief Proyecta de forma incremental (dirty flags) una instantánea del estado de la estación en la pantalla activa.
+     *
+     * Función no bloqueante. Sólo redibuja las regiones cuyos datos cambiaron respecto a la última instantánea.
+     *
+     * @param snapshot Estado actual de la estación suministrado por StationController.
+     */
+    void render(const DisplaySnapshot& snapshot);
+
+    /**
+     * @brief Muestrea el panel táctil, gestiona la navegación inferior y devuelve el comando operativo pulsado.
+     *
+     * Función no bloqueante. Debe invocarse periódicamente desde la tarea de interfaz (cada 50 ms).
+     *
+     * @return TouchCommand disparado en el ciclo actual, o TouchCommand::None si no hubo pulsación de comando.
+     */
+    TouchCommand pollTouchCommand();
+
+    /**
      * @brief Lee el panel táctil y cambia entre Home y Settings al tocar los iconos de la barra inferior.
      *
-     * Función no bloqueante. Invocar periódicamente en loop().
+     * Función no bloqueante mantenida por compatibilidad; invoca internamente pollTouchCommand().
      */
     void updateTouchNavigation();
 
@@ -136,13 +156,30 @@ private:
     void updateDebugOverlay(int16_t rawX, int16_t rawY, int16_t rawZ, int16_t px, int16_t py);
     void drawTouchMarker(int16_t x, int16_t y, uint16_t color);
 
-    DisplayTouchConfig  config_;
-    TouchScreen         ts_;
-    ScreenId            currentScreen_;
-    bool                layoutDrawn_;
-    bool                hasLastMarker_;
-    int16_t             lastMarkerX_;
-    int16_t             lastMarkerY_;
-    Adafruit_GFX_Button btnNavHome_;
-    Adafruit_GFX_Button btnNavSettings_;
+    void drawHomeStaticFrame();
+    void drawSettingsStaticFrame();
+    void renderHomeDynamic(const DisplaySnapshot& snapshot, bool fullRedraw);
+    void renderSettingsDynamic(const DisplaySnapshot& snapshot, bool fullRedraw);
+    void renderBottomActionArea(const DisplaySnapshot& snapshot, bool fullRedraw);
+
+    DisplayTouchConfig  config_;              ///< Configuración de pines y calibración del panel táctil
+    TouchScreen         ts_;                  ///< Instancia del lector resistivo de 4 hilos
+    ScreenId            currentScreen_;       ///< Pantalla actualmente visible (Home o Settings)
+    bool                layoutDrawn_;         ///< Indica si la barra inferior fija ya fue pintada
+    bool                contentFrameDrawn_;   ///< Indica si el marco estático de la pantalla activa ya fue pintado
+    bool                hasRenderedSnapshot_; ///< Indica si ya existe una instantánea previa en caché
+    DisplaySnapshot     renderedSnapshot_;    ///< Última instantánea proyectada en la pantalla TFT
+    bool                hasLastMarker_;       ///< Indica si hay un marcador de depuración dibujado
+    int16_t             lastMarkerX_;         ///< Última coordenada X de la mira de depuración [px]
+    int16_t             lastMarkerY_;         ///< Última coordenada Y de la mira de depuración [px]
+
+    // Botones táctiles de navegación inferior y acciones operativas
+    Adafruit_GFX_Button btnNavHome_;          ///< Icono Home en barra inferior (X = 0..56, Y = 183..239)
+    Adafruit_GFX_Button btnNavSettings_;      ///< Icono Settings en barra inferior (X = 57..120, Y = 183..239)
+    Adafruit_GFX_Button btnBottomAction_;     ///< Botón contextual en barra inferior derecha (X = 128..314, Y = 189..233)
+    Adafruit_GFX_Button btnSetProfile_;       ///< Botón en Settings: alternar perfil de botella
+    Adafruit_GFX_Button btnJogFillUp_;        ///< Botón en Settings: subir eje Z de llenado en ManualRecovery
+    Adafruit_GFX_Button btnJogCapUp_;         ///< Botón en Settings: subir eje Z de tapado en ManualRecovery
+    Adafruit_GFX_Button btnReleaseArms_;      ///< Botón en Settings: levantar brazos inmediatamente en ManualRecovery
+    Adafruit_GFX_Button btnConfirmClear_;     ///< Botón en Settings: confirmar despeje de línea y re-homing
 };

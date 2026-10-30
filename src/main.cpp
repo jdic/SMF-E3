@@ -1,34 +1,91 @@
+/**
+ * @file main.cpp
+ * @brief Punto de entrada y planificador cooperativo no bloqueante de la Estación 3 (Llenado y Tapado).
+ *
+ * Ejecuta tres tareas periódicas deterministas mediante marcas de tiempo millis() más la ISR de 20 kHz
+ * en Timer3 para los dos motores a pasos (Eje Z Llenado y Eje Z Tapado) y la modulación en Timer4 para
+ * el módulo único IBT-2 (BTS7960) de banda y cabezal de tapado:
+ * - Tarea 1 (1 ms) : StationController::update() (sensores, E-STOP, autómatas de proceso, cola y alarmas).
+ * - Tarea 2 (20 ms): StationController::updateMotionProfiles() (rampas trapezoidales Z y corriente de banda).
+ * - Tarea 3 (50 ms): DisplayManager::pollTouchCommand() y renderizado incremental por dirty flags en TFT.
+ */
+
 #include <Arduino.h>
 #include "config/hardware_pins.hpp"
 #include "config/process_params.hpp"
 #include "types/station_types.hpp"
-#include "digital_sensor.hpp"
-#include "fill_pump.hpp"
-#include "bottle_gate.hpp"
-#include "dc_motor_bts7960.hpp"
-#include "conveyor_controller.hpp"
-#include "stepper_axis.hpp"
-#include "alarm_buzzer.hpp"
 #include "display_manager.hpp"
-#include "station/filling_automaton.hpp"
-#include "station/capping_automaton.hpp"
 #include "station/station_controller.hpp"
 
-DisplayManager display;
+namespace
+{
+    constexpr uint32_t CONTROL_PERIOD_MS = 1UL;  ///< Período de muestreo de sensores y autómatas FSM [ms]
+    constexpr uint32_t MOTION_PERIOD_MS  = 20UL; ///< Período de actualización de rampas Z y corriente de banda [ms]
+    constexpr uint32_t DISPLAY_PERIOD_MS = 50UL; ///< Período de lectura táctil y refresco incremental TFT [ms]
+
+    StationController g_station;
+    DisplayManager    g_display;
+
+    uint32_t g_lastControlMs = 0UL;
+    uint32_t g_lastMotionMs  = 0UL;
+    uint32_t g_lastDisplayMs = 0UL;
+}
 
 void setup()
 {
-    // Inicialización base de la Estación 3 (Llenado y Tapado)
-    pinMode(HardwarePins::PIN_STATUS_LED, OUTPUT);
-    digitalWrite(HardwarePins::PIN_STATUS_LED, LOW);
+    // 1. Inicializar pantalla TFT 2.4" ILI9341 y dibujar estructura base Home
+    g_display.init();
+    g_display.showScreen(ScreenId::Home);
 
-    // Inicializar pantalla TFT 2.4" y mostrar la vista Home con el Layout inferior
-    display.init();
-    display.showScreen(ScreenId::Home);
+    // 2. Inicializar controlador central de la Estación 3 (sensores, actuadores, Timer3 e inicio de Boot/Homing)
+    g_station.init();
+
+    // 3. Renderizar estado inicial inmediatamente en pantalla
+    DisplaySnapshot initialSnapshot{};
+    if (g_station.consumeDisplaySnapshot(initialSnapshot))
+    {
+        g_display.render(initialSnapshot);
+    }
+
+    const uint32_t nowMs = millis();
+    g_lastControlMs = nowMs;
+    g_lastMotionMs  = nowMs;
+    g_lastDisplayMs = nowMs;
 }
 
 void loop()
 {
-    // Permite cambiar entre Home y Settings tocando los iconos de la barra inferior
-    display.updateTouchNavigation();
+    const uint32_t nowMs = millis();
+
+    // Tarea 1 (1 ms): Muestreo de entradas digitales, seguridad E-STOP y máquinas de estados
+    if ((nowMs - g_lastControlMs) >= CONTROL_PERIOD_MS)
+    {
+        g_lastControlMs = nowMs;
+        g_station.update();
+    }
+
+    // Tarea 2 (20 ms): Rampas de velocidad de ejes Z y vigilancia de sobrecorriente en banda 24 V
+    if ((nowMs - g_lastMotionMs) >= MOTION_PERIOD_MS)
+    {
+        g_lastMotionMs = nowMs;
+        g_station.updateMotionProfiles();
+    }
+
+    // Tarea 3 (50 ms): Lectura del panel táctil resistivo y actualización incremental de la TFT
+    if ((nowMs - g_lastDisplayMs) >= DISPLAY_PERIOD_MS)
+    {
+        g_lastDisplayMs = nowMs;
+
+        const TouchCommand cmd = g_display.pollTouchCommand();
+        if (cmd != TouchCommand::None)
+        {
+            g_station.handleTouchCommand(cmd);
+        }
+
+        DisplaySnapshot snapshot{};
+        if (g_station.consumeDisplaySnapshot(snapshot))
+        {
+            g_display.render(snapshot);
+        }
+    }
 }

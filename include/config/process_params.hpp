@@ -40,9 +40,16 @@ namespace ProcessParams
     constexpr uint16_t Z_HOMING_TIMEOUT_MS     = 10000; ///< Tiempo máximo de guardia para completar el homing en Boot [ms]
 
     // ==========================================
-    // BANDA TRANSPORTADORA (motor DC 24 V en lazo abierto PWM + sensado IS en BTS7960)
+    // BANDA TRANSPORTADORA (motor DC en lazo abierto PWM + rampa trapezoidal + sensado IS)
+    // Conversión de voltaje efectivo en el IBT-2: PWM = 255 * (V_deseado / V_fuente_B+)
+    // Con fuente B+ = 24000 mV (24 V) y motor a 7000 mV (7 V) -> BELT_PWM = 74
+    // (Si alimentas B+ con 12 V, cambia BELT_SUPPLY_MV a 12000 -> BELT_PWM será 148)
     // ==========================================
-    constexpr uint8_t  BELT_PWM                = 180;   ///< Ciclo de trabajo PWM nominal de la banda en modo Running [0..255] (AJUSTAR)
+    constexpr uint16_t BELT_SUPPLY_MV          = 24000; ///< Voltaje de la fuente conectada a B+/B- del módulo IBT-2 [mV] (AJUSTAR si usas 12 V)
+    constexpr uint16_t BELT_TARGET_MV          = 7000;  ///< Voltaje efectivo deseado en el motor de la banda (7.0 V) [mV]
+    constexpr uint8_t  BELT_PWM                = static_cast<uint8_t>((255UL * BELT_TARGET_MV) / BELT_SUPPLY_MV); ///< Ciclo PWM nominal (~74 a 24 V para entregar 7 V)
+    constexpr uint8_t  BELT_ACCEL_PWM_STEP     = 5;     ///< Incremento de PWM cada 20 ms en rampa de aceleración (~300 ms de 0 a 7 V)
+    constexpr uint8_t  BELT_DECEL_PWM_STEP     = 8;     ///< Decremento de PWM cada 20 ms en rampa de desaceleración suave (~180 ms a 0 V)
     constexpr uint16_t BELT_CURRENT_LIMIT_ADC  = 650;   ///< Umbral de sobrecorriente de la banda en cuentas ADC [0..1023] (AJUSTAR)
     constexpr uint16_t BELT_STALL_MS           = 500;   ///< Tiempo continuo en sobrecorriente antes de declarar atasco ERR-303 [ms]
 
@@ -57,7 +64,8 @@ namespace ProcessParams
     constexpr uint8_t  CAP_STOP_DOWN_DEG       = 100;   ///< Ángulo de bloqueo (abajo) del brazo de tope en tapado [grados, 0..180] (AJUSTAR)
     constexpr uint8_t  CAP_CLAMP_UP_DEG        = 10;    ///< Ángulo de reposo (arriba) del brazo de sujeción en tapado [grados, 0..180] (AJUSTAR)
     constexpr uint8_t  CAP_CLAMP_DOWN_DEG      = 95;    ///< Ángulo de retención (abajo) del brazo de sujeción en tapado [grados, 0..180] (AJUSTAR)
-    constexpr uint16_t CLAMP_DELAY_MS          = 1000;  ///< Espera entre bajar el brazo de tope y bajar el de sujeción [ms]
+    constexpr uint16_t CLAMP_DELAY_MS          = 1000;  ///< Espera de respaldo entre brazos [ms]
+    constexpr uint16_t CLAMP_SENSOR_TIMEOUT_MS = 3000;  ///< Tiempo máximo entre 1er sensor (tope) y 2do sensor (posición entre brazos) [ms]
     constexpr uint16_t ARM_MOVE_MS             = 600;   ///< Tiempo estimado de recorrido físico de un servomotor [ms]
     constexpr uint16_t RELEASE_GAP_MS          = 500;   ///< Pausa escalonada entre subir el brazo de sujeción y subir el de tope [ms]
     constexpr uint16_t RELEASE_MS              = 1500;  ///< Tiempo total de liberación hasta que la botella despeja el sensor [ms]
