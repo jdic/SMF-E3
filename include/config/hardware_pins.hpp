@@ -40,29 +40,31 @@ namespace HardwarePins
     constexpr uint8_t PIN_TOUCH_YM          = 7;  ///< Terminal Y- del panel táctil resistivo (compartido con LCD_D7)
 
     // ==========================================
-    // ENTRADAS: Sensores Digitales (INPUT_PULLUP, PORTA)
+    // ENTRADAS: Sensores Digitales (PORTA y PORTL)
     // ==========================================
-    constexpr uint8_t PIN_PRESENCE_FILL     = 22; ///< PA0: Presencia de botella en autómata de llenado
-    constexpr uint8_t PIN_PRESENCE_CAP      = 23; ///< PA1: Presencia de botella en autómata de tapado
-    constexpr uint8_t PIN_LIMIT_SWITCH_FILL = 24; ///< PA2: Fin de carrera superior eje Z de llenado (leído en ISR via PINA)
-    constexpr uint8_t PIN_LIMIT_SWITCH_CAP  = 25; ///< PA3: Fin de carrera superior eje Z de tapado (leído en ISR via PINA)
+    constexpr uint8_t PIN_PRESENCE_FILL     = 22; ///< PA0: 1er sensor IR en llenado (aproximación -> baja brazo de tope, 5 V = HIGH)
+    constexpr uint8_t PIN_POS_FILL          = 26; ///< PA4: 2do sensor IR en llenado (posición exacta entre brazos -> baja sujeción, 5 V = HIGH)
+    constexpr uint8_t PIN_PRESENCE_CAP      = 23; ///< PA1: 1er sensor IR en tapado (aproximación -> baja brazo de tope, 5 V = HIGH)
+    constexpr uint8_t PIN_POS_CAP           = 48; ///< PL1: 2do sensor IR en tapado (posición exacta entre brazos -> baja sujeción, 5 V = HIGH)
+    constexpr uint8_t PIN_LIMIT_SWITCH_FILL = 24; ///< PA2: Fin de carrera superior eje Z llenado (COM a GND, INPUT_PULLUP)
+    constexpr uint8_t PIN_LIMIT_SWITCH_CAP  = 25; ///< PA3: Fin de carrera superior eje Z tapado (COM a GND, INPUT_PULLUP)
     constexpr uint8_t PIN_ESTOP_AUX         = 27; ///< PA5: Contacto auxiliar NC de la seta E-STOP
     constexpr uint8_t PIN_BTN_RESET         = 28; ///< PA6: Pulsador físico de rearme (en paralelo al comando táctil)
 
     // ==========================================
     // ENTRADAS ANALÓGICAS: Sensado de Corriente BTS7960 (A0-A4 ocupados por TFT)
     // ==========================================
-    constexpr uint8_t PIN_ADC_CHUCK_CURRENT = A8; ///< Salida IS del BTS7960 del cabezal de apriete (ERR-301)
-    constexpr uint8_t PIN_ADC_CONV_CURRENT  = A9; ///< Salida IS del BTS7960 de la banda transportadora (ERR-303)
+    constexpr uint8_t PIN_ADC_CHUCK_CURRENT = A8; ///< Salida L_IS del módulo IBT-2 del cabezal de apriete (ERR-301)
+    constexpr uint8_t PIN_ADC_CONV_CURRENT  = A9; ///< Salida R_IS del módulo IBT-2 de la banda transportadora (ERR-303)
 
     // ==========================================
     // SALIDAS: Servomotores de Brazos (librería Servo, Timer5)
-    // (Movidos temporalmente a 29-31 mientras el Shield TFT cubre 10-12 y usamos 44-46 para PWM BTS7960)
+    // Pines en cabecera 22..53 (libres mientras el shield TFT está montado directo sobre el Mega)
     // ==========================================
-    constexpr uint8_t PIN_SERVO_FILL_STOP   = 29; ///< Brazo de tope del autómata de llenado (definitivo: 44)
-    constexpr uint8_t PIN_SERVO_FILL_CLAMP  = 30; ///< Brazo de sujeción del autómata de llenado (definitivo: 45)
-    constexpr uint8_t PIN_SERVO_CAP_STOP    = 31; ///< Brazo de tope del autómata de tapado (definitivo: 46)
-    constexpr uint8_t PIN_SERVO_CAP_CLAMP   = 47; ///< Brazo de sujeción del autómata de tapado
+    constexpr uint8_t PIN_SERVO_FILL_STOP   = 29; ///< PA7: Brazo de tope del autómata de llenado
+    constexpr uint8_t PIN_SERVO_FILL_CLAMP  = 30; ///< PC7: Brazo de sujeción del autómata de llenado
+    constexpr uint8_t PIN_SERVO_CAP_STOP    = 31; ///< PC6: Brazo de tope del autómata de tapado
+    constexpr uint8_t PIN_SERVO_CAP_CLAMP   = 47; ///< PL2: Brazo de sujeción del autómata de tapado
 
     // ==========================================
     // SALIDA: Bomba de Llenado ON/OFF (vía relé o MOSFET; pull-down externo)
@@ -84,15 +86,15 @@ namespace HardwarePins
     constexpr uint8_t PIN_STEPPER_CAP_EN    = 32; ///< PC5: Habilitación EN eje Z tapado
 
     // ==========================================
-    // SALIDAS: Módulo BTS7960 Compartido (1 sola placa física controla ambos motores en un sentido)
-    // - Medio puente R (RPWM / R_EN / R_IS / borne M+): Motor DC Banda transportadora
-    // - Medio puente L (LPWM / L_EN / L_IS / borne M-): Motor DC Cabezal de tapado
-    // Ambos motores conectan su borne (+) a M+ o M- y su borne (-) al GND común (borne B-).
+    // SALIDAS: Módulo Único IBT-2 / BTS7960 (2 motores DC unidireccionales independientes)
+    // - Semipuente L (borne M- respecto a B-/GND): Cabezal de Apriete de Tapa (LPWM, L_EN, L_IS)
+    // - Semipuente R (borne M+ respecto a B-/GND): Banda Transportadora 24 V (RPWM, R_EN, R_IS)
     // ==========================================
-    constexpr uint8_t PIN_BTS_CONV_RPWM     = 44; ///< OC5C (PWM): Al pin RPWM del módulo -> modula borne M+ (Banda)
-    constexpr uint8_t PIN_BTS_CONV_EN       = 41; ///< Al pin R_EN del módulo -> habilita medio puente R (Banda)
-    constexpr uint8_t PIN_BTS_CHUCK_RPWM    = 45; ///< OC5B (PWM): Al pin LPWM del módulo -> modula borne M- (Tapado)
-    constexpr uint8_t PIN_BTS_CHUCK_EN      = 40; ///< Al pin L_EN del módulo -> habilita medio puente L (Tapado)
+    constexpr uint8_t PIN_BTS_CHUCK_RPWM    = 45; ///< PL4: Entrada LPWM del módulo IBT-2 (cabezal en M- a GND)
+    constexpr uint8_t PIN_BTS_CHUCK_EN      = 40; ///< PG1: Entrada L_EN del módulo IBT-2 (habilitación cabezal)
+
+    constexpr uint8_t PIN_BTS_CONV_RPWM     = 44; ///< PL5: Entrada RPWM del módulo IBT-2 (banda 24 V en M+ a GND)
+    constexpr uint8_t PIN_BTS_CONV_EN       = 41; ///< PG0: Entrada R_EN del módulo IBT-2 (habilitación banda)
 
     // ==========================================
     // SALIDA: Indicador de Estado en Placa / Torreta y Alarma Acústica

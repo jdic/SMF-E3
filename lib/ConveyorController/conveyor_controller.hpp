@@ -1,6 +1,6 @@
 /**
  * @file conveyor_controller.hpp
- * @brief Controlador HAL en lazo abierto PWM con detección de atasco por corriente (IS) para la banda de 24 V.
+ * @brief Controlador HAL con perfil trapezoidal de velocidad PWM y detección de atasco (IS) para la banda.
  */
 
 #pragma once
@@ -9,24 +9,27 @@
 
 /**
  * @struct ConveyorConfig
- * @brief Parámetros de hardware, consigna PWM y umbrales de protección de sobrecorriente para la banda.
+ * @brief Parámetros de hardware, consigna PWM, pendientes trapezoidales y protección de corriente para la banda.
  */
 struct ConveyorConfig
 {
-    uint8_t  rpwmPin;         ///< Pin PWM por hardware del BTS7960 de la banda (HardwarePins)
+    uint8_t  rpwmPin;         ///< Pin PWM del BTS7960 de la banda (HardwarePins)
     uint8_t  enPin;           ///< Pin de habilitación EN del BTS7960 de la banda (HardwarePins)
     uint8_t  currentSensePin; ///< Pin analógico conectado a la salida IS del BTS7960 de la banda (HardwarePins)
-    uint8_t  targetPwm;       ///< Ciclo de trabajo PWM nominal en modo Running [0..255]
+    uint8_t  targetPwm;       ///< Ciclo de trabajo PWM de crucero en modo Running [0..255] (7 V efectivos)
+    uint8_t  accelStepPwm;    ///< Incremento de PWM por ciclo de 20 ms en rampa de aceleración [1..255]
+    uint8_t  decelStepPwm;    ///< Decremento de PWM por ciclo de 20 ms en rampa de desaceleración [1..255]
     uint16_t currentLimitAdc; ///< Umbral de sobrecorriente en cuentas ADC [0..1023] para evaluar atasco
     uint16_t stallTimeMs;     ///< Tiempo continuo superando currentLimitAdc para declarar atasco ERR-303 [ms]
 };
 
 /**
  * @class ConveyorController
- * @brief Gobierna el giro continuo de la banda de 24 V mediante PWM y supervisa su consumo de corriente.
+ * @brief Gobierna el giro de la banda mediante rampa trapezoidal (aceleración, crucero y desaceleración) y vigila IS.
  *
- * Si la corriente filtrada del puente H BTS7960 (pin IS) supera currentLimitAdc de forma ininterrumpida
- * durante stallTimeMs, corta la etapa de potencia y activa la bandera de fallo isStalled() (ERR-303).
+ * Evita tirones bruscos en las botellas sobre la superficie adherente de la banda aplicando una rampa
+ * progresiva cada 20 ms hacia la consigna (targetPwm o 0). Ante un paro de seguridad (brake/stop) corta
+ * de manera inmediata.
  */
 class ConveyorController
 {
@@ -34,7 +37,7 @@ public:
     /**
      * @brief Construye el controlador de banda integrando su puente H BTS7960 con sensado de corriente.
      *
-     * @param[in] config Estructura con pines de hardware, ciclo PWM nominal y umbrales de sobrecorriente.
+     * @param[in] config Estructura con pines de hardware, ciclo PWM nominal, pendientes de rampa y umbrales.
      */
     explicit ConveyorController(const ConveyorConfig& config);
 
@@ -44,28 +47,35 @@ public:
     void init();
 
     /**
-     * @brief Habilita el giro continuo de la banda aplicando el ciclo de trabajo targetPwm.
+     * @brief Ordena el avance de la banda iniciando la rampa de aceleración trapezoidal hasta targetPwm.
      *
      * Función no bloqueante.
      */
     void start();
 
     /**
-     * @brief Deshabilita la etapa de potencia y detiene el motor en parada libre (EN = LOW, PWM = 0).
+     * @brief Ordena una pausa suave iniciando la rampa de desaceleración trapezoidal hasta llegar a PWM = 0 y frenar.
+     *
+     * Función no bloqueante. Ideal para detener la banda sin sacudir las botellas al cerrar los brazos.
+     */
+    void pauseSmooth();
+
+    /**
+     * @brief Deshabilita inmediatamente la etapa de potencia en parada libre (EN = LOW, PWM = 0, sin rampa).
      *
      * Función no bloqueante.
      */
     void stop();
 
     /**
-     * @brief Deshabilita el avance y aplica frenado dinámico inmediato al motor de la banda.
+     * @brief Aplica frenado dinámico inmediato al motor de la banda (EN = HIGH, PWM = 0, sin rampa).
      *
-     * Función no bloqueante.
+     * Función no bloqueante. Utilizado en paradas de emergencia o fallos críticos (ErrorStop).
      */
     void brake();
 
     /**
-     * @brief Muestrea la corriente del puente H (IS) y verifica la condición de atasco por sobrecorriente (ERR-303).
+     * @brief Actualiza la rampa trapezoidal de PWM y verifica la condición de atasco por sobrecorriente (ERR-303).
      *
      * Función no bloqueante. Debe invocarse periódicamente desde la tarea de perfiles de movimiento (cada 20 ms).
      */
@@ -83,8 +93,8 @@ public:
     void clearStall();
 
     /**
-     * @brief Consulta el ciclo de trabajo PWM actualmente aplicado al motor de la banda.
-     * @return Valor PWM activo en el rango [0..255].
+     * @brief Consulta el ciclo de trabajo PWM instantáneo aplicado en este momento al motor de la banda.
+     * @return Valor PWM actual en el rango [0..255].
      */
     uint8_t getCurrentPwm() const;
 
@@ -95,16 +105,18 @@ public:
     uint16_t getFilteredCurrentAdc() const;
 
     /**
-     * @brief Consulta si la banda se encuentra actualmente energizada en modo continuo.
-     * @return true si la banda está en marcha; false si está detenida o en estado de fallo.
+     * @brief Consulta si la banda tiene activa la orden de avance hacia su velocidad de crucero.
+     * @return true si la consigna actual es avanzar; false si está en pausa, frenada o en estado de fallo.
      */
     bool isRunning() const;
 
 private:
-    ConveyorConfig config_;             ///< Parámetros de configuración de pines, PWM y corriente
-    DcMotorBts7960 motor_;              ///< Instancia del driver BTS7960 unidireccional (LPWM a GND)
+    ConveyorConfig config_;             ///< Parámetros de configuración de pines, rampa PWM y corriente
+    DcMotorBts7960 motor_;              ///< Instancia del driver BTS7960 unidireccional
+    uint8_t        currentPwm_;         ///< Ciclo de trabajo PWM instantáneo en la rampa trapezoidal [0..255]
+    uint8_t        desiredPwm_;         ///< Consigna objetivo actual de la rampa (targetPwm o 0) [0..255]
     uint32_t       overcurrentStartMs_; ///< Marca temporal de inicio de condición de sobrecorriente [ms]
     bool           inOvercurrent_;      ///< Indica si la lectura actual supera el umbral currentLimitAdc
-    bool           running_;            ///< Indica si la banda tiene orden de giro continuo activa
+    bool           running_;            ///< Indica si la banda tiene orden de avance activa
     bool           stalled_;            ///< Bandera retenida (latch) de fallo por atasco ERR-303
 };

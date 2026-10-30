@@ -73,6 +73,8 @@ namespace
         cfg.enPin           = HardwarePins::PIN_BTS_CONV_EN;
         cfg.currentSensePin = HardwarePins::PIN_ADC_CONV_CURRENT;
         cfg.targetPwm       = ProcessParams::BELT_PWM;
+        cfg.accelStepPwm    = ProcessParams::BELT_ACCEL_PWM_STEP;
+        cfg.decelStepPwm    = ProcessParams::BELT_DECEL_PWM_STEP;
         cfg.currentLimitAdc = ProcessParams::BELT_CURRENT_LIMIT_ADC;
         cfg.stallTimeMs     = ProcessParams::BELT_STALL_MS;
         return cfg;
@@ -83,13 +85,23 @@ StationController::StationController()
     : presenceFill_(
           HardwarePins::PIN_PRESENCE_FILL,
           ProcessParams::SENSOR_DEBOUNCE_MS,
-          false,
-          true),
+          true,
+          false),
+      positionFill_(
+          HardwarePins::PIN_POS_FILL,
+          ProcessParams::SENSOR_DEBOUNCE_MS,
+          true,
+          false),
       presenceCap_(
           HardwarePins::PIN_PRESENCE_CAP,
           ProcessParams::SENSOR_DEBOUNCE_MS,
-          false,
-          true),
+          true,
+          false),
+      positionCap_(
+          HardwarePins::PIN_POS_CAP,
+          ProcessParams::SENSOR_DEBOUNCE_MS,
+          true,
+          false),
       limitSwitchFill_(
           HardwarePins::PIN_LIMIT_SWITCH_FILL,
           ProcessParams::SENSOR_DEBOUNCE_MS,
@@ -127,12 +139,14 @@ StationController::StationController()
       buzzer_(HardwarePins::PIN_BUZZER, true),
       fillingAutomaton_(
           presenceFill_,
+          positionFill_,
           limitSwitchFill_,
           fillGate_,
           fillZ_,
           fillPump_),
       cappingAutomaton_(
           presenceCap_,
+          positionCap_,
           limitSwitchCap_,
           capGate_,
           capZ_,
@@ -162,7 +176,9 @@ void StationController::init()
     digitalWrite(HardwarePins::PIN_STATUS_LED, LOW);
 
     presenceFill_.init();
+    positionFill_.init();
     presenceCap_.init();
+    positionCap_.init();
     limitSwitchFill_.init();
     limitSwitchCap_.init();
     estopAux_.init();
@@ -197,7 +213,9 @@ void StationController::update()
 
     // 1. Muestreo no bloqueante de entradas digitales y tareas de seguridad locales
     presenceFill_.update();
+    positionFill_.update();
     presenceCap_.update();
+    positionCap_.update();
     limitSwitchFill_.update();
     limitSwitchCap_.update();
     estopAux_.update();
@@ -234,11 +252,11 @@ void StationController::update()
             {
                 enterErrorStop(ErrorCode::FillZSoftLimitHit);
             }
-            else if (capZ_.hasSoftLimitTripped())
+            else if (ProcessParams::ENABLE_CAPPING_STATION && capZ_.hasSoftLimitTripped())
             {
                 enterErrorStop(ErrorCode::CapZSoftLimitHit);
             }
-            else if (fillZ_.isHome() && capZ_.isHome())
+            else if (fillZ_.isHome() && (!ProcessParams::ENABLE_CAPPING_STATION || capZ_.isHome()))
             {
                 enterRunningMode();
             }
@@ -256,6 +274,7 @@ void StationController::update()
             break;
 
         case StationMode::Running:
+        {
             if (conveyor_.isStalled())
             {
                 enterErrorStop(ErrorCode::ConveyorStall);
@@ -263,11 +282,16 @@ void StationController::update()
             }
 
             // Control de flujo de la cola intermedia entre Llenado y Tapado
-            fillingAutomaton_.setReleasePermitted(
-                interstageQueueCount_ < ProcessParams::MAX_INTERSTAGE_QUEUE);
+            const bool canReleaseFromFill =
+                !ProcessParams::ENABLE_INTERSTAGE_QUEUE ||
+                (interstageQueueCount_ < ProcessParams::MAX_INTERSTAGE_QUEUE);
+            fillingAutomaton_.setReleasePermitted(canReleaseFromFill);
 
             fillingAutomaton_.update();
-            cappingAutomaton_.update();
+            if (ProcessParams::ENABLE_CAPPING_STATION)
+            {
+                cappingAutomaton_.update();
+            }
 
             if (fillingAutomaton_.getError() != ErrorCode::None)
             {
@@ -275,24 +299,56 @@ void StationController::update()
                 break;
             }
 
-            if (cappingAutomaton_.getError() != ErrorCode::None)
+            if (ProcessParams::ENABLE_CAPPING_STATION &&
+                cappingAutomaton_.getError() != ErrorCode::None)
             {
                 enterErrorStop(cappingAutomaton_.getError());
                 break;
             }
 
-            if (fillingAutomaton_.consumeBottleReleasedEvent())
+            // Coordinación de la banda: se pausa mientras cualquiera de los dos autómatas
+            // está bajando su segundo brazo (ClampArmDown) y vuelve a girar en cuanto la
+            // botella queda sujeta por ambos brazos (o cuando no hay sujeción en curso).
+            const bool pauseBeltForClamping =
+                (fillingAutomaton_.getState() == FillState::ClampArmDown) ||
+                (ProcessParams::ENABLE_CAPPING_STATION &&
+                 (cappingAutomaton_.getState() == CappingState::ClampArmDown));
+
+            if (pauseBeltForClamping)
             {
-                if (interstageQueueCount_ < 0xFFU)
+                if (conveyor_.isRunning())
                 {
-                    interstageQueueCount_++;
+                    conveyor_.pauseSmooth();
+                }
+            }
+            else
+            {
+                if (!conveyor_.isRunning())
+                {
+                    conveyor_.start();
                 }
             }
 
-            if (cappingAutomaton_.consumeBottleCompletedEvent())
+            if (fillingAutomaton_.consumeBottleReleasedEvent())
+            {
+                if (ProcessParams::ENABLE_INTERSTAGE_QUEUE)
+                {
+                    if (interstageQueueCount_ < 0xFFU)
+                    {
+                        interstageQueueCount_++;
+                    }
+                }
+                else if (!ProcessParams::ENABLE_CAPPING_STATION)
+                {
+                    bottleCount_++;
+                }
+            }
+
+            if (ProcessParams::ENABLE_CAPPING_STATION &&
+                cappingAutomaton_.consumeBottleCompletedEvent())
             {
                 bottleCount_++;
-                if (interstageQueueCount_ > 0U)
+                if (ProcessParams::ENABLE_INTERSTAGE_QUEUE && interstageQueueCount_ > 0U)
                 {
                     interstageQueueCount_--;
                 }
@@ -306,6 +362,7 @@ void StationController::update()
                 buzzer_.setPattern(runPattern, nowMs);
             }
             break;
+        }
 
         case StationMode::ErrorStop:
             // Mantener patrón acústico de fallo mientras la alarma no haya sido reconocida
@@ -429,8 +486,8 @@ TelemetrySnapshot StationController::getTelemetry() const
     snap.queueCount   = interstageQueueCount_;
     snap.beltPwm      = conveyor_.getCurrentPwm();
     snap.bottleCount  = bottleCount_;
-    snap.presenceFill = presenceFill_.isTriggered();
-    snap.presenceCap  = presenceCap_.isTriggered();
+    snap.presenceFill = positionFill_.isTriggered();
+    snap.presenceCap  = positionCap_.isTriggered();
     snap.estopActive  = estopAux_.isTriggered();
     return snap;
 }
@@ -471,7 +528,15 @@ void StationController::enterBootMode()
     fillZ_.clearSoftLimitFault();
     capZ_.clearSoftLimitFault();
     fillZ_.home(ProcessParams::Z_HOMING_SPEED);
-    capZ_.home(ProcessParams::Z_HOMING_SPEED);
+    if (ProcessParams::ENABLE_CAPPING_STATION)
+    {
+        capZ_.home(ProcessParams::Z_HOMING_SPEED);
+    }
+    else
+    {
+        capZ_.stop();
+        capZ_.setDriverEnabled(false);
+    }
 
     refreshDisplaySnapshot();
 }

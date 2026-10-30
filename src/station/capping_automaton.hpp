@@ -3,8 +3,9 @@
  * @brief Máquina de estados finitos (FSM) de tres fases para el Autómata 2 (Tapado).
  *
  * Implementa el patrón Enum FSM con ciclo de vida explícito (Entry, During, Exit),
- * supervisión de sobrecorriente (ERR-301) y par de bloqueo prematuro por corriente (ERR-302)
- * en el puente H BTS7960 durante el apriete, y notificación de botella completada.
+ * captura secuencial mediante dos sensores ópticos IR (aproximación para bajar tope y
+ * posición exacta entre brazos para bajar sujeción), supervisión de sobrecorriente (ERR-301)
+ * y par de bloqueo prematuro por corriente (ERR-302) en el puente H BTS7960 durante el apriete.
  */
 
 #pragma once
@@ -17,7 +18,7 @@
 
 /**
  * @class CappingAutomaton
- * @brief Coordina la retención de botella, descenso del cabezal, apriete de tapa y liberación final.
+ * @brief Coordina la retención de botella con doble sensor IR, descenso del cabezal, apriete de tapa y liberación final.
  */
 class CappingAutomaton
 {
@@ -25,7 +26,8 @@ public:
     /**
      * @brief Construye la máquina de estados del autómata de tapado inyectando sus periféricos HAL.
      *
-     * @param[in] presenceSensor Sensor óptico de presencia de botella en la zona de tapado.
+     * @param[in] presenceSensor Primer sensor IR de aproximación (antes de los brazos; baja el brazo de tope).
+     * @param[in] positionSensor Segundo sensor IR de posición exacta (en medio de los brazos; baja el brazo de sujeción).
      * @param[in] limitSwitch Fin de carrera superior del eje Z de tapado.
      * @param[in] gate Compuerta de doble servomotor (brazo de tope y brazo de sujeción) de tapado.
      * @param[in] zAxis Eje vertical paso a paso del cabezal de tapado.
@@ -33,6 +35,7 @@ public:
      */
     CappingAutomaton(
         DigitalSensor& presenceSensor,
+        DigitalSensor& positionSensor,
         DigitalSensor& limitSwitch,
         BottleGate& gate,
         StepperAxis& zAxis,
@@ -116,7 +119,8 @@ private:
      */
     void triggerFault(ErrorCode error);
 
-    DigitalSensor&  presenceSensor_;       ///< Sensor óptico de presencia en la estación de tapado
+    DigitalSensor&  presenceSensor_;       ///< 1er sensor IR (aproximación antes de los brazos)
+    DigitalSensor&  positionSensor_;       ///< 2do sensor IR (posición exacta en medio de ambos brazos)
     DigitalSensor&  limitSwitch_;          ///< Fin de carrera superior del eje Z de tapado
     BottleGate&     gate_;                 ///< Par de servomotores (tope y sujeción) de tapado
     StepperAxis&    zAxis_;                ///< Actuador lineal paso a paso del cabezal
@@ -129,6 +133,6 @@ private:
     ErrorCode       activeError_;          ///< Código de fallo retenido (ErrorCode::None si opera normal)
     uint32_t        stageTimerMs_;         ///< Marca de tiempo millis() de inicio de la fase actual [ms]
     bool            isFirstRun_;           ///< Bandera para disparar onEntry() en el primer ciclo del estado
-    bool            needsClear_;           ///< Impide re-disparo en Idle hasta que la botella saliente despeje el sensor
+    bool            needsClear_;           ///< Impide re-disparo en Idle hasta que la botella saliente despeje los sensores
     bool            bottleCompletedEvent_; ///< Pulso de evento para incrementar bottleCount y descontar cola intermedia
 };

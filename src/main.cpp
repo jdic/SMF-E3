@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <Servo.h>
 #include "config/hardware_pins.hpp"
 #include "config/process_params.hpp"
 #include "types/station_types.hpp"
@@ -10,9 +11,6 @@
 #include "stepper_axis.hpp"
 #include "alarm_buzzer.hpp"
 #include "display_manager.hpp"
-#include "station/filling_automaton.hpp"
-#include "station/capping_automaton.hpp"
-#include "station/station_controller.hpp"
 
 namespace
 {
@@ -23,6 +21,7 @@ namespace
     constexpr uint16_t COLOR_YELLOW = 0xFFE0;
     constexpr uint16_t COLOR_CYAN   = 0x07FF;
     constexpr uint16_t COLOR_BLUE   = 0x001F;
+    constexpr uint16_t COLOR_ORANGE = 0xFC00;
     constexpr uint16_t COLOR_DARK   = 0x2104;
 
     constexpr uint16_t SENSOR_POLL_PERIOD_MS = 1;
@@ -39,7 +38,9 @@ namespace
         cfg.enPin           = HardwarePins::PIN_BTS_CONV_EN;
         cfg.currentSensePin = HardwarePins::PIN_ADC_CONV_CURRENT;
         cfg.targetPwm       = ProcessParams::BELT_PWM;
-        cfg.currentLimitAdc = 1023; // Margen alto para prueba en banco
+        cfg.accelStepPwm    = ProcessParams::BELT_ACCEL_PWM_STEP;
+        cfg.decelStepPwm    = ProcessParams::BELT_DECEL_PWM_STEP;
+        cfg.currentLimitAdc = 1023; // Margen alto para prueba manual en banco
         cfg.stallTimeMs     = ProcessParams::BELT_STALL_MS;
         return cfg;
     }
@@ -61,35 +62,23 @@ namespace
         return cfg;
     }
 
-    StepperAxisConfig makeBenchCapZConfig()
-    {
-        StepperAxisConfig cfg{};
-        cfg.slot                 = StepperSlot::CapZ;
-        cfg.stepPin              = HardwarePins::PIN_STEPPER_CAP_STEP;
-        cfg.dirPin               = HardwarePins::PIN_STEPPER_CAP_DIR;
-        cfg.enPin                = HardwarePins::PIN_STEPPER_CAP_EN;
-        cfg.limitSwitchPin       = HardwarePins::PIN_LIMIT_SWITCH_CAP;
-        cfg.maxTravelSteps       = ProcessParams::CAP_Z_MAX_TRAVEL_STEPS;
-        cfg.accelStepsPerSec2    = ProcessParams::Z_ACCEL;
-        cfg.homeBackoffSteps     = ProcessParams::Z_HOME_BACKOFF_STEPS;
-        cfg.dirDownHigh          = true;
-        cfg.enableActiveLow      = true;
-        cfg.limitSwitchActiveLow = true;
-        return cfg;
-    }
-
-    // 6 Sensores Digitales (pines 22, 23, 24, 25, 27, 28)
-    DigitalSensor sensPresenceFill(
+    // =========================================================================
+    // SENSORES DE LA ESTACIÓN DE LLENADO (no requiere botón de reset ni tapado)
+    // - Pin 22: 1er sensor IR (Aproximación antes de los brazos, activo en 5 V)
+    // - Pin 26: 2do sensor IR (Posición exacta entre los dos brazos, activo en 5 V)
+    // - Pin 24: Fin de carrera superior eje Z1 Llenado (COM a GND, INPUT_PULLUP)
+    // =========================================================================
+    DigitalSensor sensApproachFill(
         HardwarePins::PIN_PRESENCE_FILL,
         ProcessParams::SENSOR_DEBOUNCE_MS,
-        false,
-        true);
+        true,
+        false);
 
-    DigitalSensor sensPresenceCap(
-        HardwarePins::PIN_PRESENCE_CAP,
+    DigitalSensor sensPositionFill(
+        HardwarePins::PIN_POS_FILL,
         ProcessParams::SENSOR_DEBOUNCE_MS,
-        false,
-        true);
+        true,
+        false);
 
     DigitalSensor sensLimitFill(
         HardwarePins::PIN_LIMIT_SWITCH_FILL,
@@ -97,27 +86,17 @@ namespace
         false,
         true);
 
-    DigitalSensor sensLimitCap(
-        HardwarePins::PIN_LIMIT_SWITCH_CAP,
-        ProcessParams::SENSOR_DEBOUNCE_MS,
-        false,
-        true);
-
-    DigitalSensor sensEstopAux(
-        HardwarePins::PIN_ESTOP_AUX,
-        ProcessParams::SENSOR_DEBOUNCE_MS,
-        true,
-        true);
-
-    DigitalSensor sensBtnReset(
-        HardwarePins::PIN_BTN_RESET,
-        ProcessParams::SENSOR_DEBOUNCE_MS,
-        false,
-        true);
-
-    // 2 Motores DC en el MISMO módulo BTS7960:
-    // - Motor 1 Banda : RPWM=44, R_EN=41, R_IS=A9, Borne M+ hacia GND (B-)
-    // - Motor 2 Tapado: LPWM=45, L_EN=40, L_IS=A8, Borne M- hacia GND (B-)
+    // =========================================================================
+    // ACTUADORES EN BANCO:
+    // - 1 módulo IBT-2 compartido:
+    //   * Canal R (M+ a GND, RPWM=44, R_EN=41, R_IS=A9): Banda a 7V con rampa trapezoidal
+    //   * Canal L (M- a GND, LPWM=45, L_EN=40, L_IS=A8): Motor DC de Tapado
+    // - 2 Servomotores de brazos de Llenado:
+    //   * Brazo 1 (Tope)     : Pin 29
+    //   * Brazo 2 (Sujeción) : Pin 30
+    // - Bomba de Llenado     : Pin 43
+    // - Stepper Z1 Llenado   : STEP=37, DIR=36, EN=35
+    // =========================================================================
     ConveyorController conveyor(makeBenchConveyorConfig());
     DcMotorBts7960     chuckMotor(
         HardwarePins::PIN_BTS_CHUCK_RPWM,
@@ -125,30 +104,42 @@ namespace
         DcMotorBts7960::UNUSED_PIN,
         HardwarePins::PIN_ADC_CHUCK_CURRENT);
 
-    // 2 Motores a Pasos (Z1 Llenado en 37/36/35 y Z2 Tapado en 34/33/32)
-    StepperAxis fillZ(makeBenchFillZConfig());
-    StepperAxis capZ(makeBenchCapZConfig());
+    Servo       servoStopArm;
+    Servo       servoClampArm;
+    bool        stopArmDown  = false;
+    bool        clampArmDown = false;
+    bool        pumpRunning  = false;
 
-    // Pantalla TFT + Botones táctiles de prueba
+    StepperAxis fillZ(makeBenchFillZConfig());
+
+    // Pantalla TFT + Botones táctiles
     DisplayManager      display;
     Adafruit_GFX_Button btnToggleBelt;
     Adafruit_GFX_Button btnToggleChuck;
+
+    // Botones en pantalla Home (Brazos 1 y 2 + Bomba)
+    Adafruit_GFX_Button btnToggleStopArm;
+    Adafruit_GFX_Button btnToggleClampArm;
+    Adafruit_GFX_Button btnTogglePump;
+
+    // Botones en pantalla Settings (Stepper Z1 Llenado)
     Adafruit_GFX_Button btnFillZUp;
     Adafruit_GFX_Button btnFillZDown;
-    Adafruit_GFX_Button btnCapZUp;
-    Adafruit_GFX_Button btnCapZDown;
+    Adafruit_GFX_Button btnFillZHome;
+    Adafruit_GFX_Button btnFillZStop;
 
     ScreenId lastRenderedScreen = ScreenId::None;
     bool     lastBeltRunning    = false;
     bool     lastChuckRunning   = false;
-    uint16_t lastBeltAdc        = 0xFFFFU;
-    uint16_t lastChuckAdc       = 0xFFFFU;
+    bool     lastStopArmDown    = false;
+    bool     lastClampArmDown   = false;
+    bool     lastPumpRunning    = false;
     uint8_t  lastSensorMask     = 0xFFU;
 
     int32_t  lastFillZSteps     = 0x7FFFFFFFL;
-    int32_t  lastCapZSteps      = 0x7FFFFFFFL;
     bool     lastFillZBusy      = false;
-    bool     lastCapZBusy       = false;
+    uint16_t lastBeltAdc        = 0xFFFFU;
+    uint16_t lastChuckAdc       = 0xFFFFU;
 
     uint32_t lastSensorPollMs   = 0;
     uint32_t lastMotionMs       = 0;
@@ -158,12 +149,9 @@ namespace
     uint8_t packSensorStates()
     {
         uint8_t mask = 0;
-        if (sensPresenceFill.isTriggered()) { mask |= (1U << 0); }
-        if (sensPresenceCap.isTriggered())  { mask |= (1U << 1); }
+        if (sensApproachFill.isTriggered()) { mask |= (1U << 0); }
+        if (sensPositionFill.isTriggered()) { mask |= (1U << 1); }
         if (sensLimitFill.isTriggered())    { mask |= (1U << 2); }
-        if (sensLimitCap.isTriggered())     { mask |= (1U << 3); }
-        if (sensEstopAux.isTriggered())     { mask |= (1U << 4); }
-        if (sensBtnReset.isTriggered())     { mask |= (1U << 5); }
         return mask;
     }
 
@@ -171,18 +159,18 @@ namespace
     {
         MCUFRIEND_kbv& tft = display.getTft();
 
-        // Botón [BANDA] en la barra inferior (X = 126..218, Y = 190..232) -> Controla M+
+        // Botón [BANDA M+ 7V] en la barra inferior (X = 126..218, Y = 190..232)
         const uint16_t beltCol = beltRunning ? COLOR_RED : COLOR_GREEN;
         tft.fillRoundRect(126, 190, 92, 42, 5, beltCol);
         tft.drawRoundRect(126, 190, 92, 42, 5, COLOR_WHITE);
         tft.setTextSize(1);
         tft.setTextColor(COLOR_BLACK, beltCol);
-        tft.setCursor(136, 198);
-        tft.print(beltRunning ? F("PARAR") : F("MOVER"));
-        tft.setCursor(136, 212);
+        tft.setCursor(134, 198);
+        tft.print(beltRunning ? F("PARAR 7V") : F("MOVER 7V"));
+        tft.setCursor(134, 212);
         tft.print(F("BANDA M+"));
 
-        // Botón [TAPADO] en la barra inferior (X = 222..314, Y = 190..232) -> Controla M-
+        // Botón [TAPADO M-] en la barra inferior (X = 222..314, Y = 190..232)
         const uint16_t chuckCol = chuckRunning ? COLOR_RED : COLOR_CYAN;
         tft.fillRoundRect(222, 190, 92, 42, 5, chuckCol);
         tft.drawRoundRect(222, 190, 92, 42, 5, COLOR_WHITE);
@@ -197,24 +185,60 @@ namespace
     void drawSensorRow(uint8_t rowIdx, const __FlashStringHelper* label, bool active)
     {
         MCUFRIEND_kbv& tft = display.getTft();
-        const int16_t y = static_cast<int16_t>(74 + (rowIdx * 17));
+        const int16_t y = static_cast<int16_t>(26 + (rowIdx * 18));
 
         tft.setTextSize(1);
         tft.setTextColor(COLOR_WHITE, COLOR_BLACK);
         tft.setCursor(8, y);
         tft.print(label);
 
-        tft.setCursor(192, y);
+        tft.setCursor(206, y);
         if (active)
         {
             tft.setTextColor(COLOR_GREEN, COLOR_BLACK);
-            tft.print(F("[ ACTIVO ] "));
+            tft.print(F("[ ACTIVO ]"));
         }
         else
         {
             tft.setTextColor(COLOR_YELLOW, COLOR_BLACK);
-            tft.print(F("[ LIBRE  ] "));
+            tft.print(F("[ LIBRE  ]"));
         }
+    }
+
+    void drawArmButtons(bool stopDown, bool clampDown, bool pumpOn)
+    {
+        MCUFRIEND_kbv& tft = display.getTft();
+
+        // Botón Brazo 1: Tope (P29) -> X = 8..154, Y = 88..130
+        const uint16_t stopCol = stopDown ? COLOR_ORANGE : COLOR_BLUE;
+        tft.fillRoundRect(8, 88, 148, 42, 5, stopCol);
+        tft.drawRoundRect(8, 88, 148, 42, 5, COLOR_WHITE);
+        tft.setTextSize(1);
+        tft.setTextColor(stopDown ? COLOR_BLACK : COLOR_WHITE, stopCol);
+        tft.setCursor(16, 96);
+        tft.print(F("BRAZO 1 TOPE (P29)"));
+        tft.setCursor(16, 112);
+        tft.print(stopDown ? F("ESTADO: ABAJO (100)") : F("ESTADO: ARRIBA (10)"));
+
+        // Botón Brazo 2: Sujeción (P30) -> X = 164..312, Y = 88..130
+        const uint16_t clampCol = clampDown ? COLOR_ORANGE : COLOR_BLUE;
+        tft.fillRoundRect(164, 88, 148, 42, 5, clampCol);
+        tft.drawRoundRect(164, 88, 148, 42, 5, COLOR_WHITE);
+        tft.setTextSize(1);
+        tft.setTextColor(clampDown ? COLOR_BLACK : COLOR_WHITE, clampCol);
+        tft.setCursor(170, 96);
+        tft.print(F("BRAZO 2 SUJEC (P30)"));
+        tft.setCursor(170, 112);
+        tft.print(clampDown ? F("ESTADO: ABAJO (95) ") : F("ESTADO: ARRIBA (10)"));
+
+        // Botón Bomba Llenado (P43) -> X = 8..312, Y = 136..176
+        const uint16_t pumpCol = pumpOn ? COLOR_RED : COLOR_DARK;
+        tft.fillRoundRect(8, 136, 304, 40, 5, pumpCol);
+        tft.drawRoundRect(8, 136, 304, 40, 5, COLOR_WHITE);
+        tft.setTextSize(2);
+        tft.setTextColor(COLOR_WHITE, pumpCol);
+        tft.setCursor(36, 148);
+        tft.print(pumpOn ? F("BOMBA P43: ENCENDIDA") : F("BOMBA P43: APAGADA  "));
     }
 
     void drawHomeBenchStatic()
@@ -226,14 +250,13 @@ namespace
         tft.setTextSize(2);
         tft.setTextColor(COLOR_CYAN, COLOR_DARK);
         tft.setCursor(6, 2);
-        tft.print(F("HOME: 1xBTS + SENSORES"));
+        tft.print(F("TEST LLENADO: SENS+BRAZOS"));
 
-        tft.drawFastHLine(0, 68, DisplayManager::SCREEN_WIDTH, COLOR_WHITE);
+        tft.drawFastHLine(0, 82, DisplayManager::SCREEN_WIDTH, COLOR_WHITE);
     }
 
     void updateHomeBenchDynamic(bool forceRedraw)
     {
-        MCUFRIEND_kbv& tft = display.getTft();
         const bool beltOn  = conveyor.isRunning();
         const bool chuckOn = chuckMotor.isRunning();
         const uint8_t sensorMask = packSensorStates();
@@ -242,79 +265,44 @@ namespace
         {
             drawHomeBenchStatic();
             drawBottomDcButtons(beltOn, chuckOn);
+            drawArmButtons(stopArmDown, clampArmDown, pumpRunning);
+            lastBeltRunning  = beltOn;
+            lastChuckRunning = chuckOn;
+            lastStopArmDown  = stopArmDown;
+            lastClampArmDown = clampArmDown;
+            lastPumpRunning  = pumpRunning;
         }
 
-        if (forceRedraw || (beltOn != lastBeltRunning) || (chuckOn != lastChuckRunning))
+        if ((beltOn != lastBeltRunning) || (chuckOn != lastChuckRunning))
         {
-            tft.setTextSize(1);
-            tft.setCursor(8, 25);
-            tft.setTextColor(beltOn ? COLOR_GREEN : COLOR_WHITE, COLOR_BLACK);
-            tft.print(beltOn ? F("Banda M+(P44/41): ON ") : F("Banda M+(P44/41): OFF"));
-
-            tft.setCursor(164, 25);
-            tft.setTextColor(chuckOn ? COLOR_CYAN : COLOR_WHITE, COLOR_BLACK);
-            tft.print(chuckOn ? F("Tapa M-(P45/40): ON ") : F("Tapa M-(P45/40): OFF"));
-
             drawBottomDcButtons(beltOn, chuckOn);
             lastBeltRunning  = beltOn;
             lastChuckRunning = chuckOn;
         }
 
-        const uint32_t nowMs = millis();
-        if (forceRedraw || (nowMs - lastAdcDisplayMs >= ADC_DISPLAY_PERIOD_MS))
+        if ((stopArmDown != lastStopArmDown) ||
+            (clampArmDown != lastClampArmDown) ||
+            (pumpRunning != lastPumpRunning))
         {
-            lastAdcDisplayMs = nowMs;
-            const uint16_t bAdc = conveyor.getFilteredCurrentAdc();
-            const uint16_t cAdc = chuckMotor.getFilteredCurrentAdc();
-
-            if (forceRedraw || (bAdc != lastBeltAdc) || (cAdc != lastChuckAdc))
-            {
-                tft.setTextSize(1);
-                tft.setTextColor(COLOR_YELLOW, COLOR_BLACK);
-                tft.setCursor(8, 42);
-                tft.print(F("R_IS Banda(A9): "));
-                tft.print(bAdc);
-                tft.print(F("   "));
-
-                tft.setCursor(164, 42);
-                tft.print(F("L_IS Tapa(A8): "));
-                tft.print(cAdc);
-                tft.print(F("   "));
-
-                tft.setTextColor(COLOR_WHITE, COLOR_BLACK);
-                tft.setCursor(8, 56);
-                tft.print(F("(Toque Engrane abajo para probar Steppers Z1/Z2)"));
-
-                lastBeltAdc  = bAdc;
-                lastChuckAdc = cAdc;
-            }
+            drawArmButtons(stopArmDown, clampArmDown, pumpRunning);
+            lastStopArmDown  = stopArmDown;
+            lastClampArmDown = clampArmDown;
+            lastPumpRunning  = pumpRunning;
         }
 
-        const uint8_t diff = forceRedraw ? 0x3FU : static_cast<uint8_t>(sensorMask ^ lastSensorMask);
+        const uint8_t diff = forceRedraw ? 0x07U : static_cast<uint8_t>(sensorMask ^ lastSensorMask);
 
         if ((diff & (1U << 0)) != 0U)
         {
-            drawSensorRow(0, F("P22 Presencia Llenado :"), (sensorMask & (1U << 0)) != 0U);
+            drawSensorRow(0, F("P22 IR1 Aproximacion (5V):"), (sensorMask & (1U << 0)) != 0U);
         }
         if ((diff & (1U << 1)) != 0U)
         {
-            drawSensorRow(1, F("P23 Presencia Tapado  :"), (sensorMask & (1U << 1)) != 0U);
+            drawSensorRow(1, F("P26 IR2 Posic. Exacta(5V):"), (sensorMask & (1U << 1)) != 0U);
         }
         if ((diff & (1U << 2)) != 0U)
         {
-            drawSensorRow(2, F("P24 Fin Carrera Z1    :"), (sensorMask & (1U << 2)) != 0U);
-        }
-        if ((diff & (1U << 3)) != 0U)
-        {
-            drawSensorRow(3, F("P25 Fin Carrera Z2    :"), (sensorMask & (1U << 3)) != 0U);
-        }
-        if ((diff & (1U << 4)) != 0U)
-        {
-            drawSensorRow(4, F("P27 Seta E-STOP (NC)  :"), (sensorMask & (1U << 4)) != 0U);
-        }
-        if ((diff & (1U << 5)) != 0U)
-        {
-            drawSensorRow(5, F("P28 Boton Reset Fisico:"), (sensorMask & (1U << 5)) != 0U);
+            drawSensorRow(2, F("P24 Fin Carrera Z1 (GND) :"), (sensorMask & (1U << 2)) != 0U);
         }
 
         lastSensorMask = sensorMask;
@@ -323,11 +311,11 @@ namespace
     void drawStepperBoxButton(int16_t x, int16_t y, const __FlashStringHelper* line1, uint16_t color)
     {
         MCUFRIEND_kbv& tft = display.getTft();
-        tft.fillRoundRect(x, y, 142, 38, 6, color);
-        tft.drawRoundRect(x, y, 142, 38, 6, COLOR_WHITE);
+        tft.fillRoundRect(x, y, 146, 38, 6, color);
+        tft.drawRoundRect(x, y, 146, 38, 6, COLOR_WHITE);
         tft.setTextSize(2);
         tft.setTextColor(COLOR_WHITE, color);
-        tft.setCursor(x + 14, y + 11);
+        tft.setCursor(x + 12, y + 11);
         tft.print(line1);
     }
 
@@ -340,23 +328,13 @@ namespace
         tft.setTextSize(2);
         tft.setTextColor(COLOR_YELLOW, COLOR_DARK);
         tft.setCursor(6, 2);
-        tft.print(F("STEPPERS Z1 / Z2"));
+        tft.print(F("EJE Z1 LLENADO + CORRIENTE"));
 
-        // Columna izquierda: Z1 Llenado (37/36/35)
-        tft.setTextSize(1);
-        tft.setTextColor(COLOR_CYAN, COLOR_BLACK);
-        tft.setCursor(10, 24);
-        tft.print(F("Z1 LLENADO (P37/36/35)"));
-
-        // Columna derecha: Z2 Tapado (34/33/32)
-        tft.setCursor(168, 24);
-        tft.print(F("Z2 TAPADO (P34/33/32)"));
-
-        // 4 Botones de Jog (Subir / Bajar)
-        drawStepperBoxButton(10,  76, F("Z1 SUBIR"), COLOR_BLUE);
-        drawStepperBoxButton(10, 124, F("Z1 BAJAR"), COLOR_DARK);
-        drawStepperBoxButton(168, 76, F("Z2 SUBIR"), COLOR_BLUE);
-        drawStepperBoxButton(168, 124, F("Z2 BAJAR"), COLOR_DARK);
+        // 4 Botones para Eje Z1 Llenado (P37/36/35)
+        drawStepperBoxButton(8,   84, F("Z1 SUBIR"), COLOR_BLUE);
+        drawStepperBoxButton(8,  132, F("Z1 BAJAR"), COLOR_DARK);
+        drawStepperBoxButton(166, 84, F("Z1 HOME "), COLOR_GREEN);
+        drawStepperBoxButton(166, 132, F("Z1 PARAR"), COLOR_RED);
     }
 
     void updateSettingsSteppersDynamic(bool forceRedraw)
@@ -385,36 +363,40 @@ namespace
         {
             tft.setTextSize(1);
             tft.setTextColor(COLOR_WHITE, COLOR_BLACK);
-            tft.setCursor(10, 38);
-            tft.print(F("Pasos: "));
+            tft.setCursor(8, 28);
+            tft.print(F("Z1 Llenado (P37/36/35) Pasos: "));
             tft.print(fSteps);
             tft.print(F("      "));
 
-            tft.setCursor(10, 52);
+            tft.setCursor(8, 42);
             tft.setTextColor(fBusy ? COLOR_GREEN : COLOR_YELLOW, COLOR_BLACK);
-            tft.print(fBusy ? F("Estado: MOVIENDO ") : F("Estado: REPOSO   "));
+            tft.print(fBusy ? F("Estado Z1: MOVIENDO   ") : F("Estado Z1: EN REPOSO  "));
 
             lastFillZSteps = fSteps;
             lastFillZBusy  = fBusy;
         }
 
-        const int32_t cSteps = capZ.getCurrentSteps();
-        const bool    cBusy  = capZ.isBusy();
-        if (forceRedraw || (cSteps != lastCapZSteps) || (cBusy != lastCapZBusy))
+        const uint32_t nowMs = millis();
+        if (forceRedraw || (nowMs - lastAdcDisplayMs >= ADC_DISPLAY_PERIOD_MS))
         {
-            tft.setTextSize(1);
-            tft.setTextColor(COLOR_WHITE, COLOR_BLACK);
-            tft.setCursor(168, 38);
-            tft.print(F("Pasos: "));
-            tft.print(cSteps);
-            tft.print(F("      "));
+            lastAdcDisplayMs = nowMs;
+            const uint16_t bAdc = conveyor.getFilteredCurrentAdc();
+            const uint16_t cAdc = chuckMotor.getFilteredCurrentAdc();
 
-            tft.setCursor(168, 52);
-            tft.setTextColor(cBusy ? COLOR_GREEN : COLOR_YELLOW, COLOR_BLACK);
-            tft.print(cBusy ? F("Estado: MOVIENDO ") : F("Estado: REPOSO   "));
+            if (forceRedraw || (bAdc != lastBeltAdc) || (cAdc != lastChuckAdc))
+            {
+                tft.setTextSize(1);
+                tft.setTextColor(COLOR_CYAN, COLOR_BLACK);
+                tft.setCursor(8, 60);
+                tft.print(F("R_IS Banda(A9): "));
+                tft.print(bAdc);
+                tft.print(F("   L_IS Tapa(A8): "));
+                tft.print(cAdc);
+                tft.print(F("   "));
 
-            lastCapZSteps = cSteps;
-            lastCapZBusy  = cBusy;
+                lastBeltAdc  = bAdc;
+                lastChuckAdc = cAdc;
+            }
         }
     }
 
@@ -422,18 +404,18 @@ namespace
     {
         if (conveyor.isRunning())
         {
-            conveyor.stop();
+            conveyor.pauseSmooth();
             digitalWrite(HardwarePins::PIN_STATUS_LED, LOW);
-            Serial.println(F("[TEST] Motor Banda DETENIDO (Pin 44 RPWM=0, Pin 41 R_EN=LOW, Borne M+=0V)"));
+            Serial.println(F("[TEST] Motor Banda DESACELERANDO (Rampa trapezoidal hacia 0V en Borne M+)"));
         }
         else
         {
             conveyor.clearStall();
             conveyor.start();
             digitalWrite(HardwarePins::PIN_STATUS_LED, HIGH);
-            Serial.print(F("[TEST] Motor Banda ENCENDIDO (Pin 44 RPWM="));
+            Serial.print(F("[TEST] Motor Banda ACELERANDO (Rampa trapezoidal hacia PWM="));
             Serial.print(ProcessParams::BELT_PWM);
-            Serial.println(F(", Pin 41 R_EN=HIGH, Borne M+ activo)"));
+            Serial.println(F(" [~7.0V efectivos], Pin 41 R_EN=HIGH, Borne M+ activo)"));
         }
     }
 
@@ -453,37 +435,56 @@ namespace
         }
     }
 
+    void toggleStopArm()
+    {
+        stopArmDown = !stopArmDown;
+        const uint8_t targetDeg = stopArmDown
+                                      ? ProcessParams::FILL_STOP_DOWN_DEG
+                                      : ProcessParams::FILL_STOP_UP_DEG;
+        servoStopArm.write(targetDeg);
+        Serial.print(F("[SERVO] Brazo 1 Tope (Pin 29) -> "));
+        Serial.print(stopArmDown ? F("ABAJO (") : F("ARRIBA ("));
+        Serial.print(targetDeg);
+        Serial.println(F(" grados)"));
+    }
+
+    void toggleClampArm()
+    {
+        clampArmDown = !clampArmDown;
+        const uint8_t targetDeg = clampArmDown
+                                      ? ProcessParams::FILL_CLAMP_DOWN_DEG
+                                      : ProcessParams::FILL_CLAMP_UP_DEG;
+        servoClampArm.write(targetDeg);
+        Serial.print(F("[SERVO] Brazo 2 Sujecion (Pin 30) -> "));
+        Serial.print(clampArmDown ? F("ABAJO (") : F("ARRIBA ("));
+        Serial.print(targetDeg);
+        Serial.println(F(" grados)"));
+    }
+
+    void togglePump()
+    {
+        pumpRunning = !pumpRunning;
+        digitalWrite(HardwarePins::PIN_PUMP_FILL, pumpRunning ? HIGH : LOW);
+        Serial.print(F("[BOMBA] Pin 43 -> "));
+        Serial.println(pumpRunning ? F("ENCENDIDA") : F("APAGADA"));
+    }
+
     void logSensorChangesToSerial()
     {
-        if (sensPresenceFill.hasChanged())
+        if (sensApproachFill.hasChanged())
         {
-            Serial.print(F("[SENSOR] P22 Presencia Llenado -> "));
-            Serial.println(sensPresenceFill.isTriggered() ? F("ACTIVO") : F("LIBRE"));
+            Serial.print(F("[SENSOR] P22 IR1 Aproximacion Llenado -> "));
+            Serial.println(sensApproachFill.isTriggered() ? F("ACTIVO (5V)") : F("LIBRE (0V)"));
         }
-        if (sensPresenceCap.hasChanged())
+        if (sensPositionFill.hasChanged())
         {
-            Serial.print(F("[SENSOR] P23 Presencia Tapado -> "));
-            Serial.println(sensPresenceCap.isTriggered() ? F("ACTIVO") : F("LIBRE"));
+            Serial.print(F("[SENSOR] P26 IR2 Posicion Exacta Llenado -> "));
+            Serial.println(sensPositionFill.isTriggered() ? F("ACTIVO (5V)") : F("LIBRE (0V)"));
         }
         if (sensLimitFill.hasChanged())
         {
             Serial.print(F("[SENSOR] P24 Fin Carrera Z1 -> "));
-            Serial.println(sensLimitFill.isTriggered() ? F("ACTIVO") : F("LIBRE"));
-        }
-        if (sensLimitCap.hasChanged())
-        {
-            Serial.print(F("[SENSOR] P25 Fin Carrera Z2 -> "));
-            Serial.println(sensLimitCap.isTriggered() ? F("ACTIVO") : F("LIBRE"));
-        }
-        if (sensEstopAux.hasChanged())
-        {
-            Serial.print(F("[SENSOR] P27 Seta E-STOP -> "));
-            Serial.println(sensEstopAux.isTriggered() ? F("ACTIVA") : F("LIBRE"));
-        }
-        if (sensBtnReset.hasChanged())
-        {
-            Serial.print(F("[SENSOR] P28 Boton Reset -> "));
-            Serial.println(sensBtnReset.isTriggered() ? F("PULSADO") : F("LIBRE"));
+            Serial.println(sensLimitFill.isTriggered() ? F("ACTIVO (GND)") : F("LIBRE"));
         }
     }
 
@@ -507,6 +508,21 @@ namespace
                 toggleChuckMotor();
                 break;
 
+            case 't':
+            case 'T':
+                toggleStopArm();
+                break;
+
+            case 'g':
+            case 'G':
+                toggleClampArm();
+                break;
+
+            case 'p':
+            case 'P':
+                togglePump();
+                break;
+
             case '1':
                 fillZ.jogUp(BENCH_JOG_STEPS, BENCH_JOG_SPEED);
                 Serial.println(F("[STEPPER] Z1 Llenado SUBIR 1600 pasos"));
@@ -517,14 +533,10 @@ namespace
                 Serial.println(F("[STEPPER] Z1 Llenado BAJAR 1600 pasos"));
                 break;
 
-            case '3':
-                capZ.jogUp(BENCH_JOG_STEPS, BENCH_JOG_SPEED);
-                Serial.println(F("[STEPPER] Z2 Tapado SUBIR 1600 pasos"));
-                break;
-
-            case '4':
-                capZ.jogDown(BENCH_JOG_STEPS, BENCH_JOG_SPEED);
-                Serial.println(F("[STEPPER] Z2 Tapado BAJAR 1600 pasos"));
+            case 'h':
+            case 'H':
+                fillZ.home(ProcessParams::Z_HOMING_SPEED);
+                Serial.println(F("[STEPPER] Z1 Llenado HOMING hacia P24"));
                 break;
 
             case 's':
@@ -532,8 +544,9 @@ namespace
                 conveyor.stop();
                 chuckMotor.stop();
                 fillZ.stop();
-                capZ.stop();
-                Serial.println(F("[TEST] PARO TOTAL de motores"));
+                pumpRunning = false;
+                digitalWrite(HardwarePins::PIN_PUMP_FILL, LOW);
+                Serial.println(F("[TEST] PARO TOTAL de motores y bomba"));
                 break;
 
             default:
@@ -552,43 +565,52 @@ void setup()
     pinMode(HardwarePins::PIN_PUMP_FILL, OUTPUT);
     digitalWrite(HardwarePins::PIN_PUMP_FILL, LOW);
 
-    sensPresenceFill.init();
-    sensPresenceCap.init();
+    sensApproachFill.init();
+    sensPositionFill.init();
     sensLimitFill.init();
-    sensLimitCap.init();
-    sensEstopAux.init();
-    sensBtnReset.init();
 
     conveyor.init();
     chuckMotor.init();
     fillZ.init();
-    capZ.init();
+
+    // Inicializar los 2 servomotores de los brazos de Llenado en posición ARRIBA
+    servoStopArm.attach(HardwarePins::PIN_SERVO_FILL_STOP);
+    servoClampArm.attach(HardwarePins::PIN_SERVO_FILL_CLAMP);
+    servoStopArm.write(ProcessParams::FILL_STOP_UP_DEG);
+    servoClampArm.write(ProcessParams::FILL_CLAMP_UP_DEG);
 
     display.init();
     char emptyLabel[] = "";
     MCUFRIEND_kbv& tft = display.getTft();
 
-    // Botones de la barra inferior (activos en ambas pantallas)
+    // Botones de la barra inferior (activos en Home y Settings)
     btnToggleBelt.initButton(&tft,  172, 211, 92, 42, 0, 0, 0, emptyLabel, 1);
     btnToggleChuck.initButton(&tft, 268, 211, 92, 42, 0, 0, 0, emptyLabel, 1);
 
-    // Botones de la pantalla Settings para mover los 2 motores a pasos
-    btnFillZUp.initButton(&tft,    81,  95, 142, 38, 0, 0, 0, emptyLabel, 1);
-    btnFillZDown.initButton(&tft,  81, 143, 142, 38, 0, 0, 0, emptyLabel, 1);
-    btnCapZUp.initButton(&tft,    239,  95, 142, 38, 0, 0, 0, emptyLabel, 1);
-    btnCapZDown.initButton(&tft,  239, 143, 142, 38, 0, 0, 0, emptyLabel, 1);
+    // Botones en Home: Brazo 1 (Tope P29), Brazo 2 (Sujeción P30) y Bomba (P43)
+    btnToggleStopArm.initButton(&tft,   82, 109, 148, 42, 0, 0, 0, emptyLabel, 1);
+    btnToggleClampArm.initButton(&tft, 238, 109, 148, 42, 0, 0, 0, emptyLabel, 1);
+    btnTogglePump.initButton(&tft,     160, 156, 304, 40, 0, 0, 0, emptyLabel, 1);
+
+    // Botones en Settings: Stepper Z1 Llenado
+    btnFillZUp.initButton(&tft,    81, 103, 146, 38, 0, 0, 0, emptyLabel, 1);
+    btnFillZDown.initButton(&tft,  81, 151, 146, 38, 0, 0, 0, emptyLabel, 1);
+    btnFillZHome.initButton(&tft, 239, 103, 146, 38, 0, 0, 0, emptyLabel, 1);
+    btnFillZStop.initButton(&tft, 239, 151, 146, 38, 0, 0, 0, emptyLabel, 1);
 
     display.showScreen(ScreenId::Home);
     lastRenderedScreen = ScreenId::Home;
     updateHomeBenchDynamic(true);
 
     Serial.println(F("=========================================================="));
-    Serial.println(F(" MODO PRUEBA EN BANCO: 1 MODULO BTS7960 PARA 2 MOTORES DC"));
-    Serial.println(F(" - Motor 1 Banda (M+) : RPWM=44, R_EN=41, R_IS=A9 (Tecla 'b')"));
-    Serial.println(F(" - Motor 2 Tapa  (M-) : LPWM=45, L_EN=40, L_IS=A8 (Tecla 'c')"));
-    Serial.println(F(" - Stepper Z1 Llenado : STEP=37, DIR=36, EN=35   (Teclas '1'/'2')"));
-    Serial.println(F(" - Stepper Z2 Tapado  : STEP=34, DIR=33, EN=32   (Teclas '3'/'4')"));
-    Serial.println(F(" - Sensores           : 22, 23, 24, 25, 27, 28   ('s' = Paro)"));
+    Serial.println(F(" TEST ESTACION DE LLENADO + BANDA 7V + BRAZOS + SENSORES"));
+    Serial.println(F(" - Banda 7V (M+)      : RPWM=44, R_EN=41, R_IS=A9 (Tecla 'b')"));
+    Serial.println(F(" - Motor Tapa (M-)    : LPWM=45, L_EN=40, L_IS=A8 (Tecla 'c')"));
+    Serial.println(F(" - Brazo 1 Tope       : Pin 29 (Tecla 't' o boton en TFT)"));
+    Serial.println(F(" - Brazo 2 Sujecion   : Pin 30 (Tecla 'g' o boton en TFT)"));
+    Serial.println(F(" - Bomba Llenado      : Pin 43 (Tecla 'p' o boton en TFT)"));
+    Serial.println(F(" - Stepper Z1 Llenado : STEP=37, DIR=36, EN=35 (Teclas '1'/'2'/'h')"));
+    Serial.println(F(" - Sensores Llenado   : P22 (IR1 Aprox), P26 (IR2 Posic), P24 (FC Z1)"));
     Serial.println(F("=========================================================="));
 }
 
@@ -596,37 +618,28 @@ void loop()
 {
     const uint32_t nowMs = millis();
 
-    // 1. Muestreo de los 6 sensores digitales (cada 1 ms)
+    // 1. Muestreo de los 3 sensores de Llenado (cada 1 ms)
     if (nowMs - lastSensorPollMs >= SENSOR_POLL_PERIOD_MS)
     {
         lastSensorPollMs = nowMs;
 
-        sensPresenceFill.update();
-        sensPresenceCap.update();
+        sensApproachFill.update();
+        sensPositionFill.update();
         sensLimitFill.update();
-        sensLimitCap.update();
-        sensEstopAux.update();
-        sensBtnReset.update();
 
         logSensorChangesToSerial();
-
-        if (sensBtnReset.onRisingEdge())
-        {
-            toggleConveyorBelt();
-        }
     }
 
     // 2. Comandos por Monitor Serie
     handleSerialCommands();
 
-    // 3. Perfiles de movimiento y muestreo ADC de ambos canales del BTS7960 (cada 20 ms)
+    // 3. Perfiles de movimiento (Rampa trapezoidal de banda 7V y Stepper Z1) cada 20 ms
     if (nowMs - lastMotionMs >= MOTION_PERIOD_MS)
     {
         lastMotionMs = nowMs;
         conveyor.update();
         (void)chuckMotor.sampleCurrentAdc();
         fillZ.updateMotionProfile();
-        capZ.updateMotionProfile();
     }
 
     // 4. Interfaz táctil TFT y actualización de pantallas (cada 50 ms)
@@ -642,7 +655,7 @@ void loop()
         const bool screenChanged = (currentScreen != lastRenderedScreen);
         lastRenderedScreen = currentScreen;
 
-        // Botones inferiores para los 2 canales del BTS7960 (activos en Home y Settings)
+        // Botones inferiores para Banda (M+) y Motor Tapado (M-)
         btnToggleBelt.press(touched && btnToggleBelt.contains(px, py));
         btnToggleChuck.press(touched && btnToggleChuck.contains(px, py));
 
@@ -657,14 +670,31 @@ void loop()
 
         if (currentScreen == ScreenId::Home)
         {
+            btnToggleStopArm.press(touched && btnToggleStopArm.contains(px, py));
+            btnToggleClampArm.press(touched && btnToggleClampArm.contains(px, py));
+            btnTogglePump.press(touched && btnTogglePump.contains(px, py));
+
+            if (btnToggleStopArm.justReleased())
+            {
+                toggleStopArm();
+            }
+            if (btnToggleClampArm.justReleased())
+            {
+                toggleClampArm();
+            }
+            if (btnTogglePump.justReleased())
+            {
+                togglePump();
+            }
+
             updateHomeBenchDynamic(screenChanged);
         }
         else if (currentScreen == ScreenId::Settings)
         {
             btnFillZUp.press(touched && btnFillZUp.contains(px, py));
             btnFillZDown.press(touched && btnFillZDown.contains(px, py));
-            btnCapZUp.press(touched && btnCapZUp.contains(px, py));
-            btnCapZDown.press(touched && btnCapZDown.contains(px, py));
+            btnFillZHome.press(touched && btnFillZHome.contains(px, py));
+            btnFillZStop.press(touched && btnFillZStop.contains(px, py));
 
             if (btnFillZUp.justReleased())
             {
@@ -678,17 +708,15 @@ void loop()
                 else { fillZ.jogDown(BENCH_JOG_STEPS, BENCH_JOG_SPEED); }
                 Serial.println(F("[TFT] Boton Z1 BAJAR"));
             }
-            if (btnCapZUp.justReleased())
+            if (btnFillZHome.justReleased())
             {
-                if (capZ.isBusy()) { capZ.stop(); }
-                else { capZ.jogUp(BENCH_JOG_STEPS, BENCH_JOG_SPEED); }
-                Serial.println(F("[TFT] Boton Z2 SUBIR"));
+                fillZ.home(ProcessParams::Z_HOMING_SPEED);
+                Serial.println(F("[TFT] Boton Z1 HOME (hacia Fin de Carrera P24)"));
             }
-            if (btnCapZDown.justReleased())
+            if (btnFillZStop.justReleased())
             {
-                if (capZ.isBusy()) { capZ.stop(); }
-                else { capZ.jogDown(BENCH_JOG_STEPS, BENCH_JOG_SPEED); }
-                Serial.println(F("[TFT] Boton Z2 BAJAR"));
+                fillZ.stop();
+                Serial.println(F("[TFT] Boton Z1 PARAR"));
             }
 
             updateSettingsSteppersDynamic(screenChanged);

@@ -3,8 +3,9 @@
  * @brief Máquina de estados finitos (FSM) de tres fases para el Autómata 1 (Llenado).
  *
  * Implementa el patrón Enum FSM con ciclo de vida explícito (Entry, During, Exit),
- * vigilancia de tiempos de guardia (timeouts), control de derrames en fase Exit
- * y retención de botella por cola intermedia llena (WaitingQueueSlot).
+ * captura secuencial mediante dos sensores ópticos IR (aproximación para bajar tope y
+ * posición exacta entre brazos para bajar sujeción), vigilancia de timeouts, control de
+ * derrames en fase Exit y retención de botella por cola intermedia llena (WaitingQueueSlot).
  */
 
 #pragma once
@@ -17,7 +18,7 @@
 
 /**
  * @class FillingAutomaton
- * @brief Coordina la retención de botella, descenso de boquilla, dosificación y liberación en la etapa de llenado.
+ * @brief Coordina la retención de botella con doble sensor IR, descenso de boquilla, dosificación y liberación.
  */
 class FillingAutomaton
 {
@@ -25,7 +26,8 @@ public:
     /**
      * @brief Construye la máquina de estados del autómata de llenado inyectando sus periféricos HAL.
      *
-     * @param[in] presenceSensor Sensor óptico de presencia de botella en la zona de llenado.
+     * @param[in] presenceSensor Primer sensor IR de aproximación (antes de los brazos; baja el brazo de tope).
+     * @param[in] positionSensor Segundo sensor IR de posición exacta (en medio de los brazos; baja el brazo de sujeción).
      * @param[in] limitSwitch Fin de carrera superior del eje Z de llenado.
      * @param[in] gate Compuerta de doble servomotor (brazo de tope y brazo de sujeción) de llenado.
      * @param[in] zAxis Eje vertical paso a paso de la boquilla de llenado.
@@ -33,6 +35,7 @@ public:
      */
     FillingAutomaton(
         DigitalSensor& presenceSensor,
+        DigitalSensor& positionSensor,
         DigitalSensor& limitSwitch,
         BottleGate& gate,
         StepperAxis& zAxis,
@@ -123,7 +126,8 @@ private:
      */
     void triggerFault(ErrorCode error);
 
-    DigitalSensor& presenceSensor_;      ///< Sensor óptico de presencia en la estación de llenado
+    DigitalSensor& presenceSensor_;      ///< 1er sensor IR (aproximación antes de los brazos)
+    DigitalSensor& positionSensor_;      ///< 2do sensor IR (posición exacta en medio de ambos brazos)
     DigitalSensor& limitSwitch_;         ///< Fin de carrera superior del eje Z de llenado
     BottleGate&    gate_;                ///< Par de servomotores (tope y sujeción) de llenado
     StepperAxis&   zAxis_;               ///< Actuador lineal paso a paso de la boquilla
@@ -136,7 +140,7 @@ private:
     ErrorCode      activeError_;         ///< Código de fallo retenido (ErrorCode::None si opera normal)
     uint32_t       stageTimerMs_;        ///< Marca de tiempo millis() de inicio de la fase actual [ms]
     bool           isFirstRun_;          ///< Bandera para disparar onEntry() en el primer ciclo del estado
-    bool           needsClear_;          ///< Impide re-disparo en Idle hasta que la botella saliente despeje el sensor
+    bool           needsClear_;          ///< Impide re-disparo en Idle hasta que la botella saliente despeje los sensores
     bool           canReleaseBottle_;    ///< Habilitación desde StationController cuando hay cupo en la cola intermedia
     bool           bottleReleasedEvent_; ///< Pulso de evento para incrementar interstageQueueCount_ en el mediador
 };
