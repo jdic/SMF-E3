@@ -252,11 +252,11 @@ void StationController::update()
             {
                 enterErrorStop(ErrorCode::FillZSoftLimitHit);
             }
-            else if (capZ_.hasSoftLimitTripped())
+            else if (ProcessParams::ENABLE_CAPPING_STATION && capZ_.hasSoftLimitTripped())
             {
                 enterErrorStop(ErrorCode::CapZSoftLimitHit);
             }
-            else if (fillZ_.isHome() && capZ_.isHome())
+            else if (fillZ_.isHome() && (!ProcessParams::ENABLE_CAPPING_STATION || capZ_.isHome()))
             {
                 enterRunningMode();
             }
@@ -282,11 +282,16 @@ void StationController::update()
             }
 
             // Control de flujo de la cola intermedia entre Llenado y Tapado
-            fillingAutomaton_.setReleasePermitted(
-                interstageQueueCount_ < ProcessParams::MAX_INTERSTAGE_QUEUE);
+            const bool canReleaseFromFill =
+                !ProcessParams::ENABLE_INTERSTAGE_QUEUE ||
+                (interstageQueueCount_ < ProcessParams::MAX_INTERSTAGE_QUEUE);
+            fillingAutomaton_.setReleasePermitted(canReleaseFromFill);
 
             fillingAutomaton_.update();
-            cappingAutomaton_.update();
+            if (ProcessParams::ENABLE_CAPPING_STATION)
+            {
+                cappingAutomaton_.update();
+            }
 
             if (fillingAutomaton_.getError() != ErrorCode::None)
             {
@@ -294,7 +299,8 @@ void StationController::update()
                 break;
             }
 
-            if (cappingAutomaton_.getError() != ErrorCode::None)
+            if (ProcessParams::ENABLE_CAPPING_STATION &&
+                cappingAutomaton_.getError() != ErrorCode::None)
             {
                 enterErrorStop(cappingAutomaton_.getError());
                 break;
@@ -305,7 +311,8 @@ void StationController::update()
             // botella queda sujeta por ambos brazos (o cuando no hay sujeción en curso).
             const bool pauseBeltForClamping =
                 (fillingAutomaton_.getState() == FillState::ClampArmDown) ||
-                (cappingAutomaton_.getState() == CappingState::ClampArmDown);
+                (ProcessParams::ENABLE_CAPPING_STATION &&
+                 (cappingAutomaton_.getState() == CappingState::ClampArmDown));
 
             if (pauseBeltForClamping)
             {
@@ -324,16 +331,24 @@ void StationController::update()
 
             if (fillingAutomaton_.consumeBottleReleasedEvent())
             {
-                if (interstageQueueCount_ < 0xFFU)
+                if (ProcessParams::ENABLE_INTERSTAGE_QUEUE)
                 {
-                    interstageQueueCount_++;
+                    if (interstageQueueCount_ < 0xFFU)
+                    {
+                        interstageQueueCount_++;
+                    }
+                }
+                else if (!ProcessParams::ENABLE_CAPPING_STATION)
+                {
+                    bottleCount_++;
                 }
             }
 
-            if (cappingAutomaton_.consumeBottleCompletedEvent())
+            if (ProcessParams::ENABLE_CAPPING_STATION &&
+                cappingAutomaton_.consumeBottleCompletedEvent())
             {
                 bottleCount_++;
-                if (interstageQueueCount_ > 0U)
+                if (ProcessParams::ENABLE_INTERSTAGE_QUEUE && interstageQueueCount_ > 0U)
                 {
                     interstageQueueCount_--;
                 }
@@ -513,7 +528,15 @@ void StationController::enterBootMode()
     fillZ_.clearSoftLimitFault();
     capZ_.clearSoftLimitFault();
     fillZ_.home(ProcessParams::Z_HOMING_SPEED);
-    capZ_.home(ProcessParams::Z_HOMING_SPEED);
+    if (ProcessParams::ENABLE_CAPPING_STATION)
+    {
+        capZ_.home(ProcessParams::Z_HOMING_SPEED);
+    }
+    else
+    {
+        capZ_.stop();
+        capZ_.setDriverEnabled(false);
+    }
 
     refreshDisplaySnapshot();
 }

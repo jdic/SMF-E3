@@ -21,8 +21,10 @@ namespace ProcessParams
     constexpr uint16_t SENSOR_DEBOUNCE_MS      = 25;    ///< Ventana de estabilidad antirrebote para entradas digitales [ms]
 
     // ==========================================
-    // COLA INTERMEDIA ENTRE AUTÓMATAS (Buffer WIP Llenado -> Tapado)
+    // COLA INTERMEDIA Y HABILITACIÓN DE ETAPAS (Llenado -> Tapado)
     // ==========================================
+    constexpr bool     ENABLE_INTERSTAGE_QUEUE = false; ///< true: retiene en llenado si la cola llega a MAX_INTERSTAGE_QUEUE; false: libera siempre
+    constexpr bool     ENABLE_CAPPING_STATION  = false; ///< true: opera Llenado + Tapado; false: ignora homing y sensores de Tapado (prueba solo Llenado)
     constexpr uint8_t  MAX_INTERSTAGE_QUEUE    = 2;     ///< Máximo de botellas en tránsito/espera entre Llenado y Tapado [unidades] (AJUSTAR)
 
     // ==========================================
