@@ -19,7 +19,7 @@ public:
     /**
      * @brief Construye el controlador de la bomba de llenado.
      *
-     * @param pin Número de pin GPIO conectado al relé o MOSFET de la bomba (definido en HardwarePins).
+     * @param pin Número de pin GPIO de control de la etapa de potencia.
      * @param maxOnTimeMs Tiempo máximo continuo permitido con la bomba encendida en milisegundos [ms].
      * @param activeHigh true si la etapa de potencia se activa con nivel HIGH (pull-down externo);
      *                   false si es activa en nivel bajo (LOW).

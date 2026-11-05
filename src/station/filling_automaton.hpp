@@ -1,11 +1,10 @@
 /**
  * @file filling_automaton.hpp
- * @brief Máquina de estados finitos (FSM) de tres fases para el Autómata 1 (Llenado).
+ * @brief Máquina de estados para el proceso de dosificación y llenado de envases.
  *
  * Implementa el patrón Enum FSM con ciclo de vida explícito (Entry, During, Exit),
- * captura secuencial mediante dos sensores ópticos IR (aproximación para bajar tope y
- * posición exacta entre brazos para bajar sujeción), vigilancia de timeouts, control de
- * derrames en fase Exit y retención de botella por cola intermedia llena (WaitingQueueSlot).
+ * secuencia de retención con doble sensor óptico, descenso de boquilla, control de
+ * bombeo y liberación de producto hacia la siguiente etapa.
  */
 
 #pragma once

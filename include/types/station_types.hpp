@@ -98,7 +98,7 @@ enum class CappingState : uint8_t
  * @enum TouchCommand
  * @brief Comandos originados por los botones táctiles de la pantalla TFT.
  *
- * StationController descarta todo comando mientras la seta E-STOP permanezca activa (PIN_ESTOP_AUX).
+ * Se descartan comandos mientras la parada de emergencia permanezca activa.
  */
 enum class TouchCommand : uint8_t
 {
@@ -141,7 +141,7 @@ struct DisplaySnapshot
 
 /**
  * @struct TelemetrySnapshot
- * @brief Instantánea de telemetría publicada periódicamente hacia Node-RED vía MQTT/JSON.
+ * @brief Instantánea de telemetría para supervisión remota.
  */
 struct TelemetrySnapshot
 {

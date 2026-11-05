@@ -19,7 +19,7 @@ class AlarmBuzzer
 public:
     /**
      * @brief Construye el controlador del buzzer asignando su pin digital de salida.
-     * @param[in] pin Pin GPIO del Arduino Mega conectado a la etapa del buzzer activo.
+     * @param[in] pin Pin GPIO conectado a la etapa de activación del buzzer.
      * @param[in] activeHigh true si el buzzer suena con nivel lógico HIGH (por defecto true).
      */
     explicit AlarmBuzzer(uint8_t pin, bool activeHigh = true);

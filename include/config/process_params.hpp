@@ -1,9 +1,8 @@
 /**
  * @file process_params.hpp
- * @brief Parámetros cinemáticos, temporales, de control y calibración de la Estación 3.
+ * @brief Parámetros cinemáticos, temporales y de control de los procesos de dosificación y tapado.
  *
- * Regla arquitectónica (§1.5): este archivo contiene ÚNICAMENTE cantidades (pasos, velocidades,
- * tiempos, ángulos, ganancias y umbrales). Los pines físicos residen en hardware_pins.hpp.
+ * Centraliza cotas de pasos, velocidades, tiempos de proceso, ángulos de servomotores y umbrales de supervisión.
  */
 
 #pragma once
@@ -11,126 +10,122 @@
 
 /**
  * @namespace ProcessParams
- * @brief Constantes de ingeniería de proceso y tablas de perfiles de botella.
+ * @brief Constantes de ingeniería de proceso y perfiles de producto.
  */
 namespace ProcessParams
 {
     // ==========================================
     // SENSORES DIGITALES (antirrebote)
     // ==========================================
-    constexpr uint16_t SENSOR_DEBOUNCE_MS      = 25;    ///< Ventana de estabilidad antirrebote para entradas digitales [ms]
+    constexpr uint16_t SENSOR_DEBOUNCE_MS      = 25;    ///< Ventana de estabilidad de lectura digital [ms]
 
     // ==========================================
-    // COLA INTERMEDIA Y HABILITACIÓN DE ETAPAS (Llenado -> Tapado)
+    // FLUJO ENTRE ETAPAS Y HABILITACIÓN DE MÓDULOS
     // ==========================================
-    constexpr bool     ENABLE_INTERSTAGE_QUEUE = false; ///< true: retiene en llenado si la cola llega a MAX_INTERSTAGE_QUEUE; false: libera siempre
-    constexpr bool     ENABLE_CAPPING_STATION  = false; ///< true: opera Llenado + Tapado; false: ignora homing y sensores de Tapado (prueba solo Llenado)
-    constexpr uint8_t  MAX_INTERSTAGE_QUEUE    = 2;     ///< Máximo de botellas en tránsito/espera entre Llenado y Tapado [unidades] (AJUSTAR)
+    constexpr bool     ENABLE_INTERSTAGE_QUEUE = false; ///< Retiene botellas en llenado cuando la cola alcanza MAX_INTERSTAGE_QUEUE
+    constexpr bool     ENABLE_CAPPING_STATION  = false; ///< Habilita el autómata de tapado (false opera únicamente llenado)
+    constexpr uint8_t  MAX_INTERSTAGE_QUEUE    = 2;     ///< Capacidad máxima de botellas entre etapas [unidades]
 
     // ==========================================
-    // EJES Z (motores a pasos de llenado y tapado)
+    // EJES Z (MOTORES A PASOS)
     // ==========================================
-    constexpr uint16_t Z_STEPS_PER_MM          = 400;   ///< Relación cinemática: 200 pasos/rev x 16 micropasos / 8 mm [step/mm] (AJUSTAR)
-    constexpr uint16_t Z_CRUISE_SPEED          = 4000;  ///< Velocidad de crucero en desplazamientos verticales [step/s] (máx. 8000)
-    constexpr uint16_t Z_HOMING_SPEED          = 1000;  ///< Velocidad de búsqueda del fin de carrera superior [step/s]
-    constexpr uint16_t Z_ACCEL                 = 8000;  ///< Aceleración y desaceleración de la rampa trapezoidal [step/s^2]
-    constexpr uint16_t Z_HOME_BACKOFF_STEPS    = 200;   ///< Retroceso descendente tras accionar el fin de carrera [step]
-    constexpr uint16_t Z_JOG_STEPS             = 400;   ///< Desplazamiento ascendente por cada pulso táctil en ManualRecovery [step]
-    constexpr int32_t  FILL_Z_MAX_TRAVEL_STEPS = 24000; ///< Cota máxima descendente por software del eje Z de llenado [step] (AJUSTAR)
-    constexpr int32_t  CAP_Z_MAX_TRAVEL_STEPS  = 24000; ///< Cota máxima descendente por software del eje Z de tapado [step] (AJUSTAR)
-    constexpr uint16_t Z_MOVE_TIMEOUT_MS       = 5000;  ///< Tiempo máximo de guardia para bajada o subida de un eje Z [ms]
-    constexpr uint16_t Z_HOMING_TIMEOUT_MS     = 10000; ///< Tiempo máximo de guardia para completar el homing en Boot [ms]
+    constexpr uint16_t Z_STEPS_PER_MM          = 400;   ///< Relación cinemática vertical [step/mm]
+    constexpr uint16_t Z_CRUISE_SPEED          = 4000;  ///< Velocidad de crucero en traslación [step/s]
+    constexpr uint16_t Z_HOMING_SPEED          = 1000;  ///< Velocidad de búsqueda de origen [step/s]
+    constexpr uint16_t Z_ACCEL                 = 8000;  ///< Aceleración y desaceleración de rampa [step/s^2]
+    constexpr uint16_t Z_HOME_BACKOFF_STEPS    = 200;   ///< Retroceso tras contacto con fin de carrera [step]
+    constexpr uint16_t Z_JOG_STEPS             = 400;   ///< Paso de avance manual en recuperación [step]
+    constexpr int32_t  FILL_Z_MAX_TRAVEL_STEPS = 24000; ///< Límite inferior de recorrido en llenado [step]
+    constexpr int32_t  CAP_Z_MAX_TRAVEL_STEPS  = 24000; ///< Límite inferior de recorrido en tapado [step]
+    constexpr uint16_t Z_MOVE_TIMEOUT_MS       = 5000;  ///< Tiempo límite de desplazamiento vertical [ms]
+    constexpr uint16_t Z_HOMING_TIMEOUT_MS     = 10000; ///< Tiempo límite de búsqueda de origen en arranque [ms]
 
     // ==========================================
-    // BANDA TRANSPORTADORA (motor DC en lazo abierto PWM + rampa trapezoidal + sensado IS)
-    // Conversión de voltaje efectivo en el IBT-2: PWM = 255 * (V_deseado / V_fuente_B+)
-    // Con fuente B+ = 24000 mV (24 V) y motor a 7000 mV (7 V) -> BELT_PWM = 74
-    // (Si alimentas B+ con 12 V, cambia BELT_SUPPLY_MV a 12000 -> BELT_PWM será 148)
+    // BANDA TRANSPORTADORA
     // ==========================================
-    constexpr uint16_t BELT_SUPPLY_MV          = 24000; ///< Voltaje de la fuente conectada a B+/B- del módulo IBT-2 [mV] (AJUSTAR si usas 12 V)
-    constexpr uint16_t BELT_TARGET_MV          = 7000;  ///< Voltaje efectivo deseado en el motor de la banda (7.0 V) [mV]
-    constexpr uint8_t  BELT_PWM                = static_cast<uint8_t>((255UL * BELT_TARGET_MV) / BELT_SUPPLY_MV); ///< Ciclo PWM nominal (~74 a 24 V para entregar 7 V)
-    constexpr uint8_t  BELT_ACCEL_PWM_STEP     = 5;     ///< Incremento de PWM cada 20 ms en rampa de aceleración (~300 ms de 0 a 7 V)
-    constexpr uint8_t  BELT_DECEL_PWM_STEP     = 8;     ///< Decremento de PWM cada 20 ms en rampa de desaceleración suave (~180 ms a 0 V)
-    constexpr uint16_t BELT_CURRENT_LIMIT_ADC  = 650;   ///< Umbral de sobrecorriente de la banda en cuentas ADC [0..1023] (AJUSTAR)
-    constexpr uint16_t BELT_STALL_MS           = 500;   ///< Tiempo continuo en sobrecorriente antes de declarar atasco ERR-303 [ms]
+    constexpr uint16_t BELT_SUPPLY_MV          = 24000; ///< Tensión nominal de la fuente de potencia [mV]
+    constexpr uint16_t BELT_TARGET_MV          = 7000;  ///< Tensión de operación nominal del motor [mV]
+    constexpr uint8_t  BELT_PWM                = static_cast<uint8_t>((255UL * BELT_TARGET_MV) / BELT_SUPPLY_MV); ///< Ciclo PWM nominal calculado
+    constexpr uint8_t  BELT_ACCEL_PWM_STEP     = 5;     ///< Incremento de PWM por ciclo en aceleración
+    constexpr uint8_t  BELT_DECEL_PWM_STEP     = 8;     ///< Decremento de PWM por ciclo en desaceleración
+    constexpr uint16_t BELT_CURRENT_LIMIT_ADC  = 650;   ///< Umbral de sobrecorriente [cuentas ADC]
+    constexpr uint16_t BELT_STALL_MS           = 500;   ///< Tiempo de persistencia de sobrecorriente para declarar atasco [ms]
 
     // ==========================================
-    // BRAZOS CON SERVOMOTOR (ángulos en grados, tiempos en ms)
+    // SERVOMOTORES DE RETENCIÓN
     // ==========================================
-    constexpr uint8_t  FILL_STOP_UP_DEG        = 10;    ///< Ángulo de reposo (arriba) del brazo de tope en llenado [grados, 0..180] (AJUSTAR)
-    constexpr uint8_t  FILL_STOP_DOWN_DEG      = 100;   ///< Ángulo de bloqueo (abajo) del brazo de tope en llenado [grados, 0..180] (AJUSTAR)
-    constexpr uint8_t  FILL_CLAMP_UP_DEG       = 10;    ///< Ángulo de reposo (arriba) del brazo de sujeción en llenado [grados, 0..180] (AJUSTAR)
-    constexpr uint8_t  FILL_CLAMP_DOWN_DEG     = 95;    ///< Ángulo de retención (abajo) del brazo de sujeción en llenado [grados, 0..180] (AJUSTAR)
-    constexpr uint8_t  CAP_STOP_UP_DEG         = 10;    ///< Ángulo de reposo (arriba) del brazo de tope en tapado [grados, 0..180] (AJUSTAR)
-    constexpr uint8_t  CAP_STOP_DOWN_DEG       = 100;   ///< Ángulo de bloqueo (abajo) del brazo de tope en tapado [grados, 0..180] (AJUSTAR)
-    constexpr uint8_t  CAP_CLAMP_UP_DEG        = 10;    ///< Ángulo de reposo (arriba) del brazo de sujeción en tapado [grados, 0..180] (AJUSTAR)
-    constexpr uint8_t  CAP_CLAMP_DOWN_DEG      = 95;    ///< Ángulo de retención (abajo) del brazo de sujeción en tapado [grados, 0..180] (AJUSTAR)
-    constexpr uint16_t CLAMP_DELAY_MS          = 1000;  ///< Espera de respaldo entre brazos [ms]
-    constexpr uint16_t CLAMP_SENSOR_TIMEOUT_MS = 3000;  ///< Tiempo máximo entre 1er sensor (tope) y 2do sensor (posición entre brazos) [ms]
-    constexpr uint16_t ARM_MOVE_MS             = 600;   ///< Tiempo estimado de recorrido físico de un servomotor [ms]
-    constexpr uint16_t RELEASE_GAP_MS          = 500;   ///< Pausa escalonada entre subir el brazo de sujeción y subir el de tope [ms]
-    constexpr uint16_t RELEASE_MS              = 1500;  ///< Tiempo total de liberación hasta que la botella despeja el sensor [ms]
+    constexpr uint8_t  FILL_STOP_UP_DEG        = 10;    ///< Ángulo de reposo del brazo de tope de llenado [grados]
+    constexpr uint8_t  FILL_STOP_DOWN_DEG      = 100;   ///< Ángulo de bloqueo del brazo de tope de llenado [grados]
+    constexpr uint8_t  FILL_CLAMP_UP_DEG       = 10;    ///< Ángulo de reposo del brazo de sujeción de llenado [grados]
+    constexpr uint8_t  FILL_CLAMP_DOWN_DEG     = 95;    ///< Ángulo de bloqueo del brazo de sujeción de llenado [grados]
+    constexpr uint8_t  CAP_STOP_UP_DEG         = 10;    ///< Ángulo de reposo del brazo de tope de tapado [grados]
+    constexpr uint8_t  CAP_STOP_DOWN_DEG       = 100;   ///< Ángulo de bloqueo del brazo de tope de tapado [grados]
+    constexpr uint8_t  CAP_CLAMP_UP_DEG        = 10;    ///< Ángulo de reposo del brazo de sujeción de tapado [grados]
+    constexpr uint8_t  CAP_CLAMP_DOWN_DEG      = 95;    ///< Ángulo de bloqueo del brazo de sujeción de tapado [grados]
+    constexpr uint16_t CLAMP_DELAY_MS          = 1000;  ///< Tiempo de espera entre accionamiento de brazos [ms]
+    constexpr uint16_t CLAMP_SENSOR_TIMEOUT_MS = 3000;  ///< Tiempo límite para detección en sensor de posición [ms]
+    constexpr uint16_t ARM_MOVE_MS             = 600;   ///< Tiempo de transición mecánica de los brazos [ms]
+    constexpr uint16_t RELEASE_GAP_MS          = 500;   ///< Intervalo entre liberación de sujeción y tope [ms]
+    constexpr uint16_t RELEASE_MS              = 1500;  ///< Tiempo total de despeje de botella [ms]
 
     // ==========================================
-    // LLENADO (bomba)
+    // DOSIFICACIÓN (BOMBA)
     // ==========================================
-    constexpr uint16_t DRIP_MS                 = 1000;  ///< Espera de escurrimiento de boquilla con la bomba apagada [ms]
-    constexpr uint16_t MAX_PUMP_ON_MS          = 8000;  ///< Límite absoluto de seguridad para bomba encendida continua [ms]
+    constexpr uint16_t DRIP_MS                 = 1000;  ///< Tiempo de escurrimiento tras corte de bombeo [ms]
+    constexpr uint16_t MAX_PUMP_ON_MS          = 8000;  ///< Límite de seguridad de activación continua de bomba [ms]
 
     // ==========================================
-    // TAPADO (motor DC del cabezal + sensado IS en BTS7960)
+    // APRIETE DE TAPA
     // ==========================================
-    constexpr uint16_t TIGHTEN_MS              = 2500;  ///< Duración nominal de la fase de apriete de tapa [ms]
-    constexpr uint8_t  CHUCK_PWM               = 200;   ///< Ciclo de trabajo PWM durante el apriete de tapa [0..255] (AJUSTAR)
-    constexpr uint16_t CHUCK_CURRENT_LIMIT_ADC = 600;   ///< Umbral de sobrecorriente crítica del cabezal en cuentas ADC [0..1023] (AJUSTAR)
-    constexpr uint16_t CHUCK_STALL_ADC         = 450;   ///< Umbral de par de bloqueo prematuro (rosca trasroscada) en cuentas ADC [0..1023] (AJUSTAR)
-    constexpr uint16_t CHUCK_MIN_TIGHTEN_MS    = 350;   ///< Ventana inicial donde superar CHUCK_STALL_ADC declara ERR-302 [ms]
+    constexpr uint16_t TIGHTEN_MS              = 2500;  ///< Duración nominal de ciclo de apriete [ms]
+    constexpr uint8_t  CHUCK_PWM               = 200;   ///< Ciclo de trabajo PWM de apriete [0..255]
+    constexpr uint16_t CHUCK_CURRENT_LIMIT_ADC = 600;   ///< Umbral de sobrecorriente crítica en apriete [cuentas ADC]
+    constexpr uint16_t CHUCK_STALL_ADC         = 450;   ///< Umbral de corriente para detección de tope de rosca [cuentas ADC]
+    constexpr uint16_t CHUCK_MIN_TIGHTEN_MS    = 350;   ///< Tiempo mínimo de inicio antes de evaluar bloqueo de rosca [ms]
 
     // ==========================================
-    // SEÑALIZACIÓN ACÚSTICA (Buzzer activo 5 V no bloqueante)
+    // SEÑALIZACIÓN (TORRETA Y ALARMA SONORA)
     // ==========================================
-    constexpr uint16_t BUZZER_BOOT_ON_MS       = 80;    ///< Duración de cada pitido corto de confirmación de arranque [ms]
-    constexpr uint16_t BUZZER_BOOT_OFF_MS      = 80;    ///< Pausa entre pitidos cortos de confirmación de arranque [ms]
-    constexpr uint8_t  BUZZER_BOOT_PULSES      = 2;     ///< Número de pitidos cortos al entrar en modo Running [pulsos]
-    constexpr uint16_t BUZZER_WARN_ON_MS       = 100;   ///< Duración del pulso acústico de advertencia no bloqueante (ERR-902) [ms]
-    constexpr uint16_t BUZZER_WARN_OFF_MS      = 4900;  ///< Pausa entre avisos acústicos de advertencia no bloqueante [ms]
-    constexpr uint16_t BUZZER_FAULT_ON_MS      = 300;   ///< Tiempo encendido en patrón de fallo de proceso (ERR-1xx..3xx) [ms]
-    constexpr uint16_t BUZZER_FAULT_OFF_MS     = 300;   ///< Tiempo apagado en patrón de fallo de proceso (ERR-1xx..3xx) [ms]
-    constexpr uint16_t BUZZER_ESTOP_ON_MS      = 120;   ///< Tiempo encendido en patrón urgente de parada de emergencia (ERR-901) [ms]
-    constexpr uint16_t BUZZER_ESTOP_OFF_MS     = 120;   ///< Tiempo apagado en patrón urgente de parada de emergencia (ERR-901) [ms]
+    constexpr bool     TOWER_RELAY_ACTIVE_LOW  = true;  ///< Nivel activo del módulo de relevadores (true = LOW)
+    constexpr uint16_t BUZZER_BOOT_ON_MS       = 80;    ///< Duración de pulso de inicio [ms]
+    constexpr uint16_t BUZZER_BOOT_OFF_MS      = 80;    ///< Intervalo entre pulsos de inicio [ms]
+    constexpr uint8_t  BUZZER_BOOT_PULSES      = 2;     ///< Cantidad de pulsos en inicio
+    constexpr uint16_t BUZZER_WARN_ON_MS       = 100;   ///< Duración de pulso de advertencia [ms]
+    constexpr uint16_t BUZZER_WARN_OFF_MS      = 4900;  ///< Intervalo entre pulsos de advertencia [ms]
+    constexpr uint16_t BUZZER_FAULT_ON_MS      = 300;   ///< Duración de pulso en condición de fallo [ms]
+    constexpr uint16_t BUZZER_FAULT_OFF_MS     = 300;   ///< Intervalo de silencio en condición de fallo [ms]
+    constexpr uint16_t BUZZER_ESTOP_ON_MS      = 120;   ///< Duración de pulso en parada de emergencia [ms]
+    constexpr uint16_t BUZZER_ESTOP_OFF_MS     = 120;   ///< Intervalo de silencio en parada de emergencia [ms]
 
     // ==========================================
-    // PANTALLA TÁCTIL (calibrada con setRotation(1) en el shield 2.4")
-    // En rotación horizontal: el eje X de pantalla (0..319) proviene de rawY (invertido)
-    // y el eje Y de pantalla (0..239) proviene de rawX (invertido).
+    // PANTALLA TÁCTIL
     // ==========================================
-    constexpr int16_t  TS_MINX                 = 945;   ///< Lectura rawY en borde izquierdo (px = 0) [0..1023]
-    constexpr int16_t  TS_MAXX                 = 101;   ///< Lectura rawY en borde derecho (px = 319) [0..1023]
-    constexpr int16_t  TS_MINY                 = 925;   ///< Lectura rawX en borde superior (py = 0) [0..1023]
-    constexpr int16_t  TS_MAXY                 = 105;   ///< Lectura rawX en borde inferior (py = 239) [0..1023]
-    constexpr int16_t  TS_MIN_PRESSURE         = 80;    ///< Presión mínima válida Z para aceptar un toque estable [cuentas]
-    constexpr int16_t  TS_MAX_PRESSURE         = 1000;  ///< Presión máxima válida Z para aceptar un toque [cuentas]
-    constexpr bool     TOUCH_DEBUG_COORDS      = false; ///< Flag: muestra en pantalla las coordenadas RAW y mapeadas
-    constexpr bool     TOUCH_DEBUG_MARKER      = false; ///< Flag: dibuja únicamente el marcador del último touch
+    constexpr int16_t  TS_MINX                 = 945;   ///< Calibración eje X mínimo [cuentas ADC]
+    constexpr int16_t  TS_MAXX                 = 101;   ///< Calibración eje X máximo [cuentas ADC]
+    constexpr int16_t  TS_MINY                 = 925;   ///< Calibración eje Y mínimo [cuentas ADC]
+    constexpr int16_t  TS_MAXY                 = 105;   ///< Calibración eje Y máximo [cuentas ADC]
+    constexpr int16_t  TS_MIN_PRESSURE         = 80;    ///< Umbral mínimo de presión de contacto [cuentas ADC]
+    constexpr int16_t  TS_MAX_PRESSURE         = 1000;  ///< Umbral máximo de presión de contacto [cuentas ADC]
+    constexpr bool     TOUCH_DEBUG_COORDS      = false; ///< Habilita visualización de coordenadas de depuración
+    constexpr bool     TOUCH_DEBUG_MARKER      = false; ///< Habilita marcador gráfico de pulsación
 
     /**
      * @struct BottleProfileParams
-     * @brief Parámetros de proceso dependientes del formato de botella seleccionado.
+     * @brief Parámetros dependientes del tipo de envase seleccionado.
      */
     struct BottleProfileParams
     {
-        int32_t  fillZSteps; ///< Cota descendente de llenado medida desde home [step]
-        int32_t  capZSteps;  ///< Cota descendente de tapado medida desde home [step]
-        uint16_t fillMs;     ///< Tiempo de activación de la bomba de llenado [ms]
+        int32_t  fillZSteps; ///< Desplazamiento vertical de boquilla [step]
+        int32_t  capZSteps;  ///< Desplazamiento vertical de cabezal [step]
+        uint16_t fillMs;     ///< Tiempo de dosificación [ms]
     };
 
     /**
-     * @brief Tabla de perfiles indexada por static_cast<uint8_t>(BottleProfile).
+     * @brief Tabla de perfiles indexada por BottleProfile.
      */
     constexpr BottleProfileParams BOTTLE_PROFILES[] =
     {
-        { 0, 0, 0 }, // Small: calibrar antes de operar con botellas
-        { 0, 0, 0 }  // Large: calibrar antes de operar con botellas
+        { 0, 0, 0 }, // Small
+        { 0, 0, 0 }  // Large
     };
 }

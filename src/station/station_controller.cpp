@@ -79,6 +79,18 @@ namespace
         cfg.stallTimeMs     = ProcessParams::BELT_STALL_MS;
         return cfg;
     }
+
+    void writeTowerRelayPin(uint8_t pin, bool turnOn)
+    {
+        const bool levelHigh = ProcessParams::TOWER_RELAY_ACTIVE_LOW ? !turnOn : turnOn;
+        digitalWrite(pin, levelHigh ? HIGH : LOW);
+    }
+
+    void setTowerLights(bool greenOn, bool redOn)
+    {
+        writeTowerRelayPin(HardwarePins::PIN_TOWER_GREEN, greenOn);
+        writeTowerRelayPin(HardwarePins::PIN_TOWER_RED, redOn);
+    }
 }
 
 StationController::StationController()
@@ -112,6 +124,16 @@ StationController::StationController()
           ProcessParams::SENSOR_DEBOUNCE_MS,
           false,
           true),
+      btnStart_(
+          HardwarePins::PIN_BTN_START,
+          ProcessParams::SENSOR_DEBOUNCE_MS,
+          false,
+          true),
+      btnStop_(
+          HardwarePins::PIN_BTN_STOP,
+          ProcessParams::SENSOR_DEBOUNCE_MS,
+          false,
+          true),
       estopAux_(
           HardwarePins::PIN_ESTOP_AUX,
           ProcessParams::SENSOR_DEBOUNCE_MS,
@@ -136,7 +158,7 @@ StationController::StationController()
           DcMotorBts7960::UNUSED_PIN,
           HardwarePins::PIN_ADC_CHUCK_CURRENT),
       conveyor_(makeConveyorConfig()),
-      buzzer_(HardwarePins::PIN_BUZZER, true),
+      buzzer_(HardwarePins::PIN_BUZZER, !ProcessParams::TOWER_RELAY_ACTIVE_LOW),
       fillingAutomaton_(
           presenceFill_,
           positionFill_,
@@ -157,6 +179,7 @@ StationController::StationController()
       interstageQueueCount_(0),
       bottleCount_(0),
       bootStartTimeMs_(0),
+      linePaused_(false),
       networkWarningActive_(false),
       lastSnapshot_{
           ErrorCode::None,
@@ -172,8 +195,11 @@ StationController::StationController()
 
 void StationController::init()
 {
-    pinMode(HardwarePins::PIN_STATUS_LED, OUTPUT);
-    digitalWrite(HardwarePins::PIN_STATUS_LED, LOW);
+    // Inicializar indicadores lumínicos en estado apagado
+    setTowerLights(false, false);
+    pinMode(HardwarePins::PIN_TOWER_GREEN, OUTPUT);
+    pinMode(HardwarePins::PIN_TOWER_RED, OUTPUT);
+    setTowerLights(false, false);
 
     presenceFill_.init();
     positionFill_.init();
@@ -181,6 +207,8 @@ void StationController::init()
     positionCap_.init();
     limitSwitchFill_.init();
     limitSwitchCap_.init();
+    btnStart_.init();
+    btnStop_.init();
     estopAux_.init();
     btnReset_.init();
 
@@ -218,6 +246,8 @@ void StationController::update()
     positionCap_.update();
     limitSwitchFill_.update();
     limitSwitchCap_.update();
+    btnStart_.update();
+    btnStop_.update();
     estopAux_.update();
     btnReset_.update();
 
@@ -225,7 +255,7 @@ void StationController::update()
     fillGate_.update();
     capGate_.update();
 
-    // 2. Prioridad absoluta: vigilancia del contacto auxiliar de la seta física E-STOP
+    // 2. Prioridad de seguridad: contacto de parada de emergencia
     if (estopAux_.isTriggered())
     {
         if (mode_ != StationMode::ErrorStop || activeError_ != ErrorCode::EmergencyStopPressed)
@@ -238,10 +268,30 @@ void StationController::update()
         return;
     }
 
-    // 3. Pulsador físico de rearme en paralelo al botón táctil [REARME]
+    // 3. Pulsadores de control y rearme
     if (btnReset_.onRisingEdge())
     {
         handleTouchCommand(TouchCommand::AcknowledgeAlarm);
+    }
+
+    if (btnStop_.onRisingEdge() && mode_ == StationMode::Running)
+    {
+        linePaused_ = true;
+        conveyor_.pauseSmooth();
+        setTowerLights(false, true);
+    }
+
+    if (btnStart_.onRisingEdge())
+    {
+        if (mode_ == StationMode::Running && linePaused_)
+        {
+            linePaused_ = false;
+            setTowerLights(true, false);
+        }
+        else if (mode_ == StationMode::ManualRecovery)
+        {
+            handleTouchCommand(TouchCommand::ConfirmLineClear);
+        }
     }
 
     // 4. Máquina supervisora del modo global de la estación
@@ -306,10 +356,10 @@ void StationController::update()
                 break;
             }
 
-            // Coordinación de la banda: se pausa mientras cualquiera de los dos autómatas
-            // está bajando su segundo brazo (ClampArmDown) y vuelve a girar en cuanto la
-            // botella queda sujeta por ambos brazos (o cuando no hay sujeción en curso).
+            // Coordinación de avance de banda: se pausa por solicitud de STOP o durante
+            // la carrera de descenso del brazo de sujeción para fijar la botella.
             const bool pauseBeltForClamping =
+                linePaused_ ||
                 (fillingAutomaton_.getState() == FillState::ClampArmDown) ||
                 (ProcessParams::ENABLE_CAPPING_STATION &&
                  (cappingAutomaton_.getState() == CappingState::ClampArmDown));
@@ -513,8 +563,9 @@ void StationController::enterBootMode()
     activeError_ = ErrorCode::None;
     interstageQueueCount_ = 0;
     bootStartTimeMs_ = millis();
+    linePaused_ = false;
 
-    digitalWrite(HardwarePins::PIN_STATUS_LED, LOW);
+    setTowerLights(false, false);
     buzzer_.silence();
 
     fillPump_.off();
@@ -546,6 +597,7 @@ void StationController::enterRunningMode()
     mode_ = StationMode::Running;
     activeError_ = ErrorCode::None;
     interstageQueueCount_ = 0;
+    linePaused_ = false;
 
     fillingAutomaton_.reset();
     cappingAutomaton_.reset();
@@ -555,7 +607,7 @@ void StationController::enterRunningMode()
     conveyor_.clearStall();
     conveyor_.start();
 
-    digitalWrite(HardwarePins::PIN_STATUS_LED, HIGH);
+    setTowerLights(true, false);
     buzzer_.triggerBootReady(millis());
 
     refreshDisplaySnapshot();
@@ -571,7 +623,7 @@ void StationController::enterErrorStop(ErrorCode error)
         activeError_ = error;
     }
 
-    digitalWrite(HardwarePins::PIN_STATUS_LED, LOW);
+    setTowerLights(false, true);
 
     fillPump_.off();
     chuckMotor_.stop();

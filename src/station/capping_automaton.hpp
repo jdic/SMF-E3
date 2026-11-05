@@ -1,11 +1,10 @@
 /**
  * @file capping_automaton.hpp
- * @brief Máquina de estados finitos (FSM) de tres fases para el Autómata 2 (Tapado).
+ * @brief Máquina de estados para el proceso de colocación y apriete de tapas.
  *
  * Implementa el patrón Enum FSM con ciclo de vida explícito (Entry, During, Exit),
- * captura secuencial mediante dos sensores ópticos IR (aproximación para bajar tope y
- * posición exacta entre brazos para bajar sujeción), supervisión de sobrecorriente (ERR-301)
- * y par de bloqueo prematuro por corriente (ERR-302) en el puente H BTS7960 durante el apriete.
+ * secuencia de retención con doble sensor óptico, descenso de cabezal, apriete
+ * controlado por corriente y liberación coordinada.
  */
 
 #pragma once

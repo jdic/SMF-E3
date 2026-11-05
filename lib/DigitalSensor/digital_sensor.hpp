@@ -18,7 +18,7 @@ public:
     /**
      * @brief Construye una instancia de sensor digital asociada a un pin físico.
      *
-     * @param pin Número de pin GPIO del ATmega2560 (definido en HardwarePins).
+     * @param pin Número de pin GPIO conectado a la señal del sensor.
      * @param debounceMs Ventana de estabilidad antirrebote en milisegundos [ms] (> 0).
      * @param activeHigh true si el estado activo corresponde a nivel lógico HIGH; false si es activo en LOW.
      * @param usePullup true para habilitar la resistencia interna INPUT_PULLUP del AVR; false para INPUT.

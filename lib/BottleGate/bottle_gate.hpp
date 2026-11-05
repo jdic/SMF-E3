@@ -13,8 +13,8 @@
  */
 struct BottleGateConfig
 {
-    uint8_t  stopPin;      ///< Pin GPIO del servomotor de tope (HardwarePins)
-    uint8_t  clampPin;     ///< Pin GPIO del servomotor de sujeción (HardwarePins)
+    uint8_t  stopPin;      ///< Pin de control del servomotor de tope
+    uint8_t  clampPin;     ///< Pin de control del servomotor de sujeción
     uint8_t  stopUpDeg;    ///< Ángulo de reposo (arriba) del brazo de tope en grados [0..180]
     uint8_t  stopDownDeg;  ///< Ángulo de bloqueo (abajo) del brazo de tope en grados [0..180]
     uint8_t  clampUpDeg;   ///< Ángulo de reposo (arriba) del brazo de sujeción en grados [0..180]
@@ -42,7 +42,7 @@ public:
     explicit BottleGate(const BottleGateConfig& config);
 
     /**
-     * @brief Precarga los ángulos de reposo, adjunta ambos servomotores al Timer5 y posiciona los brazos arriba.
+     * @brief Precarga los ángulos de reposo, inicializa los servomotores y posiciona los brazos arriba.
      */
     void init();
 

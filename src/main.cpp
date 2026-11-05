@@ -1,13 +1,11 @@
 /**
  * @file main.cpp
- * @brief Punto de entrada y planificador cooperativo no bloqueante de la Estación 3 (Llenado y Tapado).
+ * @brief Punto de entrada y planificador cooperativo no bloqueante.
  *
- * Ejecuta tres tareas periódicas deterministas mediante marcas de tiempo millis() más la ISR de 20 kHz
- * en Timer3 para los dos motores a pasos (Eje Z Llenado y Eje Z Tapado) y la modulación en Timer4 para
- * el módulo único IBT-2 (BTS7960) de banda y cabezal de tapado:
- * - Tarea 1 (1 ms) : StationController::update() (sensores, E-STOP, autómatas de proceso, cola y alarmas).
- * - Tarea 2 (20 ms): StationController::updateMotionProfiles() (rampas trapezoidales Z y corriente de banda).
- * - Tarea 3 (50 ms): DisplayManager::pollTouchCommand() y renderizado incremental por dirty flags en TFT.
+ * Ejecuta tres tareas periódicas mediante marcas de tiempo millis() y gestión de interrupciones:
+ * - Tarea 1 (1 ms) : StationController::update() (muestreo de entradas, seguridad, autómatas y alarmas).
+ * - Tarea 2 (20 ms): StationController::updateMotionProfiles() (perfiles de velocidad de ejes y rampa de banda).
+ * - Tarea 3 (50 ms): DisplayManager::pollTouchCommand() y refresco de interfaz gráfica en pantalla.
  */
 
 #include <Arduino.h>
@@ -37,7 +35,7 @@ void setup()
     g_display.init();
     g_display.showScreen(ScreenId::Home);
 
-    // 2. Inicializar controlador central de la Estación 3 (sensores, actuadores, Timer3 e inicio de Boot/Homing)
+    // 2. Inicializar controlador central (sensores, actuadores, temporizadores e inicio de Boot)
     g_station.init();
 
     // 3. Renderizar estado inicial inmediatamente en pantalla

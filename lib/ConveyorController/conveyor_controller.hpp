@@ -13,10 +13,10 @@
  */
 struct ConveyorConfig
 {
-    uint8_t  rpwmPin;         ///< Pin PWM del BTS7960 de la banda (HardwarePins)
-    uint8_t  enPin;           ///< Pin de habilitación EN del BTS7960 de la banda (HardwarePins)
-    uint8_t  currentSensePin; ///< Pin analógico conectado a la salida IS del BTS7960 de la banda (HardwarePins)
-    uint8_t  targetPwm;       ///< Ciclo de trabajo PWM de crucero en modo Running [0..255] (7 V efectivos)
+    uint8_t  rpwmPin;         ///< Pin de control PWM de avance
+    uint8_t  enPin;           ///< Pin de habilitación de potencia
+    uint8_t  currentSensePin; ///< Pin analógico de lectura de corriente (IS)
+    uint8_t  targetPwm;       ///< Ciclo de trabajo PWM nominal de avance [0..255]
     uint8_t  accelStepPwm;    ///< Incremento de PWM por ciclo de 20 ms en rampa de aceleración [1..255]
     uint8_t  decelStepPwm;    ///< Decremento de PWM por ciclo de 20 ms en rampa de desaceleración [1..255]
     uint16_t currentLimitAdc; ///< Umbral de sobrecorriente en cuentas ADC [0..1023] para evaluar atasco

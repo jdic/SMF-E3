@@ -1,11 +1,10 @@
 /**
  * @file station_controller.hpp
- * @brief Coordinador central (Patrón Mediador) de la Estación 3 de Llenado y Tapado.
+ * @brief Coordinador central (Patrón Mediador) de los procesos de llenado y tapado.
  *
- * Concentra las instancias de todos los sensores y actuadores HAL, gobierna el modo global
- * de la estación (Boot, Running, ErrorStop, ManualRecovery), administra la cola intermedia
- * de botellas entre ambos autómatas, pausa la banda mientras baja el segundo brazo de sujeción,
- * aplica el interbloqueo de la seta E-STOP y publica instantáneas para la pantalla TFT y SCADA.
+ * Concentra las instancias de sensores y actuadores, gobierna el modo operativo global
+ * (Boot, Running, ErrorStop, ManualRecovery), administra la transferencia de botellas
+ * entre autómatas, coordina el avance de banda y aplica interbloqueos de seguridad.
  */
 
 #pragma once
@@ -23,7 +22,7 @@
 
 /**
  * @class StationController
- * @brief Mediador de la celda de manufactura que coordina ambos autómatas, la banda continua y la seguridad.
+ * @brief Mediador central que coordina los autómatas de proceso, la banda y la seguridad.
  */
 class StationController
 {
@@ -133,37 +132,40 @@ private:
     ErrorCode computeEffectiveError() const;
 
     // Sensores digitales con antirrebote
-    DigitalSensor      presenceFill_;         ///< 1er sensor IR en llenado: aproximación (PIN_PRESENCE_FILL = 22)
-    DigitalSensor      positionFill_;         ///< 2do sensor IR en llenado: en medio de ambos brazos (PIN_POS_FILL = 26)
-    DigitalSensor      presenceCap_;          ///< 1er sensor IR en tapado: aproximación (PIN_PRESENCE_CAP = 23)
-    DigitalSensor      positionCap_;          ///< 2do sensor IR en tapado: en medio de ambos brazos (PIN_POS_CAP = 48)
-    DigitalSensor      limitSwitchFill_;      ///< Fin de carrera superior del eje Z de llenado (PIN_LIMIT_SWITCH_FILL)
-    DigitalSensor      limitSwitchCap_;       ///< Fin de carrera superior del eje Z de tapado (PIN_LIMIT_SWITCH_CAP)
-    DigitalSensor      estopAux_;             ///< Contacto auxiliar NC de la seta de emergencia (PIN_ESTOP_AUX)
-    DigitalSensor      btnReset_;             ///< Pulsador físico de rearme en paralelo a la TFT (PIN_BTN_RESET)
+    DigitalSensor      presenceFill_;         ///< Sensor de aproximación en llenado
+    DigitalSensor      positionFill_;         ///< Sensor de posición de botella en llenado
+    DigitalSensor      presenceCap_;          ///< Sensor de aproximación en tapado
+    DigitalSensor      positionCap_;          ///< Sensor de posición de botella en tapado
+    DigitalSensor      limitSwitchFill_;      ///< Fin de carrera superior del eje de llenado
+    DigitalSensor      limitSwitchCap_;       ///< Fin de carrera superior del eje de tapado
+    DigitalSensor      btnStart_;             ///< Pulsador de marcha (START)
+    DigitalSensor      btnStop_;              ///< Pulsador de parada de ciclo (STOP)
+    DigitalSensor      estopAux_;             ///< Contacto auxiliar de parada de emergencia
+    DigitalSensor      btnReset_;             ///< Pulsador de rearme de alarmas (RESET)
 
     // Actuadores y controladores de lazo local
-    BottleGate         fillGate_;             ///< Brazos de tope y sujeción del autómata de llenado
-    BottleGate         capGate_;              ///< Brazos de tope y sujeción del autómata de tapado
-    StepperAxis        fillZ_;                ///< Eje Z paso a paso de la boquilla de llenado
-    StepperAxis        capZ_;                 ///< Eje Z paso a paso del cabezal de tapado
-    FillPump           fillPump_;             ///< Bomba de llenado con corte autónomo por tiempo máximo
-    DcMotorBts7960     chuckMotor_;           ///< Puente H BTS7960 del motor DC de apriete de tapa
-    ConveyorController conveyor_;             ///< Controlador PWM y detector de sobrecorriente de la banda de 24 V
-    AlarmBuzzer        buzzer_;               ///< Señalizador acústico no bloqueante por severidad de alarma
+    BottleGate         fillGate_;             ///< Compuerta de retención de llenado
+    BottleGate         capGate_;              ///< Compuerta de retención de tapado
+    StepperAxis        fillZ_;                ///< Eje vertical de boquilla de llenado
+    StepperAxis        capZ_;                 ///< Eje vertical de cabezal de tapado
+    FillPump           fillPump_;             ///< Bomba de dosificación con temporizador de seguridad
+    DcMotorBts7960     chuckMotor_;           ///< Motor DC del cabezal de apriete
+    ConveyorController conveyor_;             ///< Control de rampa y supervisión de corriente de la banda
+    AlarmBuzzer        buzzer_;               ///< Señalizador acústico de alarmas
 
     // Autómatas de proceso
-    FillingAutomaton   fillingAutomaton_;     ///< Máquina de estados de tres fases de la etapa de llenado
-    CappingAutomaton   cappingAutomaton_;     ///< Máquina de estados de tres fases de la etapa de tapado
+    FillingAutomaton   fillingAutomaton_;     ///< Máquina de estados de la etapa de llenado
+    CappingAutomaton   cappingAutomaton_;     ///< Máquina de estados de la etapa de tapado
 
     // Estado global del mediador
-    StationMode        mode_;                 ///< Modo global activo de la estación
-    ErrorCode          activeError_;          ///< Fallo crítico retenido (latch) en ErrorStop / ManualRecovery
-    BottleProfile      profile_;              ///< Formato de botella seleccionado (Small / Large)
-    uint8_t            interstageQueueCount_; ///< Botellas actualmente en tránsito entre Llenado y Tapado [unidades]
-    uint32_t           bottleCount_;          ///< Conteo acumulado de botellas finalizadas desde el arranque [unidades]
-    uint32_t           bootStartTimeMs_;      ///< Marca temporal de inicio de la secuencia de homing en Boot [ms]
-    bool               networkWarningActive_; ///< Bandera de advertencia no bloqueante ERR-902 (SCADA sin enlace)
+    StationMode        mode_;                 ///< Modo operativo activo
+    ErrorCode          activeError_;          ///< Código de fallo crítico retenido
+    BottleProfile      profile_;              ///< Perfil de envase activo (Small / Large)
+    uint8_t            interstageQueueCount_; ///< Botellas en tránsito entre etapas [unidades]
+    uint32_t           bottleCount_;          ///< Conteo total de botellas terminadas [unidades]
+    uint32_t           bootStartTimeMs_;      ///< Marca de tiempo de inicio de secuencia de origen [ms]
+    bool               linePaused_;           ///< Estado de pausa temporal solicitado por STOP
+    bool               networkWarningActive_; ///< Estado de pérdida de enlace de telemetría
     DisplaySnapshot    lastSnapshot_;         ///< Última instantánea entregada a DisplayManager
     bool               snapshotDirty_;        ///< Indica que hay cambios pendientes de proyectar en la pantalla TFT
 };

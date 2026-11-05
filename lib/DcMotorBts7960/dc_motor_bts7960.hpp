@@ -22,10 +22,10 @@ public:
     /**
      * @brief Construye una instancia del driver BTS7960.
      *
-     * @param rpwmPin Pin PWM por hardware para giro directo (RPWM, definido en HardwarePins).
-     * @param enPin Pin digital conectado a R_EN y L_EN unificados (definido en HardwarePins).
-     * @param lpwmPin Pin PWM por hardware para giro inverso (LPWM), o UNUSED_PIN si LPWM va conectado a GND.
-     * @param currentSensePin Pin analógico conectado a la salida IS del BTS7960, o UNUSED_PIN si no se utiliza.
+     * @param rpwmPin Pin de modulación PWM para giro directo (RPWM).
+     * @param enPin Pin digital de habilitación (R_EN / L_EN).
+     * @param lpwmPin Pin de modulación PWM para giro inverso (LPWM), o UNUSED_PIN si no se utiliza.
+     * @param currentSensePin Pin analógico de lectura de corriente (IS), o UNUSED_PIN si no se utiliza.
      */
     DcMotorBts7960(
         uint8_t rpwmPin,

@@ -29,10 +29,10 @@ enum class ScreenId : uint8_t
  */
 struct DisplayTouchConfig
 {
-    uint8_t xpPin;           ///< Pin digital X+ del panel táctil (HardwarePins::PIN_TOUCH_XP = 6)
-    uint8_t xmPin;           ///< Pin analógico X- compartido con LCD_RS (HardwarePins::PIN_TOUCH_XM = A2)
-    uint8_t ypPin;           ///< Pin analógico Y+ compartido con LCD_WR (HardwarePins::PIN_TOUCH_YP = A1)
-    uint8_t ymPin;           ///< Pin digital Y- del panel táctil (HardwarePins::PIN_TOUCH_YM = 7)
+    uint8_t xpPin;           ///< Terminal digital X+ del panel táctil
+    uint8_t xmPin;           ///< Terminal analógico X- compartido con bus de control
+    uint8_t ypPin;           ///< Terminal analógico Y+ compartido con bus de control
+    uint8_t ymPin;           ///< Terminal digital Y- del panel táctil
     int16_t tsMinX;          ///< Lectura ADC en borde izquierdo (px = 0) [0..1023]
     int16_t tsMaxX;          ///< Lectura ADC en borde derecho (px = 319) [0..1023]
     int16_t tsMinY;          ///< Lectura ADC en borde superior (py = 0) [0..1023]

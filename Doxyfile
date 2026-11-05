@@ -1,6 +1,6 @@
 PROJECT_NAME           = "SMF-E3: Estación 3 de Llenado y Tapado"
 PROJECT_NUMBER         = "1.0.0"
-PROJECT_BRIEF          = "Firmware de control en tiempo real cooperativo e ISR para Arduino Mega 2560"
+PROJECT_BRIEF          = "Firmware de control en tiempo etapa de llenado y tapado"
 OUTPUT_DIRECTORY       = docs
 CREATE_SUBDIRS         = NO
 ALLOW_UNICODE_NAMES    = YES

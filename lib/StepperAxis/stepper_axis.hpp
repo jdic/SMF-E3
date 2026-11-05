@@ -12,8 +12,8 @@
  */
 enum class StepperSlot : uint8_t
 {
-    FillZ = 0, ///< Eje Z del autómata de llenado (PORTC: PC0..PC2, Fin de carrera en PA2)
-    CapZ  = 1  ///< Eje Z del autómata de tapado  (PORTC: PC3..PC5, Fin de carrera en PA3)
+    FillZ = 0, ///< Eje vertical del módulo de llenado
+    CapZ  = 1  ///< Eje vertical del módulo de tapado
 };
 
 /**
@@ -22,11 +22,11 @@ enum class StepperSlot : uint8_t
  */
 struct StepperAxisConfig
 {
-    StepperSlot slot;                 ///< Ranura en la ISR del Timer3 (FillZ o CapZ)
-    uint8_t     stepPin;              ///< Pin STEP en PORTC (37 o 34 en HardwarePins)
-    uint8_t     dirPin;               ///< Pin DIR en PORTC (36 o 33 en HardwarePins)
-    uint8_t     enPin;                ///< Pin EN en PORTC (35 o 32 en HardwarePins)
-    uint8_t     limitSwitchPin;       ///< Pin de fin de carrera superior en PORTA (24 o 25 en HardwarePins)
+    StepperSlot slot;                 ///< Ranura en la ISR de temporizador (FillZ o CapZ)
+    uint8_t     stepPin;              ///< Pin de emisión de pulsos de paso (STEP)
+    uint8_t     dirPin;               ///< Pin de control de dirección (DIR)
+    uint8_t     enPin;                ///< Pin de habilitación de potencia del driver (EN)
+    uint8_t     limitSwitchPin;       ///< Pin de entrada de fin de carrera de origen
     int32_t     maxTravelSteps;       ///< Límite máximo de carrera descendente por software [step]
     uint16_t    accelStepsPerSec2;    ///< Aceleración y desaceleración de la rampa trapezoidal [step/s^2]
     uint16_t    homeBackoffSteps;     ///< Pasos de retroceso descendente tras tocar el fin de carrera [step]
