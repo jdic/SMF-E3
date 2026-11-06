@@ -11,6 +11,7 @@
 #include "config/hardware_pins.hpp"
 #include "config/process_params.hpp"
 #include "types/station_types.hpp"
+#include "ui_icons.hpp"
 
 /**
  * @enum ScreenId
@@ -20,6 +21,9 @@ enum class ScreenId : uint8_t
 {
     None = 0, ///< Sin pantalla activa
     Home,     ///< Pantalla principal de supervisión de proceso ("HOME")
+    AutoFill, ///< Pantalla de supervisión y control del Autómata 1 ("AUTO 1" - Llenado)
+    AutoCap,  ///< Pantalla de supervisión y control del Autómata 2 ("AUTO 2" - Tapado)
+    Debug,    ///< Pantalla de diagnóstico en vivo e I/O ("DEBUG")
     Settings  ///< Pantalla de perfil de botella y recuperación manual ("SETTINGS")
 };
 
@@ -59,8 +63,8 @@ public:
 
     static constexpr int16_t  SCREEN_WIDTH      = 320;     ///< Ancho total en rotación horizontal [px]
     static constexpr int16_t  SCREEN_HEIGHT     = 240;     ///< Alto total en rotación horizontal [px]
-    static constexpr int16_t  LAYOUT_BAR_Y      = 183;     ///< Coordenada Y donde inicia la barra inferior fija [px]
-    static constexpr int16_t  CONTENT_HEIGHT    = 183;     ///< Altura disponible para el contenido de cada Screen [px]
+    static constexpr int16_t  LAYOUT_BAR_Y      = 190;     ///< Coordenada Y donde inicia la barra inferior fija de navegación [px]
+    static constexpr int16_t  CONTENT_HEIGHT    = 190;     ///< Altura disponible para el contenido de cada Screen [px]
     static constexpr int16_t  MARKER_RADIUS     = 4;       ///< Radio en píxeles de la mira del último touch [px]
     static constexpr int16_t  RAW_GLITCH_BAND   = 12;      ///< Diferencia máxima admisible entre 2 muestras ADC seguidas
     static constexpr uint8_t  LANDSCAPE_ROT     = 1;       ///< Rotación horizontal estándar (320x240)
@@ -157,14 +161,20 @@ private:
     void drawTouchMarker(int16_t x, int16_t y, uint16_t color);
 
     void drawHomeStaticFrame();
+    void drawAutoFillStaticFrame();
+    void drawAutoCapStaticFrame();
+    void drawDebugStaticFrame();
     void drawSettingsStaticFrame();
     void renderHomeDynamic(const DisplaySnapshot& snapshot, bool fullRedraw);
+    void renderAutoFillDynamic(const DisplaySnapshot& snapshot, bool fullRedraw);
+    void renderAutoCapDynamic(const DisplaySnapshot& snapshot, bool fullRedraw);
+    void renderDebugDynamic(const DisplaySnapshot& snapshot, bool fullRedraw);
     void renderSettingsDynamic(const DisplaySnapshot& snapshot, bool fullRedraw);
     void renderBottomActionArea(const DisplaySnapshot& snapshot, bool fullRedraw);
 
     DisplayTouchConfig  config_;              ///< Configuración de pines y calibración del panel táctil
     TouchScreen         ts_;                  ///< Instancia del lector resistivo de 4 hilos
-    ScreenId            currentScreen_;       ///< Pantalla actualmente visible (Home o Settings)
+    ScreenId            currentScreen_;       ///< Pantalla actualmente visible (Home, AutoFill, AutoCap, Debug, Settings)
     bool                layoutDrawn_;         ///< Indica si la barra inferior fija ya fue pintada
     bool                contentFrameDrawn_;   ///< Indica si el marco estático de la pantalla activa ya fue pintado
     bool                hasRenderedSnapshot_; ///< Indica si ya existe una instantánea previa en caché
@@ -173,10 +183,15 @@ private:
     int16_t             lastMarkerX_;         ///< Última coordenada X de la mira de depuración [px]
     int16_t             lastMarkerY_;         ///< Última coordenada Y de la mira de depuración [px]
 
-    // Botones táctiles de navegación inferior y acciones operativas
-    Adafruit_GFX_Button btnNavHome_;          ///< Icono Home en barra inferior (X = 0..56, Y = 183..239)
-    Adafruit_GFX_Button btnNavSettings_;      ///< Icono Settings en barra inferior (X = 57..120, Y = 183..239)
-    Adafruit_GFX_Button btnBottomAction_;     ///< Botón contextual en barra inferior derecha (X = 128..314, Y = 189..233)
+    // Botones táctiles de las 5 pestañas de navegación inferior (layout_base.svg)
+    Adafruit_GFX_Button btnNavHome_;          ///< Pestaña 0: HOME (X = 0..63, Y = 190..239)
+    Adafruit_GFX_Button btnNavAutoFill_;      ///< Pestaña 1: AUTO 1 - Llenado (X = 64..127, Y = 190..239)
+    Adafruit_GFX_Button btnNavAutoCap_;       ///< Pestaña 2: AUTO 2 - Tapado (X = 128..191, Y = 190..239)
+    Adafruit_GFX_Button btnNavDebug_;         ///< Pestaña 3: DEBUG (X = 192..253, Y = 190..239)
+    Adafruit_GFX_Button btnNavSettings_;      ///< Pestaña 4: SETTINGS (X = 254..319, Y = 190..239)
+
+    // Botones contextuales y de control manual
+    Adafruit_GFX_Button btnBottomAction_;     ///< Botón contextual de alerta/rearme rápido
     Adafruit_GFX_Button btnSetProfile_;       ///< Botón en Settings: alternar perfil de botella
     Adafruit_GFX_Button btnJogFillUp_;        ///< Botón en Settings: subir eje Z de llenado en ManualRecovery
     Adafruit_GFX_Button btnJogCapUp_;         ///< Botón en Settings: subir eje Z de tapado en ManualRecovery

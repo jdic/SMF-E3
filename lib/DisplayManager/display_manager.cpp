@@ -208,64 +208,62 @@ namespace
 }
 
 // ============================================================================
-// RECURSOS PROGMEM Y LAYOUT COMPARTIDO (LOPAKA.APP)
+// RECURSOS PROGMEM Y LAYOUT COMPARTIDO (FIGMA layout_base.svg)
 // ============================================================================
 
-// [BEGIN lopaka generated - Bitmaps]
-static const unsigned char PROGMEM image_menu_home_bits[] =
+// Layout compartido: barra inferior de 5 pestañas presente en todas las Screens (Y = 190..239)
+// Recreado con base en assets/ui/layout_base.svg y ui_icons.hpp
+static void drawLayoutBottomBar(ScreenId activeScreen)
 {
-    0x00,0x00,0x18,0x00,0x00,0x00,0x00,0x18,0x00,0x00,0x00,0x00,0x18,0x00,0x00,0x00,
-    0xe0,0xe7,0x00,0x00,0x00,0xe0,0xe7,0x00,0x00,0x00,0xff,0x00,0xc0,0x00,0x00,0xff,
-    0x00,0xe0,0x00,0x00,0xff,0x00,0xe0,0x00,0x00,0xf8,0x18,0x18,0x00,0x00,0xf8,0x18,
-    0x18,0x00,0x00,0xf8,0x18,0x18,0x00,0x00,0xe0,0xe7,0x07,0x00,0x00,0xe0,0xe7,0x07,
-    0x00,0x03,0x03,0x00,0xc0,0xc0,0x07,0x07,0x00,0xe0,0xe0,0x07,0x07,0x00,0xe0,0xe0,
-    0x18,0x18,0x00,0x18,0x18,0x18,0x18,0x00,0x18,0x18,0x18,0x18,0x00,0x18,0x18,0xe0,
-    0xe0,0x00,0x07,0x07,0xe0,0xe0,0x00,0x07,0x07,0xff,0xc3,0xc0,0x03,0xff,0x1f,0x07,
-    0xe0,0x00,0xf8,0x1f,0x07,0xe0,0x00,0xf8,0x07,0x07,0xe0,0x00,0xe0,0x07,0x07,0xe0,
-    0x00,0xe0,0x07,0x07,0xe0,0x00,0xe0,0x07,0x00,0x07,0xf8,0xe0,0x07,0x00,0x07,0xf8,
-    0xe0,0x07,0x00,0x07,0xf8,0xe0,0x07,0x00,0x07,0x18,0xe0,0x07,0x00,0x07,0x18,0xe0,
-    0x07,0x00,0x07,0xf8,0xe0,0x07,0x00,0x07,0xf8,0xe0,0x07,0x00,0x07,0xf8,0xe0,0x07,
-    0x00,0x07,0x18,0xe0,0x07,0x00,0x07,0x18,0xe0,0x07,0x00,0x07,0x3c,0xe0,0x07,0xff,
-    0xff,0xff,0xe0,0x07,0xff,0xff,0xff,0xe0,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-    0x00,0x00,0x00,0x00,0x00,0x00,0x00
-};
-
-static const unsigned char PROGMEM image_menu_settings_gear_bits[] =
-{
-    0x00,0x01,0xff,0x80,0x00,0x00,0x01,0xff,0x80,0x00,0x00,0xc1,0xff,0x83,0x00,0x01,
-    0xc1,0xc3,0x83,0x80,0x01,0xc1,0xc3,0x83,0x80,0x07,0x3e,0x00,0x7c,0xe0,0x07,0x3e,
-    0x00,0x7c,0xe0,0x1e,0x3e,0x00,0x7c,0x78,0x38,0x00,0x00,0x00,0x1c,0x38,0x00,0x00,
-    0x00,0x1c,0x07,0x01,0xff,0x80,0xe0,0x07,0x01,0xff,0x80,0xe0,0x07,0x07,0xff,0xe0,
-    0xe0,0x07,0x0e,0x00,0x70,0xe0,0x07,0x0e,0x00,0x70,0xe0,0xf8,0x38,0x00,0x1c,0x1f,
-    0xf8,0x38,0x00,0x1c,0x1f,0xf8,0x38,0x00,0x1c,0x1f,0xe0,0x38,0x00,0x1c,0x07,0xe0,
-    0x38,0x00,0x1c,0x07,0xe0,0x38,0x00,0x1c,0x07,0xe0,0x38,0x00,0x1c,0x07,0xf8,0x38,
-    0x00,0x1c,0x1f,0xf8,0x38,0x00,0x1c,0x1f,0xf8,0x38,0x00,0x1c,0x1f,0x07,0x0e,0x00,
-    0x70,0xe0,0x07,0x0e,0x00,0x70,0xe0,0x07,0x07,0xff,0xe0,0xe0,0x07,0x01,0xff,0x80,
-    0xe0,0x07,0x01,0xff,0x80,0xe0,0x38,0x00,0x00,0x00,0x1c,0x38,0x00,0x00,0x00,0x1c,
-    0x1e,0x3e,0x00,0x7c,0x78,0x07,0x3e,0x00,0x7c,0xe0,0x07,0x3e,0x00,0x7c,0xe0,0x01,
-    0xc1,0xc3,0x83,0x80,0x01,0xc1,0xc3,0x83,0x80,0x00,0xc1,0xff,0x83,0x00,0x00,0x01,
-    0xff,0x80,0x00,0x00,0x01,0xff,0x80,0x00
-};
-// [END lopaka generated - Bitmaps]
-
-// Layout compartido: barra inferior presente en todas las Screens (Y = 183..239)
-static void drawLayoutBottomBar(void)
-{
+    // Limpia el área de la barra inferior (Y = 190..239, H = 50)
     tft.fillRect(0, DisplayManager::LAYOUT_BAR_Y, DisplayManager::SCREEN_WIDTH,
                  DisplayManager::SCREEN_HEIGHT - DisplayManager::LAYOUT_BAR_Y, COLOR_BG);
-    // menu_home
-    tft.drawBitmap(6, 190, image_menu_home_bits, 40, 43, COLOR_WHITE);
-    // menu_settings_gear
-    tft.drawBitmap(70, 190, image_menu_settings_gear_bits, 40, 40, COLOR_WHITE);
-    // rect 3
-    tft.drawRect(0, 183, 320, 57, COLOR_WHITE);
-    // line 4 (separador Home | Settings)
-    tft.drawLine(56, 183, 56, 239, COLOR_WHITE);
-    // separador Settings | Botón de acción contextual
-    tft.drawLine(120, 183, 120, 239, COLOR_WHITE);
+
+    // Contorno exterior: path d="M0.5 190.5H319.5V239.5H0.5V190.5Z" stroke="white"
+    tft.drawRect(0, 190, 320, 50, COLOR_WHITE);
+
+    // Separadores verticales:
+    // path d="M64.5 190V240" stroke="white"
+    tft.drawFastVLine(64, 190, 50, COLOR_WHITE);
+    // path d="M128.5 190V240" stroke="white"
+    tft.drawFastVLine(128, 190, 50, COLOR_WHITE);
+    // path d="M192.5 190V240" stroke="white"
+    tft.drawFastVLine(192, 190, 50, COLOR_WHITE);
+    // path d="M254.5 190V240" stroke="white"
+    tft.drawFastVLine(254, 190, 50, COLOR_WHITE);
+
+    // Colores según pestaña activa (Cian activo, Blanco inactivo)
+    const uint16_t colHome     = (activeScreen == ScreenId::Home)     ? COLOR_CYAN : COLOR_WHITE;
+    const uint16_t colAutoFill = (activeScreen == ScreenId::AutoFill) ? COLOR_CYAN : COLOR_WHITE;
+    const uint16_t colAutoCap  = (activeScreen == ScreenId::AutoCap)  ? COLOR_CYAN : COLOR_WHITE;
+    const uint16_t colDebug    = (activeScreen == ScreenId::Debug)    ? COLOR_CYAN : COLOR_WHITE;
+    const uint16_t colSettings = (activeScreen == ScreenId::Settings) ? COLOR_CYAN : COLOR_WHITE;
+
+    // Resaltado de pestaña activa (línea inferior cian de 2 px de alto)
+    if (activeScreen == ScreenId::Home)     { tft.fillRect(1,   237, 63, 2, COLOR_CYAN); }
+    if (activeScreen == ScreenId::AutoFill) { tft.fillRect(65,  237, 63, 2, COLOR_CYAN); }
+    if (activeScreen == ScreenId::AutoCap)  { tft.fillRect(129, 237, 63, 2, COLOR_CYAN); }
+    if (activeScreen == ScreenId::Debug)    { tft.fillRect(193, 237, 61, 2, COLOR_CYAN); }
+    if (activeScreen == ScreenId::Settings) { tft.fillRect(255, 237, 64, 2, COLOR_CYAN); }
+
+    // Iconos de navegación (coordenadas exactas de layout_base.svg)
+    // Tab 0: rect x="8" y="191" width="48" height="48" -> Home
+    tft.drawBitmap(8, 191, UIIcons::ICON_HOME_48x48, 48, 48, colHome);
+
+    // Tab 1: rect x="72" y="191" width="48" height="48" -> Drop (Auto 1)
+    tft.drawBitmap(72, 191, UIIcons::ICON_FILL_48x48, 48, 48, colAutoFill);
+
+    // Tab 2: rect x="136" y="191" width="48" height="48" -> Bottle Wine (Auto 2)
+    tft.drawBitmap(136, 191, UIIcons::ICON_CAP_48x48, 48, 48, colAutoCap);
+
+    // Tab 3: rect x="199" y="191" width="48" height="48" -> Bug 2 (Debug)
+    tft.drawBitmap(199, 191, UIIcons::ICON_DEBUG_48x48, 48, 48, colDebug);
+
+    // Tab 4: rect x="267" y="191" width="48" height="48" -> Settings Cog
+    tft.drawBitmap(267, 191, UIIcons::ICON_SETTINGS_48x48, 48, 48, colSettings);
 }
 
-// Limpia únicamente la zona de contenido (Y = 0..182) para no parpadear la barra inferior
+// Limpia únicamente la zona de contenido (Y = 0..189) para no parpadear la barra inferior
 static void clearScreenContentArea(void)
 {
     tft.fillRect(0, 0, DisplayManager::SCREEN_WIDTH, DisplayManager::CONTENT_HEIGHT, COLOR_BG);
@@ -314,6 +312,9 @@ DisplayManager::DisplayManager(const DisplayTouchConfig& config)
       lastMarkerX_(0),
       lastMarkerY_(0),
       btnNavHome_(),
+      btnNavAutoFill_(),
+      btnNavAutoCap_(),
+      btnNavDebug_(),
       btnNavSettings_(),
       btnBottomAction_(),
       btnSetProfile_(),
@@ -359,10 +360,17 @@ void DisplayManager::showScreen(ScreenId screen, bool forceRedraw)
 
     hasLastMarker_ = false;
 
-    if (!layoutDrawn_ || forceRedraw)
+    if (!layoutDrawn_ || forceRedraw || (screen != currentScreen_))
     {
-        tft.fillScreen(COLOR_BG);
-        drawLayoutBottomBar();
+        if (!layoutDrawn_ || forceRedraw)
+        {
+            tft.fillScreen(COLOR_BG);
+        }
+        else
+        {
+            clearScreenContentArea();
+        }
+        drawLayoutBottomBar(screen);
         layoutDrawn_ = true;
     }
     else
@@ -381,7 +389,33 @@ void DisplayManager::showScreen(ScreenId screen, bool forceRedraw)
             if (hasRenderedSnapshot_)
             {
                 renderHomeDynamic(renderedSnapshot_, true);
-                renderBottomActionArea(renderedSnapshot_, true);
+            }
+            break;
+
+        case ScreenId::AutoFill:
+            drawAutoFillStaticFrame();
+            contentFrameDrawn_ = true;
+            if (hasRenderedSnapshot_)
+            {
+                renderAutoFillDynamic(renderedSnapshot_, true);
+            }
+            break;
+
+        case ScreenId::AutoCap:
+            drawAutoCapStaticFrame();
+            contentFrameDrawn_ = true;
+            if (hasRenderedSnapshot_)
+            {
+                renderAutoCapDynamic(renderedSnapshot_, true);
+            }
+            break;
+
+        case ScreenId::Debug:
+            drawDebugStaticFrame();
+            contentFrameDrawn_ = true;
+            if (hasRenderedSnapshot_)
+            {
+                renderDebugDynamic(renderedSnapshot_, true);
             }
             break;
 
@@ -391,7 +425,6 @@ void DisplayManager::showScreen(ScreenId screen, bool forceRedraw)
             if (hasRenderedSnapshot_)
             {
                 renderSettingsDynamic(renderedSnapshot_, true);
-                renderBottomActionArea(renderedSnapshot_, true);
             }
             break;
 
@@ -438,16 +471,31 @@ void DisplayManager::render(const DisplaySnapshot& snapshot)
 
     const bool fullRedraw = !hasRenderedSnapshot_ || !contentFrameDrawn_;
 
-    if (currentScreen_ == ScreenId::Home)
+    switch (currentScreen_)
     {
-        renderHomeDynamic(snapshot, fullRedraw);
-    }
-    else if (currentScreen_ == ScreenId::Settings)
-    {
-        renderSettingsDynamic(snapshot, fullRedraw);
-    }
+        case ScreenId::Home:
+            renderHomeDynamic(snapshot, fullRedraw);
+            break;
 
-    renderBottomActionArea(snapshot, fullRedraw);
+        case ScreenId::AutoFill:
+            renderAutoFillDynamic(snapshot, fullRedraw);
+            break;
+
+        case ScreenId::AutoCap:
+            renderAutoCapDynamic(snapshot, fullRedraw);
+            break;
+
+        case ScreenId::Debug:
+            renderDebugDynamic(snapshot, fullRedraw);
+            break;
+
+        case ScreenId::Settings:
+            renderSettingsDynamic(snapshot, fullRedraw);
+            break;
+
+        default:
+            break;
+    }
 
     renderedSnapshot_    = snapshot;
     hasRenderedSnapshot_ = true;
@@ -459,14 +507,34 @@ TouchCommand DisplayManager::pollTouchCommand()
     int16_t py = 0;
     const bool touched = readTouchPixel(px, py);
 
-    // 1. Iconos fijos de navegación en la barra inferior (Home / Settings)
+    // 1. Pestañas de navegación fija en la barra inferior (layout_base.svg)
     btnNavHome_.press(touched && btnNavHome_.contains(px, py));
+    btnNavAutoFill_.press(touched && btnNavAutoFill_.contains(px, py));
+    btnNavAutoCap_.press(touched && btnNavAutoCap_.contains(px, py));
+    btnNavDebug_.press(touched && btnNavDebug_.contains(px, py));
     btnNavSettings_.press(touched && btnNavSettings_.contains(px, py));
-    btnBottomAction_.press(touched && btnBottomAction_.contains(px, py));
 
     if (btnNavHome_.justPressed())
     {
         showScreen(ScreenId::Home);
+        return TouchCommand::None;
+    }
+
+    if (btnNavAutoFill_.justPressed())
+    {
+        showScreen(ScreenId::AutoFill);
+        return TouchCommand::None;
+    }
+
+    if (btnNavAutoCap_.justPressed())
+    {
+        showScreen(ScreenId::AutoCap);
+        return TouchCommand::None;
+    }
+
+    if (btnNavDebug_.justPressed())
+    {
+        showScreen(ScreenId::Debug);
         return TouchCommand::None;
     }
 
@@ -476,27 +544,7 @@ TouchCommand DisplayManager::pollTouchCommand()
         return TouchCommand::None;
     }
 
-    // 2. Botón de acción rápida contextual en la derecha de la barra inferior
-    if (btnBottomAction_.justPressed() && hasRenderedSnapshot_)
-    {
-        switch (renderedSnapshot_.mode)
-        {
-            case StationMode::ErrorStop:
-                return TouchCommand::AcknowledgeAlarm;
-
-            case StationMode::ManualRecovery:
-                return TouchCommand::ConfirmLineClear;
-
-            case StationMode::Running:
-                return TouchCommand::CycleBottleProfile;
-
-            case StationMode::Boot:
-            default:
-                break;
-        }
-    }
-
-    // 3. Botones exclusivos de la pantalla Settings (perfil y recuperación manual)
+    // 2. Botones exclusivos de la pantalla Settings (perfil y recuperación manual)
     if (currentScreen_ == ScreenId::Settings)
     {
         btnSetProfile_.press(touched && btnSetProfile_.contains(px, py));
@@ -594,14 +642,24 @@ void DisplayManager::initLayoutButtons()
 {
     char emptyLabel[] = "";
 
-    // Área táctil del icono Home: X = 0..56, Y = 183..239 (centro X = 28, centro Y = 211)
-    btnNavHome_.initButton(&tft, 28, 211, 56, 57, 0, 0, 0, emptyLabel, 1);
+    // Pestañas de la barra inferior (layout_base.svg)
+    // Tab 0: HOME (X = 0..63, centro X = 32, Y = 215, W = 64, H = 50)
+    btnNavHome_.initButton(&tft, 32, 215, 64, 50, 0, 0, 0, emptyLabel, 1);
 
-    // Área táctil del icono Settings: X = 57..120, Y = 183..239 (centro X = 88, centro Y = 211)
-    btnNavSettings_.initButton(&tft, 88, 211, 64, 57, 0, 0, 0, emptyLabel, 1);
+    // Tab 1: AUTO 1 / LLENADO (X = 64..127, centro X = 96, Y = 215, W = 64, H = 50)
+    btnNavAutoFill_.initButton(&tft, 96, 215, 64, 50, 0, 0, 0, emptyLabel, 1);
 
-    // Botón contextual en la barra inferior derecha: X = 126..314, Y = 189..233 (centro X = 220, Y = 211)
-    btnBottomAction_.initButton(&tft, 220, 211, 188, 44, 0, 0, 0, emptyLabel, 1);
+    // Tab 2: AUTO 2 / TAPADO (X = 128..191, centro X = 160, Y = 215, W = 64, H = 50)
+    btnNavAutoCap_.initButton(&tft, 160, 215, 64, 50, 0, 0, 0, emptyLabel, 1);
+
+    // Tab 3: DEBUG (X = 192..253, centro X = 223, Y = 215, W = 62, H = 50)
+    btnNavDebug_.initButton(&tft, 223, 215, 62, 50, 0, 0, 0, emptyLabel, 1);
+
+    // Tab 4: SETTINGS (X = 254..319, centro X = 287, Y = 215, W = 66, H = 50)
+    btnNavSettings_.initButton(&tft, 287, 215, 66, 50, 0, 0, 0, emptyLabel, 1);
+
+    // Botón contextual de alerta/rearme rápido
+    btnBottomAction_.initButton(&tft, 160, 100, 200, 40, 0, 0, 0, emptyLabel, 1);
 
     // Botón de cambio de perfil en Settings: X = 190..312, Y = 34..68 (centro X = 251, Y = 51)
     btnSetProfile_.initButton(&tft, 251, 51, 122, 34, 0, 0, 0, emptyLabel, 1);
@@ -827,59 +885,158 @@ void DisplayManager::renderSettingsDynamic(const DisplaySnapshot& snapshot, bool
     }
 }
 
+void DisplayManager::drawAutoFillStaticFrame()
+{
+    // Encabezado
+    tft.setTextSize(1);
+    tft.setTextColor(COLOR_CYAN, COLOR_BG);
+    tft.setCursor(8, 10);
+    tft.print(F("AUT\x93MATA 1: LLENADO Y DOSIFICACI\x93N"));
+
+    // Tarjeta Estado de la FSM (Y = 30..68)
+    tft.fillRoundRect(6, 30, 308, 38, 4, COLOR_PANEL_BG);
+    tft.drawRoundRect(6, 30, 308, 38, 4, COLOR_DARK_GRAY);
+    tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_PANEL_BG);
+    tft.setCursor(14, 42);
+    tft.print(F("FASE:"));
+
+    // Tarjeta Sensores de Presencia (Y = 74..112)
+    tft.fillRoundRect(6, 74, 308, 38, 4, COLOR_PANEL_BG);
+    tft.drawRoundRect(6, 74, 308, 38, 4, COLOR_DARK_GRAY);
+    tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_PANEL_BG);
+    tft.setCursor(14, 86);
+    tft.print(F("APROX / RETENC:"));
+
+    // Tarjeta Actuadores (Y = 118..156)
+    tft.fillRoundRect(6, 118, 308, 38, 4, COLOR_PANEL_BG);
+    tft.drawRoundRect(6, 118, 308, 38, 4, COLOR_DARK_GRAY);
+    tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_PANEL_BG);
+    tft.setCursor(14, 130);
+    tft.print(F("BOMBA / EJE Z1:"));
+}
+
+void DisplayManager::drawAutoCapStaticFrame()
+{
+    // Encabezado
+    tft.setTextSize(1);
+    tft.setTextColor(COLOR_CYAN, COLOR_BG);
+    tft.setCursor(8, 10);
+    tft.print(F("AUT\x93MATA 2: TAPADO Y APRIETE"));
+
+    // Tarjeta Estado de la FSM (Y = 30..68)
+    tft.fillRoundRect(6, 30, 308, 38, 4, COLOR_PANEL_BG);
+    tft.drawRoundRect(6, 30, 308, 38, 4, COLOR_DARK_GRAY);
+    tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_PANEL_BG);
+    tft.setCursor(14, 42);
+    tft.print(F("FASE:"));
+
+    // Tarjeta Sensor de Presencia (Y = 74..112)
+    tft.fillRoundRect(6, 74, 308, 38, 4, COLOR_PANEL_BG);
+    tft.drawRoundRect(6, 74, 308, 38, 4, COLOR_DARK_GRAY);
+    tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_PANEL_BG);
+    tft.setCursor(14, 86);
+    tft.print(F("PRESENCIA TAPADO:"));
+
+    // Tarjeta Motor de Apriete (Y = 118..156)
+    tft.fillRoundRect(6, 118, 308, 38, 4, COLOR_PANEL_BG);
+    tft.drawRoundRect(6, 118, 308, 38, 4, COLOR_DARK_GRAY);
+    tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_PANEL_BG);
+    tft.setCursor(14, 130);
+    tft.print(F("MOTOR APRIETE (IBT-2):"));
+}
+
+void DisplayManager::drawDebugStaticFrame()
+{
+    // Encabezado
+    tft.setTextSize(1);
+    tft.setTextColor(COLOR_CYAN, COLOR_BG);
+    tft.setCursor(8, 10);
+    tft.print(F("DIAGN\x93STICO EN VIVO Y SE\x91""ALES I/O"));
+
+    // Tarjeta Estado General y Error Activo (Y = 30..68)
+    tft.fillRoundRect(6, 30, 308, 38, 4, COLOR_PANEL_BG);
+    tft.drawRoundRect(6, 30, 308, 38, 4, COLOR_DARK_GRAY);
+    tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_PANEL_BG);
+    tft.setCursor(14, 42);
+    tft.print(F("MODO / ERROR:"));
+
+    // Tarjeta Telemetría de Proceso (Y = 74..112)
+    tft.fillRoundRect(6, 74, 308, 38, 4, COLOR_PANEL_BG);
+    tft.drawRoundRect(6, 74, 308, 38, 4, COLOR_DARK_GRAY);
+    tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_PANEL_BG);
+    tft.setCursor(14, 86);
+    tft.print(F("BANDA / COLA / PROD:"));
+
+    // Tarjeta Calibración Táctil (Y = 118..156)
+    tft.fillRoundRect(6, 118, 308, 38, 4, COLOR_PANEL_BG);
+    tft.drawRoundRect(6, 118, 308, 38, 4, COLOR_DARK_GRAY);
+    tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_PANEL_BG);
+    tft.setCursor(14, 130);
+    tft.print(F("CALIBRACI\x93N TOUCH:"));
+}
+
+void DisplayManager::renderAutoFillDynamic(const DisplaySnapshot& snapshot, bool fullRedraw)
+{
+    if (fullRedraw || (snapshot.fillState != renderedSnapshot_.fillState))
+    {
+        tft.setTextSize(2);
+        tft.setTextColor(COLOR_WHITE, COLOR_PANEL_BG);
+        tft.setCursor(60, 40);
+        tft.print(getFillStateProgmem(snapshot.fillState));
+    }
+}
+
+void DisplayManager::renderAutoCapDynamic(const DisplaySnapshot& snapshot, bool fullRedraw)
+{
+    if (fullRedraw || (snapshot.capState != renderedSnapshot_.capState))
+    {
+        tft.setTextSize(2);
+        tft.setTextColor(COLOR_WHITE, COLOR_PANEL_BG);
+        tft.setCursor(60, 40);
+        tft.print(getCapStateProgmem(snapshot.capState));
+    }
+}
+
+void DisplayManager::renderDebugDynamic(const DisplaySnapshot& snapshot, bool fullRedraw)
+{
+    if (fullRedraw || (snapshot.mode != renderedSnapshot_.mode) || (snapshot.error != renderedSnapshot_.error))
+    {
+        tft.setTextSize(1);
+        tft.setTextColor(COLOR_CYAN, COLOR_PANEL_BG);
+        tft.setCursor(100, 42);
+        tft.print(getModeProgmem(snapshot.mode));
+
+        tft.setCursor(14, 54);
+        if (snapshot.error != ErrorCode::None)
+        {
+            tft.setTextColor(COLOR_RED_ALARM, COLOR_PANEL_BG);
+            tft.print(getErrorProgmem(snapshot.error));
+        }
+        else
+        {
+            tft.setTextColor(COLOR_GREEN_OK, COLOR_PANEL_BG);
+            tft.print(F("SIN ALARMAS ACTIVAS (OK)"));
+        }
+    }
+
+    if (fullRedraw || (snapshot.queueCount != renderedSnapshot_.queueCount) || (snapshot.bottleCount != renderedSnapshot_.bottleCount))
+    {
+        tft.setTextSize(1);
+        tft.setTextColor(COLOR_WHITE, COLOR_PANEL_BG);
+        tft.setCursor(150, 86);
+        tft.print(F("COLA: "));
+        tft.print(snapshot.queueCount);
+        tft.print(F(" | TOT: "));
+        tft.print(snapshot.bottleCount);
+    }
+}
+
 void DisplayManager::renderBottomActionArea(const DisplaySnapshot& snapshot, bool fullRedraw)
 {
-    if (!fullRedraw &&
-        (snapshot.mode == renderedSnapshot_.mode) &&
-        (snapshot.profile == renderedSnapshot_.profile))
-    {
-        return;
-    }
-
-    // Limpiar el área interior derecha de la barra inferior (X = 122..318, Y = 185..237)
-    tft.fillRect(122, 185, 196, 53, COLOR_BG);
-
-    switch (snapshot.mode)
-    {
-        case StationMode::ErrorStop:
-            drawLabeledButtonBox(
-                126, 189, 188, 44,
-                COLOR_RED_ALARM, COLOR_YELLOW_WARN, COLOR_WHITE,
-                F("REARME ALARMA"), 2);
-            break;
-
-        case StationMode::ManualRecovery:
-            drawLabeledButtonBox(
-                126, 189, 188, 44,
-                COLOR_GREEN_OK, COLOR_WHITE, COLOR_WHITE,
-                F("DESPEJADO OK"), 2);
-            break;
-
-        case StationMode::Running:
-            if (snapshot.profile == BottleProfile::Small)
-            {
-                drawLabeledButtonBox(
-                    126, 189, 188, 44,
-                    COLOR_BLUE_HEADER, COLOR_CYAN, COLOR_WHITE,
-                    F("PERFIL: PEQUENA"), 1);
-            }
-            else
-            {
-                drawLabeledButtonBox(
-                    126, 189, 188, 44,
-                    COLOR_BLUE_HEADER, COLOR_CYAN, COLOR_WHITE,
-                    F("PERFIL: GRANDE"), 1);
-            }
-            break;
-
-        case StationMode::Boot:
-        default:
-            drawLabeledButtonBox(
-                126, 189, 188, 44,
-                COLOR_PANEL_BG, COLOR_DARK_GRAY, COLOR_CYAN,
-                F("HOMING EJES Z..."), 1);
-            break;
-    }
+    // En el nuevo layout de 5 pestañas (layout_base.svg), la barra inferior completa (Y = 190..239)
+    // está dedicada a la navegación táctil. Las acciones contextuales se gestionan dentro de cada pantalla.
+    (void)snapshot;
+    (void)fullRedraw;
 }
 
 void DisplayManager::restoreSharedTftPins()
@@ -919,11 +1076,7 @@ void DisplayManager::updateDebugOverlay(int16_t rawX, int16_t rawY, int16_t rawZ
             // Si el marcador anterior tocó la barra inferior o las miras, restaurarlas
             if (lastMarkerY_ >= (LAYOUT_BAR_Y - MARKER_RADIUS - 1))
             {
-                drawLayoutBottomBar();
-                if (hasRenderedSnapshot_)
-                {
-                    renderBottomActionArea(renderedSnapshot_, true);
-                }
+                drawLayoutBottomBar(currentScreen_);
             }
             if (config_.debugShowCoords)
             {
