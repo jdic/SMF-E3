@@ -187,6 +187,8 @@ void StepperAxis::jogUp(uint16_t steps, uint16_t speed)
     {
         if (isLimitSwitchTriggeredIsr())
         {
+            currentSteps_ = 0;
+            targetSteps_ = 0;
             moving_ = false;
             currentSpeedStepsPerSec_ = 0;
             return;

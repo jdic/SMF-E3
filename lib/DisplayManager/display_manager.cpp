@@ -319,7 +319,9 @@ DisplayManager::DisplayManager(const DisplayTouchConfig& config)
           BottleProfile::Small,
           0,
           0,
-          0U},
+          0U,
+          0,
+          0},
       hasLastMarker_(false),
       lastMarkerX_(0),
       lastMarkerY_(0),
@@ -1060,26 +1062,30 @@ void DisplayManager::drawDebugStaticFrame()
     tft.setCursor(8, 10);
     tft.print(F("DIAGN\x93STICO EN VIVO Y SE\x91""ALES I/O"));
 
-    // Tarjeta Estado General y Error Activo (Y = 30..68)
-    tft.fillRoundRect(6, 30, 308, 38, 4, COLOR_PANEL_BG);
-    tft.drawRoundRect(6, 30, 308, 38, 4, COLOR_DARK_GRAY);
+    // Tarjeta 1: Estado General y Error Activo (Y = 26..66)
+    tft.fillRoundRect(6, 26, 308, 40, 4, COLOR_PANEL_BG);
+    tft.drawRoundRect(6, 26, 308, 40, 4, COLOR_DARK_GRAY);
     tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_PANEL_BG);
-    tft.setCursor(14, 42);
+    tft.setCursor(14, 34);
     tft.print(F("MODO / ERROR:"));
 
-    // Tarjeta Telemetría de Proceso (Y = 74..112)
-    tft.fillRoundRect(6, 74, 308, 38, 4, COLOR_PANEL_BG);
-    tft.drawRoundRect(6, 74, 308, 38, 4, COLOR_DARK_GRAY);
+    // Tarjeta 2: Posición en Pasos de los Ejes Z desde Home=0 (Y = 72..132)
+    tft.fillRoundRect(6, 72, 308, 60, 4, COLOR_PANEL_BG);
+    tft.drawRoundRect(6, 72, 308, 60, 4, COLOR_DARK_GRAY);
     tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_PANEL_BG);
-    tft.setCursor(14, 86);
-    tft.print(F("BANDA / COLA / PROD:"));
+    tft.setCursor(14, 80);
+    tft.print(F("POSICI\x93N EJES Z (PASOS DESDE HOME = 0):"));
+    tft.setCursor(14, 96);
+    tft.print(F("Z1 (LLENADO):"));
+    tft.setCursor(14, 114);
+    tft.print(F("Z2 (TAPADO) :"));
 
-    // Tarjeta Calibración Táctil (Y = 118..156)
-    tft.fillRoundRect(6, 118, 308, 38, 4, COLOR_PANEL_BG);
-    tft.drawRoundRect(6, 118, 308, 38, 4, COLOR_DARK_GRAY);
+    // Tarjeta 3: Telemetría de Cola y Producción (Y = 138..180)
+    tft.fillRoundRect(6, 138, 308, 42, 4, COLOR_PANEL_BG);
+    tft.drawRoundRect(6, 138, 308, 42, 4, COLOR_DARK_GRAY);
     tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_PANEL_BG);
-    tft.setCursor(14, 130);
-    tft.print(F("CALIBRACI\x93N TOUCH:"));
+    tft.setCursor(14, 155);
+    tft.print(F("COLA / PROD:"));
 }
 
 void DisplayManager::renderAutoFillDynamic(const DisplaySnapshot& snapshot, bool fullRedraw)
@@ -1119,6 +1125,19 @@ void DisplayManager::renderAutoFillDynamic(const DisplaySnapshot& snapshot, bool
                 on ? COLOR_WHITE : COLOR_CYAN,
                 COLOR_WHITE,
                 on ? F("BOMBA LLENADO: ENCENDIDA") : F("BOMBA LLENADO: APAGADA"), 1);
+        }
+
+        if (fullRedraw ||
+            (snapshot.fillZSteps != renderedSnapshot_.fillZSteps) ||
+            ((diffFlags & TestFlags::FILL_HOME_SW) != 0U))
+        {
+            const bool isHomeSw = (snapshot.testFlags & TestFlags::FILL_HOME_SW) != 0U;
+            char zBuf[16];
+            snprintf(zBuf, sizeof(zBuf), "Z1:%5ld%s", static_cast<long>(snapshot.fillZSteps), isHomeSw ? "H" : " ");
+            tft.setTextSize(1);
+            tft.setTextColor(COLOR_BG, COLOR_ORANGE_REC);
+            tft.setCursor(254, 9);
+            tft.print(zBuf);
         }
 
         if (fullRedraw)
@@ -1184,6 +1203,19 @@ void DisplayManager::renderAutoCapDynamic(const DisplaySnapshot& snapshot, bool 
                 on ? F("MOTOR APRIETE: ENCENDIDO") : F("MOTOR APRIETE: APAGADO"), 1);
         }
 
+        if (fullRedraw ||
+            (snapshot.capZSteps != renderedSnapshot_.capZSteps) ||
+            ((diffFlags & TestFlags::CAP_HOME_SW) != 0U))
+        {
+            const bool isHomeSw = (snapshot.testFlags & TestFlags::CAP_HOME_SW) != 0U;
+            char zBuf[16];
+            snprintf(zBuf, sizeof(zBuf), "Z2:%5ld%s", static_cast<long>(snapshot.capZSteps), isHomeSw ? "H" : " ");
+            tft.setTextSize(1);
+            tft.setTextColor(COLOR_BG, COLOR_ORANGE_REC);
+            tft.setCursor(254, 9);
+            tft.print(zBuf);
+        }
+
         if (fullRedraw)
         {
             drawLabeledButtonBox(
@@ -1216,10 +1248,10 @@ void DisplayManager::renderDebugDynamic(const DisplaySnapshot& snapshot, bool fu
         uint16_t dummyFg = 0;
         tft.setTextSize(1);
         tft.setTextColor(COLOR_CYAN, COLOR_PANEL_BG);
-        tft.setCursor(100, 42);
+        tft.setCursor(100, 34);
         tft.print(getModeProgmem(snapshot.mode, dummyBg, dummyFg));
 
-        tft.setCursor(14, 54);
+        tft.setCursor(14, 48);
         if (snapshot.error != ErrorCode::None)
         {
             tft.setTextColor(COLOR_RED_ALARM, COLOR_PANEL_BG);
@@ -1232,15 +1264,58 @@ void DisplayManager::renderDebugDynamic(const DisplaySnapshot& snapshot, bool fu
         }
     }
 
+    const uint16_t diffFlags = snapshot.testFlags ^ renderedSnapshot_.testFlags;
+
+    // Pasos del Eje Z1 (Llenado) + indicador de fin de carrera superior (HOME = 0)
+    if (fullRedraw ||
+        (snapshot.fillZSteps != renderedSnapshot_.fillZSteps) ||
+        ((diffFlags & TestFlags::FILL_HOME_SW) != 0U))
+    {
+        const bool isHomeSw = (snapshot.testFlags & TestFlags::FILL_HOME_SW) != 0U;
+        char z1Buf[28];
+        snprintf(
+            z1Buf,
+            sizeof(z1Buf),
+            "%6ld stp %s",
+            static_cast<long>(snapshot.fillZSteps),
+            isHomeSw ? "[HOME=0]" : "        ");
+
+        tft.setTextSize(1);
+        tft.setTextColor(isHomeSw ? COLOR_GREEN_OK : COLOR_CYAN, COLOR_PANEL_BG);
+        tft.setCursor(100, 96);
+        tft.print(z1Buf);
+    }
+
+    // Pasos del Eje Z2 (Tapado) + indicador de fin de carrera superior (HOME = 0)
+    if (fullRedraw ||
+        (snapshot.capZSteps != renderedSnapshot_.capZSteps) ||
+        ((diffFlags & TestFlags::CAP_HOME_SW) != 0U))
+    {
+        const bool isHomeSw = (snapshot.testFlags & TestFlags::CAP_HOME_SW) != 0U;
+        char z2Buf[28];
+        snprintf(
+            z2Buf,
+            sizeof(z2Buf),
+            "%6ld stp %s",
+            static_cast<long>(snapshot.capZSteps),
+            isHomeSw ? "[HOME=0]" : "        ");
+
+        tft.setTextSize(1);
+        tft.setTextColor(isHomeSw ? COLOR_GREEN_OK : COLOR_CYAN, COLOR_PANEL_BG);
+        tft.setCursor(100, 114);
+        tft.print(z2Buf);
+    }
+
     if (fullRedraw || (snapshot.queueCount != renderedSnapshot_.queueCount) || (snapshot.bottleCount != renderedSnapshot_.bottleCount))
     {
         tft.setTextSize(1);
         tft.setTextColor(COLOR_WHITE, COLOR_PANEL_BG);
-        tft.setCursor(150, 86);
+        tft.setCursor(100, 155);
         tft.print(F("COLA: "));
         tft.print(snapshot.queueCount);
         tft.print(F(" | TOT: "));
         tft.print(snapshot.bottleCount);
+        tft.print(F("    "));
     }
 }
 

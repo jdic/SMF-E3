@@ -143,6 +143,8 @@ namespace TestFlags
     constexpr uint16_t CAP_STOP_DN    = (1U << 7); ///< Brazo de tope 2 (Tapado) abajo
     constexpr uint16_t CAP_CLAMP_DN   = (1U << 8); ///< Brazo de sujeción 2 (Tapado) abajo
     constexpr uint16_t CAP_CHUCK_ON   = (1U << 9); ///< Motor de apriete de tapas encendido
+    constexpr uint16_t FILL_HOME_SW   = (1U << 10); ///< Fin de carrera superior Z1 activado (Home = 0)
+    constexpr uint16_t CAP_HOME_SW    = (1U << 11); ///< Fin de carrera superior Z2 activado (Home = 0)
 }
 
 /**
@@ -171,7 +173,9 @@ struct DisplaySnapshot
     BottleProfile profile;     ///< Perfil de botella seleccionado
     uint8_t       queueCount;  ///< Botellas actualmente en la cola intermedia entre Llenado y Tapado [unidades]
     uint32_t      bottleCount; ///< Conteo acumulado de botellas completadas desde el arranque [unidades]
-    uint16_t      testFlags;   ///< Máscara de bits (TestFlags) con el estado de actuadores en TestMode
+    uint16_t      testFlags;   ///< Máscara de bits (TestFlags) con el estado de actuadores y fines de carrera
+    int32_t       fillZSteps;  ///< Posición actual en micropasos del eje Z1 desde Home (0 = fin de carrera superior)
+    int32_t       capZSteps;   ///< Posición actual en micropasos del eje Z2 desde Home (0 = fin de carrera superior)
 };
 
 /**

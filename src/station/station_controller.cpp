@@ -190,7 +190,9 @@ StationController::StationController()
           BottleProfile::Small,
           0,
           0,
-          0U},
+          0U,
+          0,
+          0},
       snapshotDirty_(true)
 {
 }
@@ -869,6 +871,18 @@ void StationController::refreshDisplaySnapshot()
     const ErrorCode effectiveErr = computeEffectiveError();
     const FillState fState       = fillingAutomaton_.getState();
     const CappingState cState    = cappingAutomaton_.getState();
+    const int32_t fSteps         = fillZ_.getCurrentSteps();
+    const int32_t cSteps         = capZ_.getCurrentSteps();
+
+    uint16_t effectiveFlags = testFlags_ & static_cast<uint16_t>(~(TestFlags::FILL_HOME_SW | TestFlags::CAP_HOME_SW));
+    if (limitSwitchFill_.isTriggered())
+    {
+        effectiveFlags |= TestFlags::FILL_HOME_SW;
+    }
+    if (limitSwitchCap_.isTriggered())
+    {
+        effectiveFlags |= TestFlags::CAP_HOME_SW;
+    }
 
     if (lastSnapshot_.error != effectiveErr ||
         lastSnapshot_.mode != mode_ ||
@@ -877,7 +891,9 @@ void StationController::refreshDisplaySnapshot()
         lastSnapshot_.profile != profile_ ||
         lastSnapshot_.queueCount != interstageQueueCount_ ||
         lastSnapshot_.bottleCount != bottleCount_ ||
-        lastSnapshot_.testFlags != testFlags_)
+        lastSnapshot_.testFlags != effectiveFlags ||
+        lastSnapshot_.fillZSteps != fSteps ||
+        lastSnapshot_.capZSteps != cSteps)
     {
         lastSnapshot_.error       = effectiveErr;
         lastSnapshot_.mode        = mode_;
@@ -886,7 +902,9 @@ void StationController::refreshDisplaySnapshot()
         lastSnapshot_.profile     = profile_;
         lastSnapshot_.queueCount  = interstageQueueCount_;
         lastSnapshot_.bottleCount = bottleCount_;
-        lastSnapshot_.testFlags   = testFlags_;
+        lastSnapshot_.testFlags   = effectiveFlags;
+        lastSnapshot_.fillZSteps  = fSteps;
+        lastSnapshot_.capZSteps   = cSteps;
         snapshotDirty_            = true;
     }
 }
