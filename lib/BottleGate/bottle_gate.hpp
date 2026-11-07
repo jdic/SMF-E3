@@ -54,11 +54,25 @@ public:
     void lowerStopArm();
 
     /**
+     * @brief Comanda el ascenso individual del brazo de tope a su posición de reposo.
+     *
+     * Función no bloqueante; utilizada en modo de prueba (TestMode).
+     */
+    void raiseStopArm();
+
+    /**
      * @brief Comanda el descenso del brazo de sujeción para inmovilizar la botella contra el brazo de tope.
      *
      * Función no bloqueante; inicia el temporizador de asentamiento de armMoveMs.
      */
     void lowerClampArm();
+
+    /**
+     * @brief Comanda el ascenso individual del brazo de sujeción a su posición de reposo.
+     *
+     * Función no bloqueante; utilizada en modo de prueba (TestMode).
+     */
+    void raiseClampArm();
 
     /**
      * @brief Inicia la secuencia escalonada de liberación: sube sujeción de inmediato y agenda subir el tope.

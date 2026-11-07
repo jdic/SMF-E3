@@ -30,10 +30,26 @@ void BottleGate::lowerStopArm()
     settled_ = false;
 }
 
+void BottleGate::raiseStopArm()
+{
+    pendingStopArmUp_ = false;
+    stopServo_.write(config_.stopUpDeg);
+    actionStartMs_ = millis();
+    settled_ = false;
+}
+
 void BottleGate::lowerClampArm()
 {
     pendingStopArmUp_ = false;
     clampServo_.write(config_.clampDownDeg);
+    actionStartMs_ = millis();
+    settled_ = false;
+}
+
+void BottleGate::raiseClampArm()
+{
+    pendingStopArmUp_ = false;
+    clampServo_.write(config_.clampUpDeg);
     actionStartMs_ = millis();
     settled_ = false;
 }

@@ -49,7 +49,8 @@ enum class StationMode : uint8_t
     Boot,           ///< Homing simultáneo de ambos ejes Z; brazos arriba; bomba y banda apagadas
     Running,        ///< Banda en giro continuo por PWM; ambos autómatas operan en paralelo
     ErrorStop,      ///< Parada segura: bomba apagada, PWM a cero y drivers deshabilitados
-    ManualRecovery  ///< Asistencia manual por pantalla táctil para despeje de línea
+    ManualRecovery, ///< Asistencia manual por pantalla táctil para despeje de línea
+    TestMode        ///< Modo de prueba manual de actuadores individuales por estación
 };
 
 /**
@@ -102,14 +103,47 @@ enum class CappingState : uint8_t
  */
 enum class TouchCommand : uint8_t
 {
-    None = 0,           ///< Sin comando táctil pendiente
-    CycleBottleProfile, ///< En Running con ambos autómatas en Idle: alterna entre Small y Large
-    AcknowledgeAlarm,   ///< En ErrorStop (con seta liberada): transiciona a ManualRecovery
-    JogFillZUp,         ///< En ManualRecovery: sube el eje Z de llenado en pasos seguros (Z_JOG_STEPS)
-    JogCapZUp,          ///< En ManualRecovery: sube el eje Z de tapado en pasos seguros (Z_JOG_STEPS)
-    ReleaseArms,        ///< En ManualRecovery: levanta inmediatamente ambos pares de brazos
-    ConfirmLineClear    ///< En ManualRecovery: confirma despeje físico y reinicia secuencia Boot
+    None = 0,               ///< Sin comando táctil pendiente
+    CycleBottleProfile,     ///< En Running con ambos autómatas en Idle: alterna entre Small y Large
+    AcknowledgeAlarm,       ///< En ErrorStop (con seta liberada): transiciona a ManualRecovery
+    JogFillZUp,             ///< En ManualRecovery / TestMode: sube el eje Z de llenado en pasos seguros (Z_JOG_STEPS)
+    JogCapZUp,              ///< En ManualRecovery / TestMode: sube el eje Z de tapado en pasos seguros (Z_JOG_STEPS)
+    ReleaseArms,            ///< En ManualRecovery: levanta inmediatamente ambos pares de brazos
+    ConfirmLineClear,       ///< En ManualRecovery: confirma despeje físico y reinicia secuencia Boot
+
+    // Comandos de MODO DE PRUEBA (TEST MODE)
+    ToggleTestMode,         ///< En Settings: activa o desactiva StationMode::TestMode
+    TestToggleBelt,         ///< En Home (TestMode): alterna encendido/apagado de la banda (7V PWM)
+    TestToggleTowerGreen,   ///< En Home (TestMode): alterna luz verde de la torreta
+    TestToggleTowerRed,     ///< En Home (TestMode): alterna luz roja de la torreta
+    TestToggleBuzzer,       ///< En Home (TestMode): alterna zumbador / alarma acústica
+    TestToggleFillStopArm,  ///< En Auto 1 (TestMode): alterna brazo de tope de llenado (Arriba/Abajo)
+    TestToggleFillClampArm, ///< En Auto 1 (TestMode): alterna brazo de sujeción de llenado (Arriba/Abajo)
+    TestToggleFillPump,     ///< En Auto 1 (TestMode): alterna bomba de agua de dosificación
+    TestJogFillZDown,       ///< En Auto 1 (TestMode): baja el eje Z de llenado en pasos seguros (Z_JOG_STEPS)
+    TestToggleCapStopArm,   ///< En Auto 2 (TestMode): alterna brazo de tope de tapado (Arriba/Abajo)
+    TestToggleCapClampArm,  ///< En Auto 2 (TestMode): alterna brazo de sujeción de tapado (Arriba/Abajo)
+    TestToggleChuckMotor,   ///< En Auto 2 (TestMode): alterna motor DC de apriete de tapas
+    TestJogCapZDown         ///< En Auto 2 (TestMode): baja el eje Z de tapado en pasos seguros (Z_JOG_STEPS)
 };
+
+/**
+ * @namespace TestFlags
+ * @brief Banderas de bit para reflejar en la pantalla el estado activo de cada actuador durante TestMode.
+ */
+namespace TestFlags
+{
+    constexpr uint16_t BELT_ON        = (1U << 0); ///< Banda transportadora activa (7V PWM)
+    constexpr uint16_t TOWER_GREEN_ON = (1U << 1); ///< Torreta verde encendida
+    constexpr uint16_t TOWER_RED_ON   = (1U << 2); ///< Torreta roja encendida
+    constexpr uint16_t BUZZER_ON      = (1U << 3); ///< Buzzer / alarma encendida manualmente
+    constexpr uint16_t FILL_STOP_DN   = (1U << 4); ///< Brazo de tope 1 (Llenado) abajo
+    constexpr uint16_t FILL_CLAMP_DN  = (1U << 5); ///< Brazo de sujeción 1 (Llenado) abajo
+    constexpr uint16_t FILL_PUMP_ON   = (1U << 6); ///< Bomba de agua encendida
+    constexpr uint16_t CAP_STOP_DN    = (1U << 7); ///< Brazo de tope 2 (Tapado) abajo
+    constexpr uint16_t CAP_CLAMP_DN   = (1U << 8); ///< Brazo de sujeción 2 (Tapado) abajo
+    constexpr uint16_t CAP_CHUCK_ON   = (1U << 9); ///< Motor de apriete de tapas encendido
+}
 
 /**
  * @enum BuzzerPattern
@@ -137,6 +171,7 @@ struct DisplaySnapshot
     BottleProfile profile;     ///< Perfil de botella seleccionado
     uint8_t       queueCount;  ///< Botellas actualmente en la cola intermedia entre Llenado y Tapado [unidades]
     uint32_t      bottleCount; ///< Conteo acumulado de botellas completadas desde el arranque [unidades]
+    uint16_t      testFlags;   ///< Máscara de bits (TestFlags) con el estado de actuadores en TestMode
 };
 
 /**

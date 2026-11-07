@@ -29,6 +29,7 @@ namespace
     const char STR_MODE_RUNNING[]  PROGMEM = "MODO: OPERANDO EN LINEA";
     const char STR_MODE_ERRSTOP[]  PROGMEM = "! PARO DE SEGURIDAD !  ";
     const char STR_MODE_RECOVERY[] PROGMEM = "MODO: RECUPERACION MAN.";
+    const char STR_MODE_TEST[]     PROGMEM = "MODO: TEST MANUAL ACT. ";
 
     // Estados del Autómata de Llenado
     const char STR_FILL_IDLE[]     PROGMEM = "ESPERA BOTELLA ";
@@ -90,6 +91,11 @@ namespace
                 outBgColor = COLOR_RED_ALARM;
                 outFgColor = COLOR_WHITE;
                 return reinterpret_cast<const __FlashStringHelper*>(STR_MODE_ERRSTOP);
+
+            case StationMode::TestMode:
+                outBgColor = COLOR_ORANGE_REC;
+                outFgColor = COLOR_BG;
+                return reinterpret_cast<const __FlashStringHelper*>(STR_MODE_TEST);
 
             case StationMode::ManualRecovery:
             default:
@@ -205,6 +211,11 @@ namespace
         tft.setCursor(cursorX, cursorY);
         tft.print(label);
     }
+
+    inline bool inRect(int16_t px, int16_t py, int16_t x, int16_t y, int16_t w, int16_t h)
+    {
+        return (px >= x) && (px < (x + w)) && (py >= y) && (py < (y + h));
+    }
 }
 
 // ============================================================================
@@ -307,21 +318,12 @@ DisplayManager::DisplayManager(const DisplayTouchConfig& config)
           CappingState::Idle,
           BottleProfile::Small,
           0,
-          0},
+          0,
+          0U},
       hasLastMarker_(false),
       lastMarkerX_(0),
       lastMarkerY_(0),
-      btnNavHome_(),
-      btnNavAutoFill_(),
-      btnNavAutoCap_(),
-      btnNavDebug_(),
-      btnNavSettings_(),
-      btnBottomAction_(),
-      btnSetProfile_(),
-      btnJogFillUp_(),
-      btnJogCapUp_(),
-      btnReleaseArms_(),
-      btnConfirmClear_()
+      wasTouched_(false)
 {
 }
 
@@ -447,7 +449,7 @@ void DisplayManager::render(const DisplaySnapshot& snapshot)
         showScreen(ScreenId::Home);
     }
 
-    // Cambiar automáticamente a Settings al entrar en ManualRecovery para presentar los mandos de despeje
+    // Cambiar o redibujar el marco estático cuando entra/sale de TestMode o ManualRecovery
     if (hasRenderedSnapshot_ &&
         (renderedSnapshot_.mode != snapshot.mode))
     {
@@ -465,6 +467,16 @@ void DisplayManager::render(const DisplaySnapshot& snapshot)
             renderedSnapshot_    = snapshot;
             hasRenderedSnapshot_ = true;
             showScreen(ScreenId::Home);
+            return;
+        }
+
+        // Si cambió hacia o desde TestMode en Home, AutoFill o AutoCap, limpiar y redibujar marco
+        if ((snapshot.mode == StationMode::TestMode || renderedSnapshot_.mode == StationMode::TestMode) &&
+            (currentScreen_ == ScreenId::Home || currentScreen_ == ScreenId::AutoFill || currentScreen_ == ScreenId::AutoCap))
+        {
+            renderedSnapshot_    = snapshot;
+            hasRenderedSnapshot_ = true;
+            showScreen(currentScreen_, true);
             return;
         }
     }
@@ -506,81 +518,103 @@ TouchCommand DisplayManager::pollTouchCommand()
     int16_t px = 0;
     int16_t py = 0;
     const bool touched = readTouchPixel(px, py);
+    const bool justPressed = touched && !wasTouched_;
+    wasTouched_ = touched;
 
-    // 1. Pestañas de navegación fija en la barra inferior (layout_base.svg)
-    btnNavHome_.press(touched && btnNavHome_.contains(px, py));
-    btnNavAutoFill_.press(touched && btnNavAutoFill_.contains(px, py));
-    btnNavAutoCap_.press(touched && btnNavAutoCap_.contains(px, py));
-    btnNavDebug_.press(touched && btnNavDebug_.contains(px, py));
-    btnNavSettings_.press(touched && btnNavSettings_.contains(px, py));
-
-    if (btnNavHome_.justPressed())
+    if (!justPressed)
     {
-        showScreen(ScreenId::Home);
         return TouchCommand::None;
     }
 
-    if (btnNavAutoFill_.justPressed())
+    // 1. Pestañas de navegación fija en la barra inferior (Y = 190..239)
+    if (py >= LAYOUT_BAR_Y)
     {
-        showScreen(ScreenId::AutoFill);
+        if (px < 64)
+        {
+            showScreen(ScreenId::Home);
+        }
+        else if (px < 128)
+        {
+            showScreen(ScreenId::AutoFill);
+        }
+        else if (px < 192)
+        {
+            showScreen(ScreenId::AutoCap);
+        }
+        else if (px < 254)
+        {
+            showScreen(ScreenId::Debug);
+        }
+        else
+        {
+            showScreen(ScreenId::Settings);
+        }
         return TouchCommand::None;
     }
 
-    if (btnNavAutoCap_.justPressed())
-    {
-        showScreen(ScreenId::AutoCap);
-        return TouchCommand::None;
-    }
+    const bool isTestMode = hasRenderedSnapshot_ && (renderedSnapshot_.mode == StationMode::TestMode);
 
-    if (btnNavDebug_.justPressed())
+    // 2. Controles según la pantalla activa
+    switch (currentScreen_)
     {
-        showScreen(ScreenId::Debug);
-        return TouchCommand::None;
-    }
+        case ScreenId::Home:
+            if (isTestMode)
+            {
+                if (inRect(px, py, 8,   48, 148, 56)) { return TouchCommand::TestToggleBelt; }
+                if (inRect(px, py, 164, 48, 148, 56)) { return TouchCommand::TestToggleBuzzer; }
+                if (inRect(px, py, 8,   114, 148, 56)) { return TouchCommand::TestToggleTowerGreen; }
+                if (inRect(px, py, 164, 114, 148, 56)) { return TouchCommand::TestToggleTowerRed; }
+            }
+            else if (hasRenderedSnapshot_ && (renderedSnapshot_.mode == StationMode::ErrorStop))
+            {
+                if (inRect(px, py, 6, 144, 308, 34)) { return TouchCommand::AcknowledgeAlarm; }
+            }
+            break;
 
-    if (btnNavSettings_.justPressed())
-    {
-        showScreen(ScreenId::Settings);
-        return TouchCommand::None;
-    }
+        case ScreenId::AutoFill:
+            if (isTestMode)
+            {
+                if (inRect(px, py, 8,   34, 148, 44)) { return TouchCommand::TestToggleFillStopArm; }
+                if (inRect(px, py, 164, 34, 148, 44)) { return TouchCommand::TestToggleFillClampArm; }
+                if (inRect(px, py, 8,   84, 304, 42)) { return TouchCommand::TestToggleFillPump; }
+                if (inRect(px, py, 8,   132, 148, 48)) { return TouchCommand::JogFillZUp; }
+                if (inRect(px, py, 164, 132, 148, 48)) { return TouchCommand::TestJogFillZDown; }
+            }
+            break;
 
-    // 2. Botones exclusivos de la pantalla Settings (perfil y recuperación manual)
-    if (currentScreen_ == ScreenId::Settings)
-    {
-        btnSetProfile_.press(touched && btnSetProfile_.contains(px, py));
-        btnJogFillUp_.press(touched && btnJogFillUp_.contains(px, py));
-        btnJogCapUp_.press(touched && btnJogCapUp_.contains(px, py));
-        btnReleaseArms_.press(touched && btnReleaseArms_.contains(px, py));
-        btnConfirmClear_.press(touched && btnConfirmClear_.contains(px, py));
+        case ScreenId::AutoCap:
+            if (isTestMode)
+            {
+                if (inRect(px, py, 8,   34, 148, 44)) { return TouchCommand::TestToggleCapStopArm; }
+                if (inRect(px, py, 164, 34, 148, 44)) { return TouchCommand::TestToggleCapClampArm; }
+                if (inRect(px, py, 8,   84, 304, 42)) { return TouchCommand::TestToggleChuckMotor; }
+                if (inRect(px, py, 8,   132, 148, 48)) { return TouchCommand::JogCapZUp; }
+                if (inRect(px, py, 164, 132, 148, 48)) { return TouchCommand::TestJogCapZDown; }
+            }
+            break;
 
-        if (btnSetProfile_.justPressed())
-        {
-            return TouchCommand::CycleBottleProfile;
-        }
-        if (btnJogFillUp_.justPressed())
-        {
-            return TouchCommand::JogFillZUp;
-        }
-        if (btnJogCapUp_.justPressed())
-        {
-            return TouchCommand::JogCapZUp;
-        }
-        if (btnReleaseArms_.justPressed())
-        {
-            return TouchCommand::ReleaseArms;
-        }
-        if (btnConfirmClear_.justPressed())
-        {
-            return TouchCommand::ConfirmLineClear;
-        }
-    }
-    else
-    {
-        btnSetProfile_.press(false);
-        btnJogFillUp_.press(false);
-        btnJogCapUp_.press(false);
-        btnReleaseArms_.press(false);
-        btnConfirmClear_.press(false);
+        case ScreenId::Settings:
+            // Checkbox TEST MODE (Y = 32..84, X = 6..314)
+            if (inRect(px, py, 6, 32, 308, 52))
+            {
+                return TouchCommand::ToggleTestMode;
+            }
+            // Botón CAMBIAR PERFIL (X = 190..312, Y = 90..120)
+            if (inRect(px, py, 190, 90, 122, 30))
+            {
+                return TouchCommand::CycleBottleProfile;
+            }
+            // Mandos de Recuperación Manual (Y = 126..184)
+            if (inRect(px, py, 8,   126, 148, 27)) { return TouchCommand::JogFillZUp; }
+            if (inRect(px, py, 164, 126, 148, 27)) { return TouchCommand::JogCapZUp; }
+            if (inRect(px, py, 8,   157, 148, 27)) { return TouchCommand::ReleaseArms; }
+            if (inRect(px, py, 164, 157, 148, 27)) { return TouchCommand::ConfirmLineClear; }
+            break;
+
+        case ScreenId::Debug:
+        case ScreenId::None:
+        default:
+            break;
     }
 
     return TouchCommand::None;
@@ -640,42 +674,21 @@ MCUFRIEND_kbv& DisplayManager::getTft()
 
 void DisplayManager::initLayoutButtons()
 {
-    char emptyLabel[] = "";
-
-    // Pestañas de la barra inferior (layout_base.svg)
-    // Tab 0: HOME (X = 0..63, centro X = 32, Y = 215, W = 64, H = 50)
-    btnNavHome_.initButton(&tft, 32, 215, 64, 50, 0, 0, 0, emptyLabel, 1);
-
-    // Tab 1: AUTO 1 / LLENADO (X = 64..127, centro X = 96, Y = 215, W = 64, H = 50)
-    btnNavAutoFill_.initButton(&tft, 96, 215, 64, 50, 0, 0, 0, emptyLabel, 1);
-
-    // Tab 2: AUTO 2 / TAPADO (X = 128..191, centro X = 160, Y = 215, W = 64, H = 50)
-    btnNavAutoCap_.initButton(&tft, 160, 215, 64, 50, 0, 0, 0, emptyLabel, 1);
-
-    // Tab 3: DEBUG (X = 192..253, centro X = 223, Y = 215, W = 62, H = 50)
-    btnNavDebug_.initButton(&tft, 223, 215, 62, 50, 0, 0, 0, emptyLabel, 1);
-
-    // Tab 4: SETTINGS (X = 254..319, centro X = 287, Y = 215, W = 66, H = 50)
-    btnNavSettings_.initButton(&tft, 287, 215, 66, 50, 0, 0, 0, emptyLabel, 1);
-
-    // Botón contextual de alerta/rearme rápido
-    btnBottomAction_.initButton(&tft, 160, 100, 200, 40, 0, 0, 0, emptyLabel, 1);
-
-    // Botón de cambio de perfil en Settings: X = 190..312, Y = 34..68 (centro X = 251, Y = 51)
-    btnSetProfile_.initButton(&tft, 251, 51, 122, 34, 0, 0, 0, emptyLabel, 1);
-
-    // Cuadrícula de 4 botones de recuperación manual en Settings:
-    // Fila 1 (Y = 92..130): [SUBIR Z LLEN] (X = 8..156) y [SUBIR Z TAP] (X = 164..312)
-    btnJogFillUp_.initButton(&tft, 82, 111, 148, 38, 0, 0, 0, emptyLabel, 1);
-    btnJogCapUp_.initButton(&tft, 238, 111, 148, 38, 0, 0, 0, emptyLabel, 1);
-
-    // Fila 2 (Y = 136..174): [SOLTAR BRAZOS] (X = 8..156) y [LINEA DESPEJADA] (X = 164..312)
-    btnReleaseArms_.initButton(&tft, 82, 155, 148, 38, 0, 0, 0, emptyLabel, 1);
-    btnConfirmClear_.initButton(&tft, 238, 155, 148, 38, 0, 0, 0, emptyLabel, 1);
+    // Las zonas táctiles se evalúan geométricamente mediante inRect() en pollTouchCommand()
+    // para ahorrar ~350 bytes de SRAM en el ATmega2560.
 }
 
 void DisplayManager::drawHomeStaticFrame()
 {
+    if (hasRenderedSnapshot_ && (renderedSnapshot_.mode == StationMode::TestMode))
+    {
+        tft.setTextSize(1);
+        tft.setTextColor(COLOR_CYAN, COLOR_BG);
+        tft.setCursor(8, 34);
+        tft.print(F("CONTROL MANUAL GENERAL (HOME - TEST MODE):"));
+        return;
+    }
+
     // Tarjeta Etapa 1: Llenado (Y = 34..68)
     tft.fillRoundRect(6, 34, 308, 34, 4, COLOR_PANEL_BG);
     tft.drawRoundRect(6, 34, 308, 34, 4, COLOR_DARK_GRAY);
@@ -707,26 +720,32 @@ void DisplayManager::drawHomeStaticFrame()
 
 void DisplayManager::drawSettingsStaticFrame()
 {
-    // Encabezado fijo de Settings y Asistencia Manual
+    // Encabezado fijo de Settings y Modo de Prueba
     tft.fillRect(0, 0, SCREEN_WIDTH, 28, COLOR_BLUE_HEADER);
     tft.setTextSize(2);
     tft.setTextColor(COLOR_WHITE, COLOR_BLUE_HEADER);
     tft.setCursor(10, 6);
-    tft.print(F("AJUSTES Y RECUPERACION"));
+    tft.print(F("AJUSTES Y TEST MODE"));
 
-    // Tarjeta de formato de botella (Y = 34..68)
-    tft.fillRoundRect(6, 34, 178, 34, 4, COLOR_PANEL_BG);
-    tft.drawRoundRect(6, 34, 178, 34, 4, COLOR_DARK_GRAY);
+    // Tarjeta de Checkbox TEST MODE (Y = 32..84, H = 52 para alojar icono 48x48)
+    tft.fillRoundRect(6, 32, 308, 52, 4, COLOR_PANEL_BG);
+    tft.drawRoundRect(6, 32, 308, 52, 4, COLOR_DARK_GRAY);
+    tft.setTextSize(2);
+    tft.setTextColor(COLOR_WHITE, COLOR_PANEL_BG);
+    tft.setCursor(66, 42);
+    tft.print(F("TEST MODE"));
     tft.setTextSize(1);
     tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_PANEL_BG);
-    tft.setCursor(12, 47);
-    tft.print(F("FORMATO:"));
+    tft.setCursor(66, 64);
+    tft.print(F("Accionar actuadores manualmente"));
 
-    // Etiqueta de sección de mandos manuales
+    // Tarjeta de formato de botella (Y = 90..120)
+    tft.fillRoundRect(6, 90, 178, 30, 4, COLOR_PANEL_BG);
+    tft.drawRoundRect(6, 90, 178, 30, 4, COLOR_DARK_GRAY);
     tft.setTextSize(1);
-    tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_BG);
-    tft.setCursor(8, 76);
-    tft.print(F("MANDOS DE DESPEJE (SOLO EN MODO RECUPERACION):"));
+    tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_PANEL_BG);
+    tft.setCursor(12, 101);
+    tft.print(F("FORMATO:"));
 }
 
 void DisplayManager::renderHomeDynamic(const DisplaySnapshot& snapshot, bool fullRedraw)
@@ -743,6 +762,57 @@ void DisplayManager::renderHomeDynamic(const DisplaySnapshot& snapshot, bool ful
         tft.setTextColor(fgColor, bgColor);
         tft.setCursor(10, 6);
         tft.print(modeStr);
+    }
+
+    // Vista de HOME en TEST MODE: botones manuales para Banda, Buzzer y Torreta
+    if (snapshot.mode == StationMode::TestMode)
+    {
+        const uint16_t diffFlags = snapshot.testFlags ^ renderedSnapshot_.testFlags;
+
+        if (fullRedraw || ((diffFlags & TestFlags::BELT_ON) != 0U))
+        {
+            const bool on = (snapshot.testFlags & TestFlags::BELT_ON) != 0U;
+            drawLabeledButtonBox(
+                8, 48, 148, 56,
+                on ? COLOR_GREEN_OK : COLOR_PANEL_BG,
+                on ? COLOR_WHITE : COLOR_CYAN,
+                COLOR_WHITE,
+                on ? F("BANDA 7V: ON") : F("BANDA 7V: OFF"), 1);
+        }
+
+        if (fullRedraw || ((diffFlags & TestFlags::BUZZER_ON) != 0U))
+        {
+            const bool on = (snapshot.testFlags & TestFlags::BUZZER_ON) != 0U;
+            drawLabeledButtonBox(
+                164, 48, 148, 56,
+                on ? COLOR_ORANGE_REC : COLOR_PANEL_BG,
+                on ? COLOR_WHITE : COLOR_CYAN,
+                 on ? COLOR_BG : COLOR_WHITE,
+                on ? F("BUZZER: ON") : F("BUZZER: OFF"), 1);
+        }
+
+        if (fullRedraw || ((diffFlags & TestFlags::TOWER_GREEN_ON) != 0U))
+        {
+            const bool on = (snapshot.testFlags & TestFlags::TOWER_GREEN_ON) != 0U;
+            drawLabeledButtonBox(
+                8, 114, 148, 56,
+                on ? COLOR_GREEN_OK : COLOR_PANEL_BG,
+                on ? COLOR_WHITE : COLOR_CYAN,
+                COLOR_WHITE,
+                on ? F("TORRE VERDE: ON") : F("TORRE VERDE: OFF"), 1);
+        }
+
+        if (fullRedraw || ((diffFlags & TestFlags::TOWER_RED_ON) != 0U))
+        {
+            const bool on = (snapshot.testFlags & TestFlags::TOWER_RED_ON) != 0U;
+            drawLabeledButtonBox(
+                164, 114, 148, 56,
+                on ? COLOR_RED_ALARM : COLOR_PANEL_BG,
+                on ? COLOR_WHITE : COLOR_CYAN,
+                COLOR_WHITE,
+                on ? F("TORRE ROJA: ON") : F("TORRE ROJA: OFF"), 1);
+        }
+        return;
     }
 
     // 2. Fase activa del Autómata de Llenado
@@ -817,6 +887,23 @@ void DisplayManager::renderHomeDynamic(const DisplaySnapshot& snapshot, bool ful
 
 void DisplayManager::renderSettingsDynamic(const DisplaySnapshot& snapshot, bool fullRedraw)
 {
+    const bool isTestMode     = (snapshot.mode == StationMode::TestMode);
+    const bool prevIsTestMode = (renderedSnapshot_.mode == StationMode::TestMode);
+
+    // 1. Icono Checkbox 48x48 de TEST MODE (X = 10, Y = 34)
+    if (fullRedraw || (isTestMode != prevIsTestMode))
+    {
+        tft.fillRect(10, 34, 48, 48, COLOR_PANEL_BG);
+        if (isTestMode)
+        {
+            tft.drawBitmap(10, 34, UIIcons::ICON_CHECKBOX_ON_48x48, 48, 48, COLOR_GREEN_OK);
+        }
+        else
+        {
+            tft.drawBitmap(10, 34, UIIcons::ICON_CHECKBOX_OFF_48x48, 48, 48, COLOR_WHITE);
+        }
+    }
+
     const bool canChangeProfile =
         (snapshot.mode == StationMode::Running) &&
         (snapshot.fillState == FillState::Idle) &&
@@ -829,14 +916,14 @@ void DisplayManager::renderSettingsDynamic(const DisplaySnapshot& snapshot, bool
         (renderedSnapshot_.capState == CappingState::Idle) &&
         (renderedSnapshot_.queueCount == 0U);
 
-    // 1. Valor del perfil activo y botón [CAMBIAR PERFIL]
+    // 2. Valor del perfil activo y botón [CAMBIAR PERFIL]
     if (fullRedraw ||
         (snapshot.profile != renderedSnapshot_.profile) ||
         (canChangeProfile != prevCanChangeProfile))
     {
         tft.setTextSize(2);
         tft.setTextColor(COLOR_CYAN, COLOR_PANEL_BG);
-        tft.setCursor(66, 43);
+        tft.setCursor(66, 97);
         tft.print(getProfileProgmem(snapshot.profile));
 
         const uint16_t btnFill   = canChangeProfile ? COLOR_BLUE_HEADER : COLOR_PANEL_BG;
@@ -844,12 +931,12 @@ void DisplayManager::renderSettingsDynamic(const DisplaySnapshot& snapshot, bool
         const uint16_t btnText   = canChangeProfile ? COLOR_WHITE : COLOR_DARK_GRAY;
 
         drawLabeledButtonBox(
-            190, 34, 122, 34,
+            190, 90, 122, 30,
             btnFill, btnBorder, btnText,
             F("CAMBIAR PERFIL"), 1);
     }
 
-    // 2. Cuadrícula de 4 botones de Recuperación Manual
+    // 3. Cuadrícula de 4 botones de Recuperación Manual (Y = 126..184)
     const bool inRecovery     = (snapshot.mode == StationMode::ManualRecovery);
     const bool prevInRecovery = (renderedSnapshot_.mode == StationMode::ManualRecovery);
 
@@ -864,22 +951,22 @@ void DisplayManager::renderSettingsDynamic(const DisplaySnapshot& snapshot, bool
         const uint16_t clrText   = inRecovery ? COLOR_WHITE : COLOR_DARK_GRAY;
 
         drawLabeledButtonBox(
-            8, 92, 148, 38,
+            8, 126, 148, 27,
             jogFill, jogBorder, jogText,
             F("SUBIR Z LLENADO"), 1);
 
         drawLabeledButtonBox(
-            164, 92, 148, 38,
+            164, 126, 148, 27,
             jogFill, jogBorder, jogText,
             F("SUBIR Z TAPADO"), 1);
 
         drawLabeledButtonBox(
-            8, 136, 148, 38,
+            8, 157, 148, 27,
             jogFill, jogBorder, jogText,
             F("SOLTAR BRAZOS"), 1);
 
         drawLabeledButtonBox(
-            164, 136, 148, 38,
+            164, 157, 148, 27,
             clrFill, clrBorder, clrText,
             F("LINEA DESPEJADA"), 1);
     }
@@ -887,6 +974,16 @@ void DisplayManager::renderSettingsDynamic(const DisplaySnapshot& snapshot, bool
 
 void DisplayManager::drawAutoFillStaticFrame()
 {
+    if (hasRenderedSnapshot_ && (renderedSnapshot_.mode == StationMode::TestMode))
+    {
+        tft.fillRect(0, 0, SCREEN_WIDTH, 26, COLOR_ORANGE_REC);
+        tft.setTextSize(2);
+        tft.setTextColor(COLOR_BG, COLOR_ORANGE_REC);
+        tft.setCursor(8, 5);
+        tft.print(F("TEST AUTO 1: LLENADO"));
+        return;
+    }
+
     // Encabezado
     tft.setTextSize(1);
     tft.setTextColor(COLOR_CYAN, COLOR_BG);
@@ -917,6 +1014,16 @@ void DisplayManager::drawAutoFillStaticFrame()
 
 void DisplayManager::drawAutoCapStaticFrame()
 {
+    if (hasRenderedSnapshot_ && (renderedSnapshot_.mode == StationMode::TestMode))
+    {
+        tft.fillRect(0, 0, SCREEN_WIDTH, 26, COLOR_ORANGE_REC);
+        tft.setTextSize(2);
+        tft.setTextColor(COLOR_BG, COLOR_ORANGE_REC);
+        tft.setCursor(8, 5);
+        tft.print(F("TEST AUTO 2: TAPADO"));
+        return;
+    }
+
     // Encabezado
     tft.setTextSize(1);
     tft.setTextColor(COLOR_CYAN, COLOR_BG);
@@ -947,7 +1054,7 @@ void DisplayManager::drawAutoCapStaticFrame()
 
 void DisplayManager::drawDebugStaticFrame()
 {
-    // Encabezado
+    // Encabezado (Debug permanece igual sin importar el modo)
     tft.setTextSize(1);
     tft.setTextColor(COLOR_CYAN, COLOR_BG);
     tft.setCursor(8, 10);
@@ -977,6 +1084,58 @@ void DisplayManager::drawDebugStaticFrame()
 
 void DisplayManager::renderAutoFillDynamic(const DisplaySnapshot& snapshot, bool fullRedraw)
 {
+    if (snapshot.mode == StationMode::TestMode)
+    {
+        const uint16_t diffFlags = snapshot.testFlags ^ renderedSnapshot_.testFlags;
+
+        if (fullRedraw || ((diffFlags & TestFlags::FILL_STOP_DN) != 0U))
+        {
+            const bool down = (snapshot.testFlags & TestFlags::FILL_STOP_DN) != 0U;
+            drawLabeledButtonBox(
+                8, 34, 148, 44,
+                down ? COLOR_ORANGE_REC : COLOR_PANEL_BG,
+                down ? COLOR_WHITE : COLOR_CYAN,
+                down ? COLOR_BG : COLOR_WHITE,
+                down ? F("TOPE 1: ABAJO") : F("TOPE 1: ARRIBA"), 1);
+        }
+
+        if (fullRedraw || ((diffFlags & TestFlags::FILL_CLAMP_DN) != 0U))
+        {
+            const bool down = (snapshot.testFlags & TestFlags::FILL_CLAMP_DN) != 0U;
+            drawLabeledButtonBox(
+                164, 34, 148, 44,
+                down ? COLOR_ORANGE_REC : COLOR_PANEL_BG,
+                down ? COLOR_WHITE : COLOR_CYAN,
+                down ? COLOR_BG : COLOR_WHITE,
+                down ? F("SUJEC 1: ABAJO") : F("SUJEC 1: ARRIBA"), 1);
+        }
+
+        if (fullRedraw || ((diffFlags & TestFlags::FILL_PUMP_ON) != 0U))
+        {
+            const bool on = (snapshot.testFlags & TestFlags::FILL_PUMP_ON) != 0U;
+            drawLabeledButtonBox(
+                8, 84, 304, 42,
+                on ? COLOR_GREEN_OK : COLOR_PANEL_BG,
+                on ? COLOR_WHITE : COLOR_CYAN,
+                COLOR_WHITE,
+                on ? F("BOMBA LLENADO: ENCENDIDA") : F("BOMBA LLENADO: APAGADA"), 1);
+        }
+
+        if (fullRedraw)
+        {
+            drawLabeledButtonBox(
+                8, 132, 148, 48,
+                COLOR_BLUE_HEADER, COLOR_CYAN, COLOR_WHITE,
+                F("SUBIR Z1 (+JOG)"), 1);
+
+            drawLabeledButtonBox(
+                164, 132, 148, 48,
+                COLOR_BLUE_HEADER, COLOR_CYAN, COLOR_WHITE,
+                F("BAJAR Z1 (-JOG)"), 1);
+        }
+        return;
+    }
+
     if (fullRedraw || (snapshot.fillState != renderedSnapshot_.fillState))
     {
         tft.setTextSize(2);
@@ -988,6 +1147,58 @@ void DisplayManager::renderAutoFillDynamic(const DisplaySnapshot& snapshot, bool
 
 void DisplayManager::renderAutoCapDynamic(const DisplaySnapshot& snapshot, bool fullRedraw)
 {
+    if (snapshot.mode == StationMode::TestMode)
+    {
+        const uint16_t diffFlags = snapshot.testFlags ^ renderedSnapshot_.testFlags;
+
+        if (fullRedraw || ((diffFlags & TestFlags::CAP_STOP_DN) != 0U))
+        {
+            const bool down = (snapshot.testFlags & TestFlags::CAP_STOP_DN) != 0U;
+            drawLabeledButtonBox(
+                8, 34, 148, 44,
+                down ? COLOR_ORANGE_REC : COLOR_PANEL_BG,
+                down ? COLOR_WHITE : COLOR_CYAN,
+                down ? COLOR_BG : COLOR_WHITE,
+                down ? F("TOPE 2: ABAJO") : F("TOPE 2: ARRIBA"), 1);
+        }
+
+        if (fullRedraw || ((diffFlags & TestFlags::CAP_CLAMP_DN) != 0U))
+        {
+            const bool down = (snapshot.testFlags & TestFlags::CAP_CLAMP_DN) != 0U;
+            drawLabeledButtonBox(
+                164, 34, 148, 44,
+                down ? COLOR_ORANGE_REC : COLOR_PANEL_BG,
+                down ? COLOR_WHITE : COLOR_CYAN,
+                down ? COLOR_BG : COLOR_WHITE,
+                down ? F("SUJEC 2: ABAJO") : F("SUJEC 2: ARRIBA"), 1);
+        }
+
+        if (fullRedraw || ((diffFlags & TestFlags::CAP_CHUCK_ON) != 0U))
+        {
+            const bool on = (snapshot.testFlags & TestFlags::CAP_CHUCK_ON) != 0U;
+            drawLabeledButtonBox(
+                8, 84, 304, 42,
+                on ? COLOR_GREEN_OK : COLOR_PANEL_BG,
+                on ? COLOR_WHITE : COLOR_CYAN,
+                COLOR_WHITE,
+                on ? F("MOTOR APRIETE: ENCENDIDO") : F("MOTOR APRIETE: APAGADO"), 1);
+        }
+
+        if (fullRedraw)
+        {
+            drawLabeledButtonBox(
+                8, 132, 148, 48,
+                COLOR_BLUE_HEADER, COLOR_CYAN, COLOR_WHITE,
+                F("SUBIR Z2 (+JOG)"), 1);
+
+            drawLabeledButtonBox(
+                164, 132, 148, 48,
+                COLOR_BLUE_HEADER, COLOR_CYAN, COLOR_WHITE,
+                F("BAJAR Z2 (-JOG)"), 1);
+        }
+        return;
+    }
+
     if (fullRedraw || (snapshot.capState != renderedSnapshot_.capState))
     {
         tft.setTextSize(2);
@@ -1001,21 +1212,23 @@ void DisplayManager::renderDebugDynamic(const DisplaySnapshot& snapshot, bool fu
 {
     if (fullRedraw || (snapshot.mode != renderedSnapshot_.mode) || (snapshot.error != renderedSnapshot_.error))
     {
+        uint16_t dummyBg = 0;
+        uint16_t dummyFg = 0;
         tft.setTextSize(1);
         tft.setTextColor(COLOR_CYAN, COLOR_PANEL_BG);
         tft.setCursor(100, 42);
-        tft.print(getModeProgmem(snapshot.mode));
+        tft.print(getModeProgmem(snapshot.mode, dummyBg, dummyFg));
 
         tft.setCursor(14, 54);
         if (snapshot.error != ErrorCode::None)
         {
             tft.setTextColor(COLOR_RED_ALARM, COLOR_PANEL_BG);
-            tft.print(getErrorProgmem(snapshot.error));
+            tft.print(getErrorProgmem(snapshot.error, dummyBg, dummyFg));
         }
         else
         {
             tft.setTextColor(COLOR_GREEN_OK, COLOR_PANEL_BG);
-            tft.print(F("SIN ALARMAS ACTIVAS (OK)"));
+            tft.print(F("SIN ALARMAS ACTIVAS (OK)  "));
         }
     }
 

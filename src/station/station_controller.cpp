@@ -181,6 +181,7 @@ StationController::StationController()
       bootStartTimeMs_(0),
       linePaused_(false),
       networkWarningActive_(false),
+      testFlags_(0U),
       lastSnapshot_{
           ErrorCode::None,
           StationMode::Boot,
@@ -188,7 +189,8 @@ StationController::StationController()
           CappingState::Idle,
           BottleProfile::Small,
           0,
-          0},
+          0,
+          0U},
       snapshotDirty_(true)
 {
 }
@@ -422,9 +424,26 @@ void StationController::update()
         case StationMode::ManualRecovery:
             // En recuperación manual el buzzer permanece en silencio para asistir al operador
             break;
+
+        case StationMode::TestMode:
+            // Sincronizar bandera de bomba si se apagó automáticamente por MAX_PUMP_ON_MS
+            if (!fillPump_.isRunning() && ((testFlags_ & TestFlags::FILL_PUMP_ON) != 0U))
+            {
+                testFlags_ &= static_cast<uint16_t>(~TestFlags::FILL_PUMP_ON);
+            }
+            if (conveyor_.isStalled())
+            {
+                conveyor_.stop();
+                conveyor_.clearStall();
+                testFlags_ &= static_cast<uint16_t>(~TestFlags::BELT_ON);
+            }
+            break;
     }
 
-    buzzer_.update(nowMs);
+    if (mode_ != StationMode::TestMode)
+    {
+        buzzer_.update(nowMs);
+    }
     refreshDisplaySnapshot();
 }
 
@@ -468,24 +487,26 @@ void StationController::handleTouchCommand(TouchCommand cmd)
             break;
 
         case TouchCommand::JogFillZUp:
-            if (mode_ == StationMode::ManualRecovery)
+            if (mode_ == StationMode::ManualRecovery || mode_ == StationMode::TestMode)
             {
                 fillZ_.jogUp(ProcessParams::Z_JOG_STEPS, ProcessParams::Z_HOMING_SPEED);
             }
             break;
 
         case TouchCommand::JogCapZUp:
-            if (mode_ == StationMode::ManualRecovery)
+            if (mode_ == StationMode::ManualRecovery || mode_ == StationMode::TestMode)
             {
                 capZ_.jogUp(ProcessParams::Z_JOG_STEPS, ProcessParams::Z_HOMING_SPEED);
             }
             break;
 
         case TouchCommand::ReleaseArms:
-            if (mode_ == StationMode::ManualRecovery)
+            if (mode_ == StationMode::ManualRecovery || mode_ == StationMode::TestMode)
             {
                 fillGate_.raiseArmsImmediate();
                 capGate_.raiseArmsImmediate();
+                testFlags_ &= static_cast<uint16_t>(~(TestFlags::FILL_STOP_DN | TestFlags::FILL_CLAMP_DN |
+                                                      TestFlags::CAP_STOP_DN  | TestFlags::CAP_CLAMP_DN));
             }
             break;
 
@@ -493,6 +514,167 @@ void StationController::handleTouchCommand(TouchCommand cmd)
             if (mode_ == StationMode::ManualRecovery)
             {
                 enterBootMode();
+            }
+            break;
+
+        case TouchCommand::ToggleTestMode:
+            if (mode_ == StationMode::TestMode)
+            {
+                enterBootMode();
+            }
+            else if (mode_ != StationMode::ErrorStop)
+            {
+                enterTestMode();
+            }
+            break;
+
+        case TouchCommand::TestToggleBelt:
+            if (mode_ == StationMode::TestMode)
+            {
+                if ((testFlags_ & TestFlags::BELT_ON) != 0U)
+                {
+                    testFlags_ &= static_cast<uint16_t>(~TestFlags::BELT_ON);
+                    conveyor_.stop();
+                }
+                else
+                {
+                    testFlags_ |= TestFlags::BELT_ON;
+                    conveyor_.clearStall();
+                    conveyor_.start();
+                }
+            }
+            break;
+
+        case TouchCommand::TestToggleTowerGreen:
+            if (mode_ == StationMode::TestMode)
+            {
+                testFlags_ ^= TestFlags::TOWER_GREEN_ON;
+                writeTowerRelayPin(HardwarePins::PIN_TOWER_GREEN, (testFlags_ & TestFlags::TOWER_GREEN_ON) != 0U);
+            }
+            break;
+
+        case TouchCommand::TestToggleTowerRed:
+            if (mode_ == StationMode::TestMode)
+            {
+                testFlags_ ^= TestFlags::TOWER_RED_ON;
+                writeTowerRelayPin(HardwarePins::PIN_TOWER_RED, (testFlags_ & TestFlags::TOWER_RED_ON) != 0U);
+            }
+            break;
+
+        case TouchCommand::TestToggleBuzzer:
+            if (mode_ == StationMode::TestMode)
+            {
+                testFlags_ ^= TestFlags::BUZZER_ON;
+                const bool turnOn = (testFlags_ & TestFlags::BUZZER_ON) != 0U;
+                const bool buzzerActiveLow = ProcessParams::TOWER_RELAY_ACTIVE_LOW;
+                const bool levelHigh = buzzerActiveLow ? !turnOn : turnOn;
+                digitalWrite(HardwarePins::PIN_BUZZER, levelHigh ? HIGH : LOW);
+            }
+            break;
+
+        case TouchCommand::TestToggleFillStopArm:
+            if (mode_ == StationMode::TestMode)
+            {
+                testFlags_ ^= TestFlags::FILL_STOP_DN;
+                if ((testFlags_ & TestFlags::FILL_STOP_DN) != 0U)
+                {
+                    fillGate_.lowerStopArm();
+                }
+                else
+                {
+                    fillGate_.raiseStopArm();
+                }
+            }
+            break;
+
+        case TouchCommand::TestToggleFillClampArm:
+            if (mode_ == StationMode::TestMode)
+            {
+                testFlags_ ^= TestFlags::FILL_CLAMP_DN;
+                if ((testFlags_ & TestFlags::FILL_CLAMP_DN) != 0U)
+                {
+                    fillGate_.lowerClampArm();
+                }
+                else
+                {
+                    fillGate_.raiseClampArm();
+                }
+            }
+            break;
+
+        case TouchCommand::TestToggleFillPump:
+            if (mode_ == StationMode::TestMode)
+            {
+                if ((testFlags_ & TestFlags::FILL_PUMP_ON) != 0U)
+                {
+                    testFlags_ &= static_cast<uint16_t>(~TestFlags::FILL_PUMP_ON);
+                    fillPump_.off();
+                }
+                else
+                {
+                    testFlags_ |= TestFlags::FILL_PUMP_ON;
+                    fillPump_.startFor(ProcessParams::MAX_PUMP_ON_MS);
+                }
+            }
+            break;
+
+        case TouchCommand::TestJogFillZDown:
+            if (mode_ == StationMode::TestMode)
+            {
+                fillZ_.jogDown(ProcessParams::Z_JOG_STEPS, ProcessParams::Z_HOMING_SPEED);
+            }
+            break;
+
+        case TouchCommand::TestToggleCapStopArm:
+            if (mode_ == StationMode::TestMode)
+            {
+                testFlags_ ^= TestFlags::CAP_STOP_DN;
+                if ((testFlags_ & TestFlags::CAP_STOP_DN) != 0U)
+                {
+                    capGate_.lowerStopArm();
+                }
+                else
+                {
+                    capGate_.raiseStopArm();
+                }
+            }
+            break;
+
+        case TouchCommand::TestToggleCapClampArm:
+            if (mode_ == StationMode::TestMode)
+            {
+                testFlags_ ^= TestFlags::CAP_CLAMP_DN;
+                if ((testFlags_ & TestFlags::CAP_CLAMP_DN) != 0U)
+                {
+                    capGate_.lowerClampArm();
+                }
+                else
+                {
+                    capGate_.raiseClampArm();
+                }
+            }
+            break;
+
+        case TouchCommand::TestToggleChuckMotor:
+            if (mode_ == StationMode::TestMode)
+            {
+                if ((testFlags_ & TestFlags::CAP_CHUCK_ON) != 0U)
+                {
+                    testFlags_ &= static_cast<uint16_t>(~TestFlags::CAP_CHUCK_ON);
+                    chuckMotor_.stop();
+                }
+                else
+                {
+                    testFlags_ |= TestFlags::CAP_CHUCK_ON;
+                    chuckMotor_.setSpeedPwm(ProcessParams::CHUCK_PWM);
+                }
+            }
+            break;
+
+        case TouchCommand::TestJogCapZDown:
+            if (mode_ == StationMode::TestMode)
+            {
+                capZ_.jogDown(ProcessParams::Z_JOG_STEPS, ProcessParams::Z_HOMING_SPEED);
             }
             break;
 
@@ -564,6 +746,7 @@ void StationController::enterBootMode()
     interstageQueueCount_ = 0;
     bootStartTimeMs_ = millis();
     linePaused_ = false;
+    testFlags_ = 0U;
 
     setTowerLights(false, false);
     buzzer_.silence();
@@ -616,6 +799,7 @@ void StationController::enterRunningMode()
 void StationController::enterErrorStop(ErrorCode error)
 {
     mode_ = StationMode::ErrorStop;
+    testFlags_ = 0U;
 
     // Retener el primer fallo crítico que provocó la parada, salvo que E-STOP tome prioridad
     if (activeError_ == ErrorCode::None || error == ErrorCode::EmergencyStopPressed)
@@ -650,6 +834,36 @@ void StationController::enterErrorStop(ErrorCode error)
     refreshDisplaySnapshot();
 }
 
+void StationController::enterTestMode()
+{
+    mode_ = StationMode::TestMode;
+    activeError_ = ErrorCode::None;
+    interstageQueueCount_ = 0;
+    linePaused_ = false;
+    testFlags_ = 0U;
+
+    setTowerLights(false, false);
+    buzzer_.silence();
+
+    fillPump_.off();
+    chuckMotor_.stop();
+    conveyor_.stop();
+    conveyor_.clearStall();
+
+    fillingAutomaton_.stopImmediate();
+    cappingAutomaton_.stopImmediate();
+
+    fillGate_.raiseArmsImmediate();
+    capGate_.raiseArmsImmediate();
+
+    fillZ_.stop();
+    capZ_.stop();
+    fillZ_.setDriverEnabled(true);
+    capZ_.setDriverEnabled(true);
+
+    refreshDisplaySnapshot();
+}
+
 void StationController::refreshDisplaySnapshot()
 {
     const ErrorCode effectiveErr = computeEffectiveError();
@@ -662,7 +876,8 @@ void StationController::refreshDisplaySnapshot()
         lastSnapshot_.capState != cState ||
         lastSnapshot_.profile != profile_ ||
         lastSnapshot_.queueCount != interstageQueueCount_ ||
-        lastSnapshot_.bottleCount != bottleCount_)
+        lastSnapshot_.bottleCount != bottleCount_ ||
+        lastSnapshot_.testFlags != testFlags_)
     {
         lastSnapshot_.error       = effectiveErr;
         lastSnapshot_.mode        = mode_;
@@ -671,6 +886,7 @@ void StationController::refreshDisplaySnapshot()
         lastSnapshot_.profile     = profile_;
         lastSnapshot_.queueCount  = interstageQueueCount_;
         lastSnapshot_.bottleCount = bottleCount_;
+        lastSnapshot_.testFlags   = testFlags_;
         snapshotDirty_            = true;
     }
 }

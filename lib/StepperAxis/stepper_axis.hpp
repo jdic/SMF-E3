@@ -104,7 +104,7 @@ public:
     void moveTowardHomeSwitch(uint16_t maxSpeed);
 
     /**
-     * @brief Ejecuta un desplazamiento ascendente relativo seguro (jog) para el modo ManualRecovery.
+     * @brief Ejecuta un desplazamiento ascendente relativo seguro (jog) para el modo ManualRecovery / TestMode.
      *
      * Función no bloqueante. La ISR detiene el movimiento de inmediato si se alcanza el fin de carrera superior.
      *
@@ -112,6 +112,16 @@ public:
      * @param speed Velocidad de desplazamiento manual en pasos por segundo [step/s] (máx. 8000).
      */
     void jogUp(uint16_t steps, uint16_t speed);
+
+    /**
+     * @brief Ejecuta un desplazamiento descendente relativo seguro (jog) para el modo TestMode.
+     *
+     * Función no bloqueante. La ISR y la cota maxTravelSteps protegen el límite inferior.
+     *
+     * @param steps Cantidad de micropasos a bajar [step].
+     * @param speed Velocidad de desplazamiento manual en pasos por segundo [step/s] (máx. 8000).
+     */
+    void jogDown(uint16_t steps, uint16_t speed);
 
     /**
      * @brief Detiene de forma atómica e inmediata la emisión de pulsos del eje manteniendo el par de retención.

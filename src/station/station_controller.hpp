@@ -121,6 +121,11 @@ private:
     void enterErrorStop(ErrorCode error);
 
     /**
+     * @brief Transiciona la estación al modo de prueba manual (TestMode), apagando todos los actuadores.
+     */
+    void enterTestMode();
+
+    /**
      * @brief Compara el estado actual contra la última instantánea enviada a la TFT y activa snapshotDirty_ si cambió.
      */
     void refreshDisplaySnapshot();
@@ -166,6 +171,7 @@ private:
     uint32_t           bootStartTimeMs_;      ///< Marca de tiempo de inicio de secuencia de origen [ms]
     bool               linePaused_;           ///< Estado de pausa temporal solicitado por STOP
     bool               networkWarningActive_; ///< Estado de pérdida de enlace de telemetría
+    uint16_t           testFlags_;            ///< Máscara de actuadores encendidos manualmente en TestMode
     DisplaySnapshot    lastSnapshot_;         ///< Última instantánea entregada a DisplayManager
     bool               snapshotDirty_;        ///< Indica que hay cambios pendientes de proyectar en la pantalla TFT
 };
