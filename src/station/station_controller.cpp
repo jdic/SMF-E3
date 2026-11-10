@@ -259,8 +259,8 @@ void StationController::update()
     fillGate_.update();
     capGate_.update();
 
-    // 2. Prioridad de seguridad: contacto de parada de emergencia
-    if (estopAux_.isTriggered())
+    // 2. Prioridad de seguridad: contacto de parada de emergencia (en TestMode permite operar en banco)
+    if (estopAux_.isTriggered() && mode_ != StationMode::TestMode)
     {
         if (mode_ != StationMode::ErrorStop || activeError_ != ErrorCode::EmergencyStopPressed)
         {
@@ -429,7 +429,7 @@ void StationController::update()
 
         case StationMode::TestMode:
             // Sincronizar bandera de bomba si se apagó automáticamente por MAX_PUMP_ON_MS
-            if (!fillPump_.isRunning() && ((testFlags_ & TestFlags::FILL_PUMP_ON) != 0U))
+            if (!fillPump_.isOn() && ((testFlags_ & TestFlags::FILL_PUMP_ON) != 0U))
             {
                 testFlags_ &= static_cast<uint16_t>(~TestFlags::FILL_PUMP_ON);
             }
@@ -458,8 +458,16 @@ void StationController::updateMotionProfiles()
 
 void StationController::handleTouchCommand(TouchCommand cmd)
 {
-    // Interbloqueo estricto: descartar cualquier comando si la seta E-STOP permanece activa
-    if (cmd == TouchCommand::None || estopAux_.isTriggered())
+    if (cmd == TouchCommand::None)
+    {
+        return;
+    }
+
+    // Permitir entrar/salir de TestMode y cambiar perfil sin importar el estado de E-STOP en pruebas de banco
+    if (estopAux_.isTriggered() &&
+        (mode_ != StationMode::TestMode) &&
+        (cmd != TouchCommand::ToggleTestMode) &&
+        (cmd != TouchCommand::CycleBottleProfile))
     {
         return;
     }
@@ -467,8 +475,7 @@ void StationController::handleTouchCommand(TouchCommand cmd)
     switch (cmd)
     {
         case TouchCommand::CycleBottleProfile:
-            if (mode_ == StationMode::Running &&
-                fillingAutomaton_.isIdle() &&
+            if (fillingAutomaton_.isIdle() &&
                 cappingAutomaton_.isIdle() &&
                 interstageQueueCount_ == 0U)
             {
@@ -522,9 +529,16 @@ void StationController::handleTouchCommand(TouchCommand cmd)
         case TouchCommand::ToggleTestMode:
             if (mode_ == StationMode::TestMode)
             {
-                enterBootMode();
+                if (estopAux_.isTriggered())
+                {
+                    enterErrorStop(ErrorCode::EmergencyStopPressed);
+                }
+                else
+                {
+                    enterBootMode();
+                }
             }
-            else if (mode_ != StationMode::ErrorStop)
+            else
             {
                 enterTestMode();
             }
@@ -615,7 +629,7 @@ void StationController::handleTouchCommand(TouchCommand cmd)
                 else
                 {
                     testFlags_ |= TestFlags::FILL_PUMP_ON;
-                    fillPump_.startFor(ProcessParams::MAX_PUMP_ON_MS);
+                    fillPump_.on();
                 }
             }
             break;
@@ -668,7 +682,7 @@ void StationController::handleTouchCommand(TouchCommand cmd)
                 else
                 {
                     testFlags_ |= TestFlags::CAP_CHUCK_ON;
-                    chuckMotor_.setSpeedPwm(ProcessParams::CHUCK_PWM);
+                    chuckMotor_.driveForward(ProcessParams::CHUCK_PWM);
                 }
             }
             break;

@@ -182,5 +182,33 @@ private:
     bool                hasLastMarker_;       ///< Indica si hay un marcador de depuración dibujado
     int16_t             lastMarkerX_;         ///< Última coordenada X de la mira de depuración [px]
     int16_t             lastMarkerY_;         ///< Última coordenada Y de la mira de depuración [px]
-    bool                wasTouched_;          ///< Detector de flanco de toque para botones sin consumir SRAM extra
+
+    // Botones táctiles de las 5 pestañas de navegación inferior (layout_base.svg)
+    Adafruit_GFX_Button btnNavHome_;          ///< Pestaña 0: HOME (X = 0..63, Y = 190..239)
+    Adafruit_GFX_Button btnNavAutoFill_;      ///< Pestaña 1: AUTO 1 - Llenado (X = 64..127, Y = 190..239)
+    Adafruit_GFX_Button btnNavAutoCap_;       ///< Pestaña 2: AUTO 2 - Tapado (X = 128..191, Y = 190..239)
+    Adafruit_GFX_Button btnNavDebug_;         ///< Pestaña 3: DEBUG (X = 192..253, Y = 190..239)
+    Adafruit_GFX_Button btnNavSettings_;      ///< Pestaña 4: SETTINGS (X = 254..319, Y = 190..239)
+
+    // Botones de Settings
+    Adafruit_GFX_Button btnTestMode_;         ///< Botón/Checkbox en Settings: activar/desactivar TEST MODE
+    Adafruit_GFX_Button btnSetProfile_;       ///< Botón en Settings: alternar perfil de botella
+    Adafruit_GFX_Button btnJogFillUp_;        ///< Botón en Settings: subir eje Z de llenado en ManualRecovery
+    Adafruit_GFX_Button btnJogCapUp_;         ///< Botón en Settings: subir eje Z de tapado en ManualRecovery
+    Adafruit_GFX_Button btnReleaseArms_;      ///< Botón en Settings: levantar brazos inmediatamente en ManualRecovery
+    Adafruit_GFX_Button btnConfirmClear_;     ///< Botón en Settings: confirmar despeje de línea y re-homing
+
+    // Botones de control manual en Home (TestMode) y alarma en Home (ErrorStop)
+    Adafruit_GFX_Button btnHomeBelt_;         ///< Botón en Home (TestMode): Banda 7V ON/OFF
+    Adafruit_GFX_Button btnHomeBuzzer_;       ///< Botón en Home (TestMode): Buzzer ON/OFF
+    Adafruit_GFX_Button btnHomeTowerGreen_;   ///< Botón en Home (TestMode): Torreta Verde ON/OFF
+    Adafruit_GFX_Button btnHomeTowerRed_;     ///< Botón en Home (TestMode): Torreta Roja ON/OFF
+    Adafruit_GFX_Button btnBottomAction_;     ///< Botón contextual de alerta/rearme rápido en Home
+
+    // Botones de control manual en Auto 1 / Auto 2 (TestMode)
+    Adafruit_GFX_Button btnActStopArm_;       ///< Botón en Auto 1/2 (TestMode): Brazo de Tope Arriba/Abajo
+    Adafruit_GFX_Button btnActClampArm_;      ///< Botón en Auto 1/2 (TestMode): Brazo de Sujeción Arriba/Abajo
+    Adafruit_GFX_Button btnActMainPower_;     ///< Botón en Auto 1/2 (TestMode): Bomba / Motor Apriete ON/OFF
+    Adafruit_GFX_Button btnActJogZUp_;        ///< Botón en Auto 1/2 (TestMode): Subir eje Z (+JOG)
+    Adafruit_GFX_Button btnActJogZDown_;      ///< Botón en Auto 1/2 (TestMode): Bajar eje Z (-JOG)
 };

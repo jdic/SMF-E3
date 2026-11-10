@@ -31,6 +31,8 @@ namespace
 
 void setup()
 {
+    Serial.begin(115200);
+
     // 1. Inicializar pantalla TFT 2.4" ILI9341 y dibujar estructura base Home
     g_display.init();
     g_display.showScreen(ScreenId::Home);

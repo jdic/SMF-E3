@@ -43,8 +43,8 @@ namespace ProcessParams
     // ==========================================
     // BANDA TRANSPORTADORA
     // ==========================================
-    constexpr uint16_t BELT_SUPPLY_MV          = 24000; ///< Tensión nominal de la fuente de potencia [mV]
-    constexpr uint16_t BELT_TARGET_MV          = 7000;  ///< Tensión de operación nominal del motor [mV]
+    constexpr uint16_t BELT_SUPPLY_MV          = 12000; ///< Tensión nominal de la fuente de potencia [mV]
+    constexpr uint16_t BELT_TARGET_MV          = 6000;  ///< Tensión de operación nominal del motor [mV]
     constexpr uint8_t  BELT_PWM                = static_cast<uint8_t>((255UL * BELT_TARGET_MV) / BELT_SUPPLY_MV); ///< Ciclo PWM nominal calculado
     constexpr uint8_t  BELT_ACCEL_PWM_STEP     = 5;     ///< Incremento de PWM por ciclo en aceleración
     constexpr uint8_t  BELT_DECEL_PWM_STEP     = 8;     ///< Decremento de PWM por ciclo en desaceleración

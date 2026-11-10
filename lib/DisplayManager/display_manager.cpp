@@ -325,7 +325,27 @@ DisplayManager::DisplayManager(const DisplayTouchConfig& config)
       hasLastMarker_(false),
       lastMarkerX_(0),
       lastMarkerY_(0),
-      wasTouched_(false)
+      btnNavHome_(),
+      btnNavAutoFill_(),
+      btnNavAutoCap_(),
+      btnNavDebug_(),
+      btnNavSettings_(),
+      btnTestMode_(),
+      btnSetProfile_(),
+      btnJogFillUp_(),
+      btnJogCapUp_(),
+      btnReleaseArms_(),
+      btnConfirmClear_(),
+      btnHomeBelt_(),
+      btnHomeBuzzer_(),
+      btnHomeTowerGreen_(),
+      btnHomeTowerRed_(),
+      btnBottomAction_(),
+      btnActStopArm_(),
+      btnActClampArm_(),
+      btnActMainPower_(),
+      btnActJogZUp_(),
+      btnActJogZDown_()
 {
 }
 
@@ -520,103 +540,165 @@ TouchCommand DisplayManager::pollTouchCommand()
     int16_t px = 0;
     int16_t py = 0;
     const bool touched = readTouchPixel(px, py);
-    const bool justPressed = touched && !wasTouched_;
-    wasTouched_ = touched;
 
-    if (!justPressed)
+    // 1. Pestañas de navegación fija en la barra inferior (layout_base.svg)
+    btnNavHome_.press(touched && btnNavHome_.contains(px, py));
+    btnNavAutoFill_.press(touched && btnNavAutoFill_.contains(px, py));
+    btnNavAutoCap_.press(touched && btnNavAutoCap_.contains(px, py));
+    btnNavDebug_.press(touched && btnNavDebug_.contains(px, py));
+    btnNavSettings_.press(touched && btnNavSettings_.contains(px, py));
+
+    if (btnNavHome_.justPressed())
     {
+        showScreen(ScreenId::Home);
         return TouchCommand::None;
     }
 
-    // 1. Pestañas de navegación fija en la barra inferior (Y = 190..239)
-    if (py >= LAYOUT_BAR_Y)
+    if (btnNavAutoFill_.justPressed())
     {
-        if (px < 64)
-        {
-            showScreen(ScreenId::Home);
-        }
-        else if (px < 128)
-        {
-            showScreen(ScreenId::AutoFill);
-        }
-        else if (px < 192)
-        {
-            showScreen(ScreenId::AutoCap);
-        }
-        else if (px < 254)
-        {
-            showScreen(ScreenId::Debug);
-        }
-        else
-        {
-            showScreen(ScreenId::Settings);
-        }
+        showScreen(ScreenId::AutoFill);
+        return TouchCommand::None;
+    }
+
+    if (btnNavAutoCap_.justPressed())
+    {
+        showScreen(ScreenId::AutoCap);
+        return TouchCommand::None;
+    }
+
+    if (btnNavDebug_.justPressed())
+    {
+        showScreen(ScreenId::Debug);
+        return TouchCommand::None;
+    }
+
+    if (btnNavSettings_.justPressed())
+    {
+        showScreen(ScreenId::Settings);
         return TouchCommand::None;
     }
 
     const bool isTestMode = hasRenderedSnapshot_ && (renderedSnapshot_.mode == StationMode::TestMode);
 
-    // 2. Controles según la pantalla activa
-    switch (currentScreen_)
+    // 2. Botones de la pantalla Settings
+    if (currentScreen_ == ScreenId::Settings)
     {
-        case ScreenId::Home:
-            if (isTestMode)
-            {
-                if (inRect(px, py, 8,   48, 148, 56)) { return TouchCommand::TestToggleBelt; }
-                if (inRect(px, py, 164, 48, 148, 56)) { return TouchCommand::TestToggleBuzzer; }
-                if (inRect(px, py, 8,   114, 148, 56)) { return TouchCommand::TestToggleTowerGreen; }
-                if (inRect(px, py, 164, 114, 148, 56)) { return TouchCommand::TestToggleTowerRed; }
-            }
-            else if (hasRenderedSnapshot_ && (renderedSnapshot_.mode == StationMode::ErrorStop))
-            {
-                if (inRect(px, py, 6, 144, 308, 34)) { return TouchCommand::AcknowledgeAlarm; }
-            }
-            break;
+        btnTestMode_.press(touched && btnTestMode_.contains(px, py));
+        btnSetProfile_.press(touched && btnSetProfile_.contains(px, py));
+        btnJogFillUp_.press(touched && btnJogFillUp_.contains(px, py));
+        btnJogCapUp_.press(touched && btnJogCapUp_.contains(px, py));
+        btnReleaseArms_.press(touched && btnReleaseArms_.contains(px, py));
+        btnConfirmClear_.press(touched && btnConfirmClear_.contains(px, py));
 
-        case ScreenId::AutoFill:
-            if (isTestMode)
-            {
-                if (inRect(px, py, 8,   34, 148, 44)) { return TouchCommand::TestToggleFillStopArm; }
-                if (inRect(px, py, 164, 34, 148, 44)) { return TouchCommand::TestToggleFillClampArm; }
-                if (inRect(px, py, 8,   84, 304, 42)) { return TouchCommand::TestToggleFillPump; }
-                if (inRect(px, py, 8,   132, 148, 48)) { return TouchCommand::JogFillZUp; }
-                if (inRect(px, py, 164, 132, 148, 48)) { return TouchCommand::TestJogFillZDown; }
-            }
-            break;
+        if (btnTestMode_.justPressed())
+        {
+            return TouchCommand::ToggleTestMode;
+        }
+        if (btnSetProfile_.justPressed())
+        {
+            return TouchCommand::CycleBottleProfile;
+        }
+        if (btnJogFillUp_.justPressed())
+        {
+            return TouchCommand::JogFillZUp;
+        }
+        if (btnJogCapUp_.justPressed())
+        {
+            return TouchCommand::JogCapZUp;
+        }
+        if (btnReleaseArms_.justPressed())
+        {
+            return TouchCommand::ReleaseArms;
+        }
+        if (btnConfirmClear_.justPressed())
+        {
+            return TouchCommand::ConfirmLineClear;
+        }
+    }
+    else
+    {
+        btnTestMode_.press(false);
+        btnSetProfile_.press(false);
+        btnJogFillUp_.press(false);
+        btnJogCapUp_.press(false);
+        btnReleaseArms_.press(false);
+        btnConfirmClear_.press(false);
+    }
 
-        case ScreenId::AutoCap:
-            if (isTestMode)
-            {
-                if (inRect(px, py, 8,   34, 148, 44)) { return TouchCommand::TestToggleCapStopArm; }
-                if (inRect(px, py, 164, 34, 148, 44)) { return TouchCommand::TestToggleCapClampArm; }
-                if (inRect(px, py, 8,   84, 304, 42)) { return TouchCommand::TestToggleChuckMotor; }
-                if (inRect(px, py, 8,   132, 148, 48)) { return TouchCommand::JogCapZUp; }
-                if (inRect(px, py, 164, 132, 148, 48)) { return TouchCommand::TestJogCapZDown; }
-            }
-            break;
+    // 3. Botones de la pantalla Home
+    if (currentScreen_ == ScreenId::Home)
+    {
+        if (isTestMode)
+        {
+            btnHomeBelt_.press(touched && btnHomeBelt_.contains(px, py));
+            btnHomeBuzzer_.press(touched && btnHomeBuzzer_.contains(px, py));
+            btnHomeTowerGreen_.press(touched && btnHomeTowerGreen_.contains(px, py));
+            btnHomeTowerRed_.press(touched && btnHomeTowerRed_.contains(px, py));
+            btnBottomAction_.press(false);
 
-        case ScreenId::Settings:
-            // Checkbox TEST MODE (Y = 32..84, X = 6..314)
-            if (inRect(px, py, 6, 32, 308, 52))
-            {
-                return TouchCommand::ToggleTestMode;
-            }
-            // Botón CAMBIAR PERFIL (X = 190..312, Y = 90..120)
-            if (inRect(px, py, 190, 90, 122, 30))
-            {
-                return TouchCommand::CycleBottleProfile;
-            }
-            // Mandos de Recuperación Manual (Y = 126..184)
-            if (inRect(px, py, 8,   126, 148, 27)) { return TouchCommand::JogFillZUp; }
-            if (inRect(px, py, 164, 126, 148, 27)) { return TouchCommand::JogCapZUp; }
-            if (inRect(px, py, 8,   157, 148, 27)) { return TouchCommand::ReleaseArms; }
-            if (inRect(px, py, 164, 157, 148, 27)) { return TouchCommand::ConfirmLineClear; }
-            break;
+            if (btnHomeBelt_.justPressed())       { return TouchCommand::TestToggleBelt; }
+            if (btnHomeBuzzer_.justPressed())     { return TouchCommand::TestToggleBuzzer; }
+            if (btnHomeTowerGreen_.justPressed()) { return TouchCommand::TestToggleTowerGreen; }
+            if (btnHomeTowerRed_.justPressed())   { return TouchCommand::TestToggleTowerRed; }
+        }
+        else
+        {
+            btnHomeBelt_.press(false);
+            btnHomeBuzzer_.press(false);
+            btnHomeTowerGreen_.press(false);
+            btnHomeTowerRed_.press(false);
+            btnBottomAction_.press(touched && btnBottomAction_.contains(px, py));
 
-        case ScreenId::Debug:
-        case ScreenId::None:
-        default:
-            break;
+            if (btnBottomAction_.justPressed() &&
+                hasRenderedSnapshot_ &&
+                (renderedSnapshot_.mode == StationMode::ErrorStop))
+            {
+                return TouchCommand::AcknowledgeAlarm;
+            }
+        }
+    }
+    else
+    {
+        btnHomeBelt_.press(false);
+        btnHomeBuzzer_.press(false);
+        btnHomeTowerGreen_.press(false);
+        btnHomeTowerRed_.press(false);
+        btnBottomAction_.press(false);
+    }
+
+    // 4. Botones de Autómata 1 y Autómata 2 en TestMode
+    if ((currentScreen_ == ScreenId::AutoFill || currentScreen_ == ScreenId::AutoCap) && isTestMode)
+    {
+        btnActStopArm_.press(touched && btnActStopArm_.contains(px, py));
+        btnActClampArm_.press(touched && btnActClampArm_.contains(px, py));
+        btnActMainPower_.press(touched && btnActMainPower_.contains(px, py));
+        btnActJogZUp_.press(touched && btnActJogZUp_.contains(px, py));
+        btnActJogZDown_.press(touched && btnActJogZDown_.contains(px, py));
+
+        if (currentScreen_ == ScreenId::AutoFill)
+        {
+            if (btnActStopArm_.justPressed())   { return TouchCommand::TestToggleFillStopArm; }
+            if (btnActClampArm_.justPressed())  { return TouchCommand::TestToggleFillClampArm; }
+            if (btnActMainPower_.justPressed()) { return TouchCommand::TestToggleFillPump; }
+            if (btnActJogZUp_.justPressed())    { return TouchCommand::JogFillZUp; }
+            if (btnActJogZDown_.justPressed())  { return TouchCommand::TestJogFillZDown; }
+        }
+        else
+        {
+            if (btnActStopArm_.justPressed())   { return TouchCommand::TestToggleCapStopArm; }
+            if (btnActClampArm_.justPressed())  { return TouchCommand::TestToggleCapClampArm; }
+            if (btnActMainPower_.justPressed()) { return TouchCommand::TestToggleChuckMotor; }
+            if (btnActJogZUp_.justPressed())    { return TouchCommand::JogCapZUp; }
+            if (btnActJogZDown_.justPressed())  { return TouchCommand::TestJogCapZDown; }
+        }
+    }
+    else
+    {
+        btnActStopArm_.press(false);
+        btnActClampArm_.press(false);
+        btnActMainPower_.press(false);
+        btnActJogZUp_.press(false);
+        btnActJogZDown_.press(false);
     }
 
     return TouchCommand::None;
@@ -676,8 +758,39 @@ MCUFRIEND_kbv& DisplayManager::getTft()
 
 void DisplayManager::initLayoutButtons()
 {
-    // Las zonas táctiles se evalúan geométricamente mediante inRect() en pollTouchCommand()
-    // para ahorrar ~350 bytes de SRAM en el ATmega2560.
+    char emptyLabel[] = "";
+
+    // Pestañas de la barra inferior (layout_base.svg)
+    btnNavHome_.initButton(&tft, 32, 215, 64, 50, 0, 0, 0, emptyLabel, 1);
+    btnNavAutoFill_.initButton(&tft, 96, 215, 64, 50, 0, 0, 0, emptyLabel, 1);
+    btnNavAutoCap_.initButton(&tft, 160, 215, 64, 50, 0, 0, 0, emptyLabel, 1);
+    btnNavDebug_.initButton(&tft, 223, 215, 62, 50, 0, 0, 0, emptyLabel, 1);
+    btnNavSettings_.initButton(&tft, 287, 215, 66, 50, 0, 0, 0, emptyLabel, 1);
+
+    // Botones en Settings:
+    // Checkbox TEST MODE: X = 6..314 (W = 308, centro X = 160), Y = 32..84 (H = 52, centro Y = 58)
+    btnTestMode_.initButton(&tft, 160, 58, 308, 52, 0, 0, 0, emptyLabel, 1);
+    // Botón CAMBIAR PERFIL: X = 190..312 (W = 122, centro X = 251), Y = 90..120 (H = 30, centro Y = 105)
+    btnSetProfile_.initButton(&tft, 251, 105, 122, 30, 0, 0, 0, emptyLabel, 1);
+    // Cuadrícula de 4 botones de recuperación manual en Settings:
+    btnJogFillUp_.initButton(&tft, 82, 140, 148, 27, 0, 0, 0, emptyLabel, 1);
+    btnJogCapUp_.initButton(&tft, 238, 140, 148, 27, 0, 0, 0, emptyLabel, 1);
+    btnReleaseArms_.initButton(&tft, 82, 171, 148, 27, 0, 0, 0, emptyLabel, 1);
+    btnConfirmClear_.initButton(&tft, 238, 171, 148, 27, 0, 0, 0, emptyLabel, 1);
+
+    // Botones en Home (TestMode y alarma):
+    btnHomeBelt_.initButton(&tft, 82, 76, 148, 56, 0, 0, 0, emptyLabel, 1);
+    btnHomeBuzzer_.initButton(&tft, 238, 76, 148, 56, 0, 0, 0, emptyLabel, 1);
+    btnHomeTowerGreen_.initButton(&tft, 82, 142, 148, 56, 0, 0, 0, emptyLabel, 1);
+    btnHomeTowerRed_.initButton(&tft, 238, 142, 148, 56, 0, 0, 0, emptyLabel, 1);
+    btnBottomAction_.initButton(&tft, 160, 161, 308, 34, 0, 0, 0, emptyLabel, 1);
+
+    // Botones en Auto 1 / Auto 2 (TestMode):
+    btnActStopArm_.initButton(&tft, 82, 56, 148, 44, 0, 0, 0, emptyLabel, 1);
+    btnActClampArm_.initButton(&tft, 238, 56, 148, 44, 0, 0, 0, emptyLabel, 1);
+    btnActMainPower_.initButton(&tft, 160, 105, 304, 42, 0, 0, 0, emptyLabel, 1);
+    btnActJogZUp_.initButton(&tft, 82, 156, 148, 48, 0, 0, 0, emptyLabel, 1);
+    btnActJogZDown_.initButton(&tft, 238, 156, 148, 48, 0, 0, 0, emptyLabel, 1);
 }
 
 void DisplayManager::drawHomeStaticFrame()
@@ -907,13 +1020,11 @@ void DisplayManager::renderSettingsDynamic(const DisplaySnapshot& snapshot, bool
     }
 
     const bool canChangeProfile =
-        (snapshot.mode == StationMode::Running) &&
         (snapshot.fillState == FillState::Idle) &&
         (snapshot.capState == CappingState::Idle) &&
         (snapshot.queueCount == 0U);
 
     const bool prevCanChangeProfile =
-        (renderedSnapshot_.mode == StationMode::Running) &&
         (renderedSnapshot_.fillState == FillState::Idle) &&
         (renderedSnapshot_.capState == CappingState::Idle) &&
         (renderedSnapshot_.queueCount == 0U);
