@@ -148,14 +148,14 @@ namespace
     {
         if (error == ErrorCode::None)
         {
-            outBgColor = COLOR_PANEL_BG;
+            outBgColor = COLOR_BG;
             outFgColor = COLOR_GREEN_OK;
             return reinterpret_cast<const __FlashStringHelper*>(STR_ERR_NONE);
         }
 
         if (error == ErrorCode::NetworkLinkLost)
         {
-            outBgColor = COLOR_PANEL_BG;
+            outBgColor = COLOR_BG;
             outFgColor = COLOR_YELLOW_WARN;
             return reinterpret_cast<const __FlashStringHelper*>(STR_ERR_902);
         }
@@ -192,10 +192,14 @@ namespace
         uint16_t borderColor,
         uint16_t textColor,
         const __FlashStringHelper* label,
-        uint8_t textSize = 1)
+        uint8_t textSize = 1,
+        bool skipBgFillIfBlack = false)
     {
-        tft.fillRoundRect(x, y, w, h, 4, fillColor);
-        tft.drawRoundRect(x, y, w, h, 4, borderColor);
+        if (!(skipBgFillIfBlack && (fillColor == COLOR_BG)))
+        {
+            tft.fillRect(x + 1, y + 1, w - 2, h - 2, fillColor);
+        }
+        tft.drawRect(x, y, w, h, borderColor);
 
         const char* progmemPtr = reinterpret_cast<const char*>(label);
         const size_t len = strlen_P(progmemPtr);
@@ -211,73 +215,75 @@ namespace
         tft.setCursor(cursorX, cursorY);
         tft.print(label);
     }
-
-    inline bool inRect(int16_t px, int16_t py, int16_t x, int16_t y, int16_t w, int16_t h)
-    {
-        return (px >= x) && (px < (x + w)) && (py >= y) && (py < (y + h));
-    }
 }
 
 // ============================================================================
 // RECURSOS PROGMEM Y LAYOUT COMPARTIDO (FIGMA layout_base.svg)
 // ============================================================================
 
+// Actualiza únicamente un icono de la barra inferior (sin borrar ni repintar los otros 4)
+static void drawSingleNavTab(ScreenId tab, bool active)
+{
+    const uint16_t iconCol = active ? COLOR_CYAN : COLOR_WHITE;
+    const uint16_t lineCol = active ? COLOR_CYAN : COLOR_BG;
+
+    switch (tab)
+    {
+        case ScreenId::Home:
+            tft.drawBitmap(8, 191, UIIcons::ICON_HOME_48x48, 48, 48, iconCol);
+            tft.fillRect(1, 237, 63, 2, lineCol);
+            break;
+
+        case ScreenId::AutoFill:
+            tft.drawBitmap(72, 191, UIIcons::ICON_FILL_48x48, 48, 48, iconCol);
+            tft.fillRect(65, 237, 63, 2, lineCol);
+            break;
+
+        case ScreenId::AutoCap:
+            tft.drawBitmap(136, 191, UIIcons::ICON_CAP_48x48, 48, 48, iconCol);
+            tft.fillRect(129, 237, 63, 2, lineCol);
+            break;
+
+        case ScreenId::Debug:
+            tft.drawBitmap(199, 191, UIIcons::ICON_DEBUG_48x48, 48, 48, iconCol);
+            tft.fillRect(193, 237, 61, 2, lineCol);
+            break;
+
+        case ScreenId::Settings:
+            tft.drawBitmap(267, 191, UIIcons::ICON_SETTINGS_48x48, 48, 48, iconCol);
+            tft.fillRect(255, 237, 64, 2, lineCol);
+            break;
+
+        case ScreenId::None:
+        default:
+            break;
+    }
+}
+
 // Layout compartido: barra inferior de 5 pestañas presente en todas las Screens (Y = 190..239)
-// Recreado con base en assets/ui/layout_base.svg y ui_icons.hpp
+// Se dibuja completa solo 1 vez al arrancar; al cambiar de pestaña solo se actualizan los 2 iconos afectados.
 static void drawLayoutBottomBar(ScreenId activeScreen)
 {
-    // Limpia el área de la barra inferior (Y = 190..239, H = 50)
     tft.fillRect(0, DisplayManager::LAYOUT_BAR_Y, DisplayManager::SCREEN_WIDTH,
                  DisplayManager::SCREEN_HEIGHT - DisplayManager::LAYOUT_BAR_Y, COLOR_BG);
 
-    // Contorno exterior: path d="M0.5 190.5H319.5V239.5H0.5V190.5Z" stroke="white"
     tft.drawRect(0, 190, 320, 50, COLOR_WHITE);
-
-    // Separadores verticales:
-    // path d="M64.5 190V240" stroke="white"
     tft.drawFastVLine(64, 190, 50, COLOR_WHITE);
-    // path d="M128.5 190V240" stroke="white"
     tft.drawFastVLine(128, 190, 50, COLOR_WHITE);
-    // path d="M192.5 190V240" stroke="white"
     tft.drawFastVLine(192, 190, 50, COLOR_WHITE);
-    // path d="M254.5 190V240" stroke="white"
     tft.drawFastVLine(254, 190, 50, COLOR_WHITE);
 
-    // Colores según pestaña activa (Cian activo, Blanco inactivo)
-    const uint16_t colHome     = (activeScreen == ScreenId::Home)     ? COLOR_CYAN : COLOR_WHITE;
-    const uint16_t colAutoFill = (activeScreen == ScreenId::AutoFill) ? COLOR_CYAN : COLOR_WHITE;
-    const uint16_t colAutoCap  = (activeScreen == ScreenId::AutoCap)  ? COLOR_CYAN : COLOR_WHITE;
-    const uint16_t colDebug    = (activeScreen == ScreenId::Debug)    ? COLOR_CYAN : COLOR_WHITE;
-    const uint16_t colSettings = (activeScreen == ScreenId::Settings) ? COLOR_CYAN : COLOR_WHITE;
-
-    // Resaltado de pestaña activa (línea inferior cian de 2 px de alto)
-    if (activeScreen == ScreenId::Home)     { tft.fillRect(1,   237, 63, 2, COLOR_CYAN); }
-    if (activeScreen == ScreenId::AutoFill) { tft.fillRect(65,  237, 63, 2, COLOR_CYAN); }
-    if (activeScreen == ScreenId::AutoCap)  { tft.fillRect(129, 237, 63, 2, COLOR_CYAN); }
-    if (activeScreen == ScreenId::Debug)    { tft.fillRect(193, 237, 61, 2, COLOR_CYAN); }
-    if (activeScreen == ScreenId::Settings) { tft.fillRect(255, 237, 64, 2, COLOR_CYAN); }
-
-    // Iconos de navegación (coordenadas exactas de layout_base.svg)
-    // Tab 0: rect x="8" y="191" width="48" height="48" -> Home
-    tft.drawBitmap(8, 191, UIIcons::ICON_HOME_48x48, 48, 48, colHome);
-
-    // Tab 1: rect x="72" y="191" width="48" height="48" -> Drop (Auto 1)
-    tft.drawBitmap(72, 191, UIIcons::ICON_FILL_48x48, 48, 48, colAutoFill);
-
-    // Tab 2: rect x="136" y="191" width="48" height="48" -> Bottle Wine (Auto 2)
-    tft.drawBitmap(136, 191, UIIcons::ICON_CAP_48x48, 48, 48, colAutoCap);
-
-    // Tab 3: rect x="199" y="191" width="48" height="48" -> Bug 2 (Debug)
-    tft.drawBitmap(199, 191, UIIcons::ICON_DEBUG_48x48, 48, 48, colDebug);
-
-    // Tab 4: rect x="267" y="191" width="48" height="48" -> Settings Cog
-    tft.drawBitmap(267, 191, UIIcons::ICON_SETTINGS_48x48, 48, 48, colSettings);
+    drawSingleNavTab(ScreenId::Home,     activeScreen == ScreenId::Home);
+    drawSingleNavTab(ScreenId::AutoFill, activeScreen == ScreenId::AutoFill);
+    drawSingleNavTab(ScreenId::AutoCap,  activeScreen == ScreenId::AutoCap);
+    drawSingleNavTab(ScreenId::Debug,    activeScreen == ScreenId::Debug);
+    drawSingleNavTab(ScreenId::Settings, activeScreen == ScreenId::Settings);
 }
 
-// Limpia únicamente la zona de contenido (Y = 0..189) para no parpadear la barra inferior
-static void clearScreenContentArea(void)
+// Limpia únicamente la zona de contenido necesaria para no repintar la barra de título ni la barra inferior
+static void clearScreenContentArea(int16_t startY = 0)
 {
-    tft.fillRect(0, 0, DisplayManager::SCREEN_WIDTH, DisplayManager::CONTENT_HEIGHT, COLOR_BG);
+    tft.fillRect(0, startY, DisplayManager::SCREEN_WIDTH, DisplayManager::CONTENT_HEIGHT - startY, COLOR_BG);
 }
 
 // ============================================================================
@@ -385,23 +391,31 @@ void DisplayManager::showScreen(ScreenId screen, bool forceRedraw)
     }
 
     hasLastMarker_ = false;
+    const ScreenId prevScreen = currentScreen_;
 
-    if (!layoutDrawn_ || forceRedraw || (screen != currentScreen_))
+    const bool hasFullTopBanner =
+        (screen == ScreenId::Home) ||
+        (screen == ScreenId::Settings) ||
+        ((screen == ScreenId::AutoFill || screen == ScreenId::AutoCap) &&
+         hasRenderedSnapshot_ &&
+         (renderedSnapshot_.mode == StationMode::TestMode));
+
+    const int16_t clearStartY = hasFullTopBanner ? 26 : 0;
+
+    if (!layoutDrawn_)
     {
-        if (!layoutDrawn_ || forceRedraw)
-        {
-            tft.fillScreen(COLOR_BG);
-        }
-        else
-        {
-            clearScreenContentArea();
-        }
+        tft.fillScreen(COLOR_BG);
         drawLayoutBottomBar(screen);
         layoutDrawn_ = true;
     }
     else
     {
-        clearScreenContentArea();
+        clearScreenContentArea(clearStartY);
+        if (screen != prevScreen)
+        {
+            drawSingleNavTab(prevScreen, false);
+            drawSingleNavTab(screen, true);
+        }
     }
 
     currentScreen_     = screen;
@@ -806,27 +820,24 @@ void DisplayManager::drawHomeStaticFrame()
         return;
     }
 
-    // Tarjeta Etapa 1: Llenado (Y = 34..68)
-    tft.fillRoundRect(6, 34, 308, 34, 4, COLOR_PANEL_BG);
-    tft.drawRoundRect(6, 34, 308, 34, 4, COLOR_DARK_GRAY);
+    // Tarjeta Etapa 1: Llenado (Y = 34..68) - solo contorno sobre fondo negro para renderizado instantáneo
+    tft.drawRect(6, 34, 308, 34, COLOR_DARK_GRAY);
     tft.setTextSize(1);
-    tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_PANEL_BG);
+    tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_BG);
     tft.setCursor(14, 47);
     tft.print(F("LLENADO:"));
 
     // Tarjeta Etapa 2: Tapado (Y = 72..106)
-    tft.fillRoundRect(6, 72, 308, 34, 4, COLOR_PANEL_BG);
-    tft.drawRoundRect(6, 72, 308, 34, 4, COLOR_DARK_GRAY);
+    tft.drawRect(6, 72, 308, 34, COLOR_DARK_GRAY);
     tft.setTextSize(1);
-    tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_PANEL_BG);
+    tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_BG);
     tft.setCursor(14, 85);
     tft.print(F("TAPADO :"));
 
     // Tarjeta de Contadores y Perfil (Y = 110..140)
-    tft.fillRoundRect(6, 110, 308, 30, 4, COLOR_PANEL_BG);
-    tft.drawRoundRect(6, 110, 308, 30, 4, COLOR_DARK_GRAY);
+    tft.drawRect(6, 110, 308, 30, COLOR_DARK_GRAY);
     tft.setTextSize(1);
-    tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_PANEL_BG);
+    tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_BG);
     tft.setCursor(14, 121);
     tft.print(F("COLA:"));
     tft.setCursor(104, 121);
@@ -845,22 +856,20 @@ void DisplayManager::drawSettingsStaticFrame()
     tft.print(F("AJUSTES Y TEST MODE"));
 
     // Tarjeta de Checkbox TEST MODE (Y = 32..84, H = 52 para alojar icono 48x48)
-    tft.fillRoundRect(6, 32, 308, 52, 4, COLOR_PANEL_BG);
-    tft.drawRoundRect(6, 32, 308, 52, 4, COLOR_DARK_GRAY);
+    tft.drawRect(6, 32, 308, 52, COLOR_DARK_GRAY);
     tft.setTextSize(2);
-    tft.setTextColor(COLOR_WHITE, COLOR_PANEL_BG);
+    tft.setTextColor(COLOR_WHITE, COLOR_BG);
     tft.setCursor(66, 42);
     tft.print(F("TEST MODE"));
     tft.setTextSize(1);
-    tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_PANEL_BG);
+    tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_BG);
     tft.setCursor(66, 64);
     tft.print(F("Accionar actuadores manualmente"));
 
     // Tarjeta de formato de botella (Y = 90..120)
-    tft.fillRoundRect(6, 90, 178, 30, 4, COLOR_PANEL_BG);
-    tft.drawRoundRect(6, 90, 178, 30, 4, COLOR_DARK_GRAY);
+    tft.drawRect(6, 90, 178, 30, COLOR_DARK_GRAY);
     tft.setTextSize(1);
-    tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_PANEL_BG);
+    tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_BG);
     tft.setCursor(12, 101);
     tft.print(F("FORMATO:"));
 }
@@ -891,10 +900,10 @@ void DisplayManager::renderHomeDynamic(const DisplaySnapshot& snapshot, bool ful
             const bool on = (snapshot.testFlags & TestFlags::BELT_ON) != 0U;
             drawLabeledButtonBox(
                 8, 48, 148, 56,
-                on ? COLOR_GREEN_OK : COLOR_PANEL_BG,
+                on ? COLOR_GREEN_OK : COLOR_BG,
                 on ? COLOR_WHITE : COLOR_CYAN,
                 COLOR_WHITE,
-                on ? F("BANDA: ON") : F("BANDA: OFF"), 1);
+                on ? F("BANDA: ON") : F("BANDA: OFF"), 1, fullRedraw);
         }
 
         if (fullRedraw || ((diffFlags & TestFlags::BUZZER_ON) != 0U))
@@ -902,10 +911,10 @@ void DisplayManager::renderHomeDynamic(const DisplaySnapshot& snapshot, bool ful
             const bool on = (snapshot.testFlags & TestFlags::BUZZER_ON) != 0U;
             drawLabeledButtonBox(
                 164, 48, 148, 56,
-                on ? COLOR_ORANGE_REC : COLOR_PANEL_BG,
+                on ? COLOR_ORANGE_REC : COLOR_BG,
                 on ? COLOR_WHITE : COLOR_CYAN,
-                 on ? COLOR_BG : COLOR_WHITE,
-                on ? F("BUZZER: ON") : F("BUZZER: OFF"), 1);
+                on ? COLOR_BG : COLOR_WHITE,
+                on ? F("BUZZER: ON") : F("BUZZER: OFF"), 1, fullRedraw);
         }
 
         if (fullRedraw || ((diffFlags & TestFlags::TOWER_GREEN_ON) != 0U))
@@ -913,10 +922,10 @@ void DisplayManager::renderHomeDynamic(const DisplaySnapshot& snapshot, bool ful
             const bool on = (snapshot.testFlags & TestFlags::TOWER_GREEN_ON) != 0U;
             drawLabeledButtonBox(
                 8, 114, 148, 56,
-                on ? COLOR_GREEN_OK : COLOR_PANEL_BG,
+                on ? COLOR_GREEN_OK : COLOR_BG,
                 on ? COLOR_WHITE : COLOR_CYAN,
                 COLOR_WHITE,
-                on ? F("TORRE VERDE: ON") : F("TORRE VERDE: OFF"), 1);
+                on ? F("TORRE VERDE: ON") : F("TORRE VERDE: OFF"), 1, fullRedraw);
         }
 
         if (fullRedraw || ((diffFlags & TestFlags::TOWER_RED_ON) != 0U))
@@ -924,10 +933,10 @@ void DisplayManager::renderHomeDynamic(const DisplaySnapshot& snapshot, bool ful
             const bool on = (snapshot.testFlags & TestFlags::TOWER_RED_ON) != 0U;
             drawLabeledButtonBox(
                 164, 114, 148, 56,
-                on ? COLOR_RED_ALARM : COLOR_PANEL_BG,
+                on ? COLOR_RED_ALARM : COLOR_BG,
                 on ? COLOR_WHITE : COLOR_CYAN,
                 COLOR_WHITE,
-                on ? F("TORRE ROJA: ON") : F("TORRE ROJA: OFF"), 1);
+                on ? F("TORRE ROJA: ON") : F("TORRE ROJA: OFF"), 1, fullRedraw);
         }
         return;
     }
@@ -938,7 +947,7 @@ void DisplayManager::renderHomeDynamic(const DisplaySnapshot& snapshot, bool ful
         const uint16_t stateColor =
             (snapshot.fillState == FillState::Idle) ? COLOR_LIGHT_GRAY : COLOR_CYAN;
         tft.setTextSize(2);
-        tft.setTextColor(stateColor, COLOR_PANEL_BG);
+        tft.setTextColor(stateColor, COLOR_BG);
         tft.setCursor(74, 43);
         tft.print(getFillStateProgmem(snapshot.fillState));
     }
@@ -949,7 +958,7 @@ void DisplayManager::renderHomeDynamic(const DisplaySnapshot& snapshot, bool ful
         const uint16_t stateColor =
             (snapshot.capState == CappingState::Idle) ? COLOR_LIGHT_GRAY : COLOR_CYAN;
         tft.setTextSize(2);
-        tft.setTextColor(stateColor, COLOR_PANEL_BG);
+        tft.setTextColor(stateColor, COLOR_BG);
         tft.setCursor(74, 81);
         tft.print(getCapStateProgmem(snapshot.capState));
     }
@@ -960,7 +969,7 @@ void DisplayManager::renderHomeDynamic(const DisplaySnapshot& snapshot, bool ful
         char qBuf[8];
         snprintf(qBuf, sizeof(qBuf), "%u/%u ", snapshot.queueCount, ProcessParams::MAX_INTERSTAGE_QUEUE);
         tft.setTextSize(1);
-        tft.setTextColor(COLOR_WHITE, COLOR_PANEL_BG);
+        tft.setTextColor(COLOR_WHITE, COLOR_BG);
         tft.setCursor(48, 121);
         tft.print(qBuf);
     }
@@ -969,7 +978,7 @@ void DisplayManager::renderHomeDynamic(const DisplaySnapshot& snapshot, bool ful
     if (fullRedraw || (snapshot.profile != renderedSnapshot_.profile))
     {
         tft.setTextSize(1);
-        tft.setTextColor(COLOR_CYAN, COLOR_PANEL_BG);
+        tft.setTextColor(COLOR_CYAN, COLOR_BG);
         tft.setCursor(150, 121);
         tft.print(getProfileProgmem(snapshot.profile));
     }
@@ -980,7 +989,7 @@ void DisplayManager::renderHomeDynamic(const DisplaySnapshot& snapshot, bool ful
         char prodBuf[10];
         snprintf(prodBuf, sizeof(prodBuf), "%5lu", static_cast<unsigned long>(snapshot.bottleCount));
         tft.setTextSize(1);
-        tft.setTextColor(COLOR_GREEN_OK, COLOR_PANEL_BG);
+        tft.setTextColor(COLOR_GREEN_OK, COLOR_BG);
         tft.setCursor(252, 121);
         tft.print(prodBuf);
     }
@@ -988,13 +997,16 @@ void DisplayManager::renderHomeDynamic(const DisplaySnapshot& snapshot, bool ful
     // 7. Banner inferior de diagnóstico / código de error (Y = 144..178)
     if (fullRedraw || (snapshot.error != renderedSnapshot_.error))
     {
-        uint16_t errBg = COLOR_PANEL_BG;
+        uint16_t errBg = COLOR_BG;
         uint16_t errFg = COLOR_GREEN_OK;
         const __FlashStringHelper* errStr = getErrorProgmem(snapshot.error, errBg, errFg);
 
-        tft.fillRoundRect(6, 144, 308, 34, 4, errBg);
-        tft.drawRoundRect(6, 144, 308, 34, 4,
-                          (snapshot.error == ErrorCode::None) ? COLOR_DARK_GRAY : COLOR_WHITE);
+        if (!(fullRedraw && (errBg == COLOR_BG)))
+        {
+            tft.fillRect(7, 145, 306, 32, errBg);
+        }
+        tft.drawRect(6, 144, 308, 34,
+                     (snapshot.error == ErrorCode::None) ? COLOR_DARK_GRAY : COLOR_WHITE);
         tft.setTextSize(2);
         tft.setTextColor(errFg, errBg);
         tft.setCursor(12, 153);
@@ -1010,7 +1022,10 @@ void DisplayManager::renderSettingsDynamic(const DisplaySnapshot& snapshot, bool
     // 1. Icono Checkbox 48x48 de TEST MODE (X = 10, Y = 34)
     if (fullRedraw || (isTestMode != prevIsTestMode))
     {
-        tft.fillRect(10, 34, 48, 48, COLOR_PANEL_BG);
+        if (!fullRedraw)
+        {
+            tft.fillRect(10, 34, 48, 48, COLOR_BG);
+        }
         if (isTestMode)
         {
             tft.drawBitmap(10, 34, UIIcons::ICON_CHECKBOX_ON_48x48, 48, 48, COLOR_GREEN_OK);
@@ -1037,18 +1052,18 @@ void DisplayManager::renderSettingsDynamic(const DisplaySnapshot& snapshot, bool
         (canChangeProfile != prevCanChangeProfile))
     {
         tft.setTextSize(2);
-        tft.setTextColor(COLOR_CYAN, COLOR_PANEL_BG);
+        tft.setTextColor(COLOR_CYAN, COLOR_BG);
         tft.setCursor(66, 97);
         tft.print(getProfileProgmem(snapshot.profile));
 
-        const uint16_t btnFill   = canChangeProfile ? COLOR_BLUE_HEADER : COLOR_PANEL_BG;
+        const uint16_t btnFill   = canChangeProfile ? COLOR_BLUE_HEADER : COLOR_BG;
         const uint16_t btnBorder = canChangeProfile ? COLOR_CYAN : COLOR_DARK_GRAY;
         const uint16_t btnText   = canChangeProfile ? COLOR_WHITE : COLOR_DARK_GRAY;
 
         drawLabeledButtonBox(
             190, 90, 122, 30,
             btnFill, btnBorder, btnText,
-            F("CAMBIAR PERFIL"), 1);
+            F("CAMBIAR PERFIL"), 1, fullRedraw);
     }
 
     // 3. Cuadrícula de 4 botones de Recuperación Manual (Y = 126..184)
@@ -1057,33 +1072,33 @@ void DisplayManager::renderSettingsDynamic(const DisplaySnapshot& snapshot, bool
 
     if (fullRedraw || (inRecovery != prevInRecovery))
     {
-        const uint16_t jogFill   = inRecovery ? COLOR_BLUE_HEADER : COLOR_PANEL_BG;
+        const uint16_t jogFill   = inRecovery ? COLOR_BLUE_HEADER : COLOR_BG;
         const uint16_t jogBorder = inRecovery ? COLOR_CYAN : COLOR_DARK_GRAY;
         const uint16_t jogText   = inRecovery ? COLOR_WHITE : COLOR_DARK_GRAY;
 
-        const uint16_t clrFill   = inRecovery ? COLOR_GREEN_OK : COLOR_PANEL_BG;
+        const uint16_t clrFill   = inRecovery ? COLOR_GREEN_OK : COLOR_BG;
         const uint16_t clrBorder = inRecovery ? COLOR_WHITE : COLOR_DARK_GRAY;
         const uint16_t clrText   = inRecovery ? COLOR_WHITE : COLOR_DARK_GRAY;
 
         drawLabeledButtonBox(
             8, 126, 148, 27,
             jogFill, jogBorder, jogText,
-            F("SUBIR Z LLENADO"), 1);
+            F("SUBIR Z LLENADO"), 1, fullRedraw);
 
         drawLabeledButtonBox(
             164, 126, 148, 27,
             jogFill, jogBorder, jogText,
-            F("SUBIR Z TAPADO"), 1);
+            F("SUBIR Z TAPADO"), 1, fullRedraw);
 
         drawLabeledButtonBox(
             8, 157, 148, 27,
             jogFill, jogBorder, jogText,
-            F("SOLTAR BRAZOS"), 1);
+            F("SOLTAR BRAZOS"), 1, fullRedraw);
 
         drawLabeledButtonBox(
             164, 157, 148, 27,
             clrFill, clrBorder, clrText,
-            F("LINEA DESPEJADA"), 1);
+            F("LINEA DESPEJADA"), 1, fullRedraw);
     }
 }
 
@@ -1105,24 +1120,19 @@ void DisplayManager::drawAutoFillStaticFrame()
     tft.setCursor(8, 10);
     tft.print(F("AUT\x93MATA 1: LLENADO Y DOSIFICACI\x93N"));
 
-    // Tarjeta Estado de la FSM (Y = 30..68)
-    tft.fillRoundRect(6, 30, 308, 38, 4, COLOR_PANEL_BG);
-    tft.drawRoundRect(6, 30, 308, 38, 4, COLOR_DARK_GRAY);
-    tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_PANEL_BG);
+    // Tarjetas con contorno limpio sobre negro
+    tft.drawRect(6, 30, 308, 38, COLOR_DARK_GRAY);
+    tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_BG);
     tft.setCursor(14, 42);
     tft.print(F("FASE:"));
 
-    // Tarjeta Sensores de Presencia (Y = 74..112)
-    tft.fillRoundRect(6, 74, 308, 38, 4, COLOR_PANEL_BG);
-    tft.drawRoundRect(6, 74, 308, 38, 4, COLOR_DARK_GRAY);
-    tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_PANEL_BG);
+    tft.drawRect(6, 74, 308, 38, COLOR_DARK_GRAY);
+    tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_BG);
     tft.setCursor(14, 86);
     tft.print(F("APROX / RETENC:"));
 
-    // Tarjeta Actuadores (Y = 118..156)
-    tft.fillRoundRect(6, 118, 308, 38, 4, COLOR_PANEL_BG);
-    tft.drawRoundRect(6, 118, 308, 38, 4, COLOR_DARK_GRAY);
-    tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_PANEL_BG);
+    tft.drawRect(6, 118, 308, 38, COLOR_DARK_GRAY);
+    tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_BG);
     tft.setCursor(14, 130);
     tft.print(F("BOMBA / EJE Z1:"));
 }
@@ -1145,24 +1155,19 @@ void DisplayManager::drawAutoCapStaticFrame()
     tft.setCursor(8, 10);
     tft.print(F("AUT\x93MATA 2: TAPADO Y APRIETE"));
 
-    // Tarjeta Estado de la FSM (Y = 30..68)
-    tft.fillRoundRect(6, 30, 308, 38, 4, COLOR_PANEL_BG);
-    tft.drawRoundRect(6, 30, 308, 38, 4, COLOR_DARK_GRAY);
-    tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_PANEL_BG);
+    // Tarjetas con contorno limpio sobre negro
+    tft.drawRect(6, 30, 308, 38, COLOR_DARK_GRAY);
+    tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_BG);
     tft.setCursor(14, 42);
     tft.print(F("FASE:"));
 
-    // Tarjeta Sensor de Presencia (Y = 74..112)
-    tft.fillRoundRect(6, 74, 308, 38, 4, COLOR_PANEL_BG);
-    tft.drawRoundRect(6, 74, 308, 38, 4, COLOR_DARK_GRAY);
-    tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_PANEL_BG);
+    tft.drawRect(6, 74, 308, 38, COLOR_DARK_GRAY);
+    tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_BG);
     tft.setCursor(14, 86);
     tft.print(F("PRESENCIA TAPADO:"));
 
-    // Tarjeta Motor de Apriete (Y = 118..156)
-    tft.fillRoundRect(6, 118, 308, 38, 4, COLOR_PANEL_BG);
-    tft.drawRoundRect(6, 118, 308, 38, 4, COLOR_DARK_GRAY);
-    tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_PANEL_BG);
+    tft.drawRect(6, 118, 308, 38, COLOR_DARK_GRAY);
+    tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_BG);
     tft.setCursor(14, 130);
     tft.print(F("MOTOR APRIETE (IBT-2):"));
 }
@@ -1176,16 +1181,14 @@ void DisplayManager::drawDebugStaticFrame()
     tft.print(F("DIAGN\x93STICO EN VIVO Y SE\x91""ALES I/O"));
 
     // Tarjeta 1: Estado General y Error Activo (Y = 26..66)
-    tft.fillRoundRect(6, 26, 308, 40, 4, COLOR_PANEL_BG);
-    tft.drawRoundRect(6, 26, 308, 40, 4, COLOR_DARK_GRAY);
-    tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_PANEL_BG);
+    tft.drawRect(6, 26, 308, 40, COLOR_DARK_GRAY);
+    tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_BG);
     tft.setCursor(14, 34);
     tft.print(F("MODO / ERROR:"));
 
     // Tarjeta 2: Posición en Pasos de los Ejes Z desde Home=0 (Y = 72..132)
-    tft.fillRoundRect(6, 72, 308, 60, 4, COLOR_PANEL_BG);
-    tft.drawRoundRect(6, 72, 308, 60, 4, COLOR_DARK_GRAY);
-    tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_PANEL_BG);
+    tft.drawRect(6, 72, 308, 60, COLOR_DARK_GRAY);
+    tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_BG);
     tft.setCursor(14, 80);
     tft.print(F("POSICI\x93N EJES Z (PASOS DESDE HOME = 0):"));
     tft.setCursor(14, 96);
@@ -1194,9 +1197,8 @@ void DisplayManager::drawDebugStaticFrame()
     tft.print(F("Z2 (TAPADO) :"));
 
     // Tarjeta 3: Banda (Voltaje, PWM, Corriente IS) y Producción (Y = 136..182)
-    tft.fillRoundRect(6, 136, 308, 46, 4, COLOR_PANEL_BG);
-    tft.drawRoundRect(6, 136, 308, 46, 4, COLOR_DARK_GRAY);
-    tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_PANEL_BG);
+    tft.drawRect(6, 136, 308, 46, COLOR_DARK_GRAY);
+    tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_BG);
     tft.setCursor(14, 144);
     tft.print(F("BANDA:"));
     tft.setCursor(14, 162);
@@ -1214,10 +1216,10 @@ void DisplayManager::renderAutoFillDynamic(const DisplaySnapshot& snapshot, bool
             const bool down = (snapshot.testFlags & TestFlags::FILL_STOP_DN) != 0U;
             drawLabeledButtonBox(
                 8, 34, 148, 44,
-                down ? COLOR_ORANGE_REC : COLOR_PANEL_BG,
+                down ? COLOR_ORANGE_REC : COLOR_BG,
                 down ? COLOR_WHITE : COLOR_CYAN,
                 down ? COLOR_BG : COLOR_WHITE,
-                down ? F("TOPE 1: ABAJO") : F("TOPE 1: ARRIBA"), 1);
+                down ? F("TOPE 1: ABAJO") : F("TOPE 1: ARRIBA"), 1, fullRedraw);
         }
 
         if (fullRedraw || ((diffFlags & TestFlags::FILL_CLAMP_DN) != 0U))
@@ -1225,10 +1227,10 @@ void DisplayManager::renderAutoFillDynamic(const DisplaySnapshot& snapshot, bool
             const bool down = (snapshot.testFlags & TestFlags::FILL_CLAMP_DN) != 0U;
             drawLabeledButtonBox(
                 164, 34, 148, 44,
-                down ? COLOR_ORANGE_REC : COLOR_PANEL_BG,
+                down ? COLOR_ORANGE_REC : COLOR_BG,
                 down ? COLOR_WHITE : COLOR_CYAN,
                 down ? COLOR_BG : COLOR_WHITE,
-                down ? F("SUJEC 1: ABAJO") : F("SUJEC 1: ARRIBA"), 1);
+                down ? F("SUJEC 1: ABAJO") : F("SUJEC 1: ARRIBA"), 1, fullRedraw);
         }
 
         if (fullRedraw || ((diffFlags & TestFlags::FILL_PUMP_ON) != 0U))
@@ -1236,10 +1238,10 @@ void DisplayManager::renderAutoFillDynamic(const DisplaySnapshot& snapshot, bool
             const bool on = (snapshot.testFlags & TestFlags::FILL_PUMP_ON) != 0U;
             drawLabeledButtonBox(
                 8, 84, 304, 42,
-                on ? COLOR_GREEN_OK : COLOR_PANEL_BG,
+                on ? COLOR_GREEN_OK : COLOR_BG,
                 on ? COLOR_WHITE : COLOR_CYAN,
                 COLOR_WHITE,
-                on ? F("BOMBA LLENADO: ENCENDIDA") : F("BOMBA LLENADO: APAGADA"), 1);
+                on ? F("BOMBA LLENADO: ENCENDIDA") : F("BOMBA LLENADO: APAGADA"), 1, fullRedraw);
         }
 
         if (fullRedraw ||
@@ -1259,13 +1261,13 @@ void DisplayManager::renderAutoFillDynamic(const DisplaySnapshot& snapshot, bool
         {
             drawLabeledButtonBox(
                 8, 132, 148, 48,
-                COLOR_BLUE_HEADER, COLOR_CYAN, COLOR_WHITE,
-                F("SUBIR Z1 (+JOG)"), 1);
+                COLOR_BG, COLOR_CYAN, COLOR_WHITE,
+                F("SUBIR Z1 (+JOG)"), 1, true);
 
             drawLabeledButtonBox(
                 164, 132, 148, 48,
-                COLOR_BLUE_HEADER, COLOR_CYAN, COLOR_WHITE,
-                F("BAJAR Z1 (-JOG)"), 1);
+                COLOR_BG, COLOR_CYAN, COLOR_WHITE,
+                F("BAJAR Z1 (-JOG)"), 1, true);
         }
         return;
     }
@@ -1273,7 +1275,7 @@ void DisplayManager::renderAutoFillDynamic(const DisplaySnapshot& snapshot, bool
     if (fullRedraw || (snapshot.fillState != renderedSnapshot_.fillState))
     {
         tft.setTextSize(2);
-        tft.setTextColor(COLOR_WHITE, COLOR_PANEL_BG);
+        tft.setTextColor(COLOR_WHITE, COLOR_BG);
         tft.setCursor(60, 40);
         tft.print(getFillStateProgmem(snapshot.fillState));
     }
@@ -1290,10 +1292,10 @@ void DisplayManager::renderAutoCapDynamic(const DisplaySnapshot& snapshot, bool 
             const bool down = (snapshot.testFlags & TestFlags::CAP_STOP_DN) != 0U;
             drawLabeledButtonBox(
                 8, 34, 148, 44,
-                down ? COLOR_ORANGE_REC : COLOR_PANEL_BG,
+                down ? COLOR_ORANGE_REC : COLOR_BG,
                 down ? COLOR_WHITE : COLOR_CYAN,
                 down ? COLOR_BG : COLOR_WHITE,
-                down ? F("TOPE 2: ABAJO") : F("TOPE 2: ARRIBA"), 1);
+                down ? F("TOPE 2: ABAJO") : F("TOPE 2: ARRIBA"), 1, fullRedraw);
         }
 
         if (fullRedraw || ((diffFlags & TestFlags::CAP_CLAMP_DN) != 0U))
@@ -1301,10 +1303,10 @@ void DisplayManager::renderAutoCapDynamic(const DisplaySnapshot& snapshot, bool 
             const bool down = (snapshot.testFlags & TestFlags::CAP_CLAMP_DN) != 0U;
             drawLabeledButtonBox(
                 164, 34, 148, 44,
-                down ? COLOR_ORANGE_REC : COLOR_PANEL_BG,
+                down ? COLOR_ORANGE_REC : COLOR_BG,
                 down ? COLOR_WHITE : COLOR_CYAN,
                 down ? COLOR_BG : COLOR_WHITE,
-                down ? F("SUJEC 2: ABAJO") : F("SUJEC 2: ARRIBA"), 1);
+                down ? F("SUJEC 2: ABAJO") : F("SUJEC 2: ARRIBA"), 1, fullRedraw);
         }
 
         if (fullRedraw || ((diffFlags & TestFlags::CAP_CHUCK_ON) != 0U))
@@ -1312,10 +1314,10 @@ void DisplayManager::renderAutoCapDynamic(const DisplaySnapshot& snapshot, bool 
             const bool on = (snapshot.testFlags & TestFlags::CAP_CHUCK_ON) != 0U;
             drawLabeledButtonBox(
                 8, 84, 304, 42,
-                on ? COLOR_GREEN_OK : COLOR_PANEL_BG,
+                on ? COLOR_GREEN_OK : COLOR_BG,
                 on ? COLOR_WHITE : COLOR_CYAN,
                 COLOR_WHITE,
-                on ? F("MOTOR APRIETE: ENCENDIDO") : F("MOTOR APRIETE: APAGADO"), 1);
+                on ? F("MOTOR APRIETE: ENCENDIDO") : F("MOTOR APRIETE: APAGADO"), 1, fullRedraw);
         }
 
         if (fullRedraw ||
@@ -1335,13 +1337,13 @@ void DisplayManager::renderAutoCapDynamic(const DisplaySnapshot& snapshot, bool 
         {
             drawLabeledButtonBox(
                 8, 132, 148, 48,
-                COLOR_BLUE_HEADER, COLOR_CYAN, COLOR_WHITE,
-                F("SUBIR Z2 (+JOG)"), 1);
+                COLOR_BG, COLOR_CYAN, COLOR_WHITE,
+                F("SUBIR Z2 (+JOG)"), 1, true);
 
             drawLabeledButtonBox(
                 164, 132, 148, 48,
-                COLOR_BLUE_HEADER, COLOR_CYAN, COLOR_WHITE,
-                F("BAJAR Z2 (-JOG)"), 1);
+                COLOR_BG, COLOR_CYAN, COLOR_WHITE,
+                F("BAJAR Z2 (-JOG)"), 1, true);
         }
         return;
     }
@@ -1349,7 +1351,7 @@ void DisplayManager::renderAutoCapDynamic(const DisplaySnapshot& snapshot, bool 
     if (fullRedraw || (snapshot.capState != renderedSnapshot_.capState))
     {
         tft.setTextSize(2);
-        tft.setTextColor(COLOR_WHITE, COLOR_PANEL_BG);
+        tft.setTextColor(COLOR_WHITE, COLOR_BG);
         tft.setCursor(60, 40);
         tft.print(getCapStateProgmem(snapshot.capState));
     }
@@ -1362,19 +1364,19 @@ void DisplayManager::renderDebugDynamic(const DisplaySnapshot& snapshot, bool fu
         uint16_t dummyBg = 0;
         uint16_t dummyFg = 0;
         tft.setTextSize(1);
-        tft.setTextColor(COLOR_CYAN, COLOR_PANEL_BG);
+        tft.setTextColor(COLOR_CYAN, COLOR_BG);
         tft.setCursor(100, 34);
         tft.print(getModeProgmem(snapshot.mode, dummyBg, dummyFg));
 
         tft.setCursor(14, 48);
         if (snapshot.error != ErrorCode::None)
         {
-            tft.setTextColor(COLOR_RED_ALARM, COLOR_PANEL_BG);
+            tft.setTextColor(COLOR_RED_ALARM, COLOR_BG);
             tft.print(getErrorProgmem(snapshot.error, dummyBg, dummyFg));
         }
         else
         {
-            tft.setTextColor(COLOR_GREEN_OK, COLOR_PANEL_BG);
+            tft.setTextColor(COLOR_GREEN_OK, COLOR_BG);
             tft.print(F("SIN ALARMAS ACTIVAS (OK)  "));
         }
     }
@@ -1396,7 +1398,7 @@ void DisplayManager::renderDebugDynamic(const DisplaySnapshot& snapshot, bool fu
             isHomeSw ? "[HOME=0]" : "        ");
 
         tft.setTextSize(1);
-        tft.setTextColor(isHomeSw ? COLOR_GREEN_OK : COLOR_CYAN, COLOR_PANEL_BG);
+        tft.setTextColor(isHomeSw ? COLOR_GREEN_OK : COLOR_CYAN, COLOR_BG);
         tft.setCursor(100, 96);
         tft.print(z1Buf);
     }
@@ -1416,7 +1418,7 @@ void DisplayManager::renderDebugDynamic(const DisplaySnapshot& snapshot, bool fu
             isHomeSw ? "[HOME=0]" : "        ");
 
         tft.setTextSize(1);
-        tft.setTextColor(isHomeSw ? COLOR_GREEN_OK : COLOR_CYAN, COLOR_PANEL_BG);
+        tft.setTextColor(isHomeSw ? COLOR_GREEN_OK : COLOR_CYAN, COLOR_BG);
         tft.setCursor(100, 114);
         tft.print(z2Buf);
     }
@@ -1443,7 +1445,7 @@ void DisplayManager::renderDebugDynamic(const DisplaySnapshot& snapshot, bool fu
 
         tft.setTextSize(1);
         tft.setTextColor((snapshot.beltPwm > ProcessParams::BELT_PWM) ? COLOR_ORANGE_REC : COLOR_CYAN,
-                         COLOR_PANEL_BG);
+                         COLOR_BG);
         tft.setCursor(60, 144);
         tft.print(beltBuf);
     }
@@ -1451,7 +1453,7 @@ void DisplayManager::renderDebugDynamic(const DisplaySnapshot& snapshot, bool fu
     if (fullRedraw || (snapshot.queueCount != renderedSnapshot_.queueCount) || (snapshot.bottleCount != renderedSnapshot_.bottleCount))
     {
         tft.setTextSize(1);
-        tft.setTextColor(COLOR_WHITE, COLOR_PANEL_BG);
+        tft.setTextColor(COLOR_WHITE, COLOR_BG);
         tft.setCursor(100, 162);
         tft.print(F("COLA: "));
         tft.print(snapshot.queueCount);
