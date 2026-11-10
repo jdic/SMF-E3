@@ -59,6 +59,23 @@ namespace ProcessParams
     // ==========================================
     // SERVOMOTORES DE RETENCIÓN
     // ==========================================
+    /**
+     * @enum ServoDir
+     * @brief Sentido de giro del servomotor según su montaje mecánico.
+     *        - CW : Sentido horario directo (escribe el ángulo tal cual: 0..180°).
+     *        - CCW: Sentido antihorario / espejo (escribe 180° - ángulo).
+     */
+    enum class ServoDir : uint8_t
+    {
+        CW  = 0, ///< Sentido horario normal (0° -> 180°)
+        CCW = 1  ///< Sentido antihorario / espejo (180° -> 0°)
+    };
+
+    constexpr ServoDir FILL_STOP_DIR           = ServoDir::CW; ///< Sentido del servo de tope 1 (Llenado): CW o CCW
+    constexpr ServoDir FILL_CLAMP_DIR          = ServoDir::CW; ///< Sentido del servo de sujeción 1 (Llenado): CW o CCW
+    constexpr ServoDir CAP_STOP_DIR            = ServoDir::CW; ///< Sentido del servo de tope 2 (Tapado): CW o CCW
+    constexpr ServoDir CAP_CLAMP_DIR           = ServoDir::CW; ///< Sentido del servo de sujeción 2 (Tapado): CW o CCW
+
     constexpr uint8_t  FILL_STOP_UP_DEG        = 10;    ///< Ángulo de reposo del brazo de tope de llenado [grados]
     constexpr uint8_t  FILL_STOP_DOWN_DEG      = 100;   ///< Ángulo de bloqueo del brazo de tope de llenado [grados]
     constexpr uint8_t  FILL_CLAMP_UP_DEG       = 10;    ///< Ángulo de reposo del brazo de sujeción de llenado [grados]

@@ -19,6 +19,8 @@ struct BottleGateConfig
     uint8_t  stopDownDeg;  ///< Ángulo de bloqueo (abajo) del brazo de tope en grados [0..180]
     uint8_t  clampUpDeg;   ///< Ángulo de reposo (arriba) del brazo de sujeción en grados [0..180]
     uint8_t  clampDownDeg; ///< Ángulo de retención (abajo) del brazo de sujeción en grados [0..180]
+    bool     stopReverse;  ///< true (CCW) invierte el sentido de giro del servo de tope (180 - deg)
+    bool     clampReverse; ///< true (CCW) invierte el sentido de giro del servo de sujeción (180 - deg)
     uint16_t armMoveMs;    ///< Tiempo estimado de recorrido mecánico de un brazo en milisegundos [ms]
     uint16_t releaseGapMs; ///< Espera escalonada entre subir sujeción y subir tope en milisegundos [ms]
 };
@@ -102,6 +104,9 @@ public:
     bool isSettled() const;
 
 private:
+    uint8_t resolveStopAngle(uint8_t deg) const;
+    uint8_t resolveClampAngle(uint8_t deg) const;
+
     BottleGateConfig config_;
     Servo            stopServo_;
     Servo            clampServo_;

@@ -13,6 +13,8 @@ namespace
         cfg.stopDownDeg  = ProcessParams::FILL_STOP_DOWN_DEG;
         cfg.clampUpDeg   = ProcessParams::FILL_CLAMP_UP_DEG;
         cfg.clampDownDeg = ProcessParams::FILL_CLAMP_DOWN_DEG;
+        cfg.stopReverse  = (ProcessParams::FILL_STOP_DIR  == ProcessParams::ServoDir::CCW);
+        cfg.clampReverse = (ProcessParams::FILL_CLAMP_DIR == ProcessParams::ServoDir::CCW);
         cfg.armMoveMs    = ProcessParams::ARM_MOVE_MS;
         cfg.releaseGapMs = ProcessParams::RELEASE_GAP_MS;
         return cfg;
@@ -27,6 +29,8 @@ namespace
         cfg.stopDownDeg  = ProcessParams::CAP_STOP_DOWN_DEG;
         cfg.clampUpDeg   = ProcessParams::CAP_CLAMP_UP_DEG;
         cfg.clampDownDeg = ProcessParams::CAP_CLAMP_DOWN_DEG;
+        cfg.stopReverse  = (ProcessParams::CAP_STOP_DIR  == ProcessParams::ServoDir::CCW);
+        cfg.clampReverse = (ProcessParams::CAP_CLAMP_DIR == ProcessParams::ServoDir::CCW);
         cfg.armMoveMs    = ProcessParams::ARM_MOVE_MS;
         cfg.releaseGapMs = ProcessParams::RELEASE_GAP_MS;
         return cfg;
