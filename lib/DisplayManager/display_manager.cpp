@@ -321,7 +321,9 @@ DisplayManager::DisplayManager(const DisplayTouchConfig& config)
           0,
           0U,
           0,
-          0},
+          0,
+          0U,
+          0U},
       hasLastMarker_(false),
       lastMarkerX_(0),
       lastMarkerY_(0),
@@ -892,7 +894,7 @@ void DisplayManager::renderHomeDynamic(const DisplaySnapshot& snapshot, bool ful
                 on ? COLOR_GREEN_OK : COLOR_PANEL_BG,
                 on ? COLOR_WHITE : COLOR_CYAN,
                 COLOR_WHITE,
-                on ? F("BANDA 7V: ON") : F("BANDA 7V: OFF"), 1);
+                on ? F("BANDA: ON") : F("BANDA: OFF"), 1);
         }
 
         if (fullRedraw || ((diffFlags & TestFlags::BUZZER_ON) != 0U))
@@ -1191,11 +1193,13 @@ void DisplayManager::drawDebugStaticFrame()
     tft.setCursor(14, 114);
     tft.print(F("Z2 (TAPADO) :"));
 
-    // Tarjeta 3: Telemetría de Cola y Producción (Y = 138..180)
-    tft.fillRoundRect(6, 138, 308, 42, 4, COLOR_PANEL_BG);
-    tft.drawRoundRect(6, 138, 308, 42, 4, COLOR_DARK_GRAY);
+    // Tarjeta 3: Banda (Voltaje, PWM, Corriente IS) y Producción (Y = 136..182)
+    tft.fillRoundRect(6, 136, 308, 46, 4, COLOR_PANEL_BG);
+    tft.drawRoundRect(6, 136, 308, 46, 4, COLOR_DARK_GRAY);
     tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_PANEL_BG);
-    tft.setCursor(14, 155);
+    tft.setCursor(14, 144);
+    tft.print(F("BANDA:"));
+    tft.setCursor(14, 162);
     tft.print(F("COLA / PROD:"));
 }
 
@@ -1417,11 +1421,38 @@ void DisplayManager::renderDebugDynamic(const DisplaySnapshot& snapshot, bool fu
         tft.print(z2Buf);
     }
 
+    // Telemetría en vivo de la Banda: Voltaje efectivo (V), ciclo PWM y corriente IS (cuentas ADC)
+    if (fullRedraw ||
+        (snapshot.beltPwm != renderedSnapshot_.beltPwm) ||
+        (snapshot.beltCurrentAdc != renderedSnapshot_.beltCurrentAdc))
+    {
+        const uint16_t beltMv = static_cast<uint16_t>(
+            (static_cast<uint32_t>(snapshot.beltPwm) * ProcessParams::BELT_SUPPLY_MV) / 255UL);
+        const uint16_t voltsInt = beltMv / 1000U;
+        const uint16_t voltsDec = (beltMv % 1000U) / 100U;
+
+        char beltBuf[34];
+        snprintf(
+            beltBuf,
+            sizeof(beltBuf),
+            "%u.%uV (PWM:%3u) IS:%4u ADC",
+            voltsInt,
+            voltsDec,
+            snapshot.beltPwm,
+            snapshot.beltCurrentAdc);
+
+        tft.setTextSize(1);
+        tft.setTextColor((snapshot.beltPwm > ProcessParams::BELT_PWM) ? COLOR_ORANGE_REC : COLOR_CYAN,
+                         COLOR_PANEL_BG);
+        tft.setCursor(60, 144);
+        tft.print(beltBuf);
+    }
+
     if (fullRedraw || (snapshot.queueCount != renderedSnapshot_.queueCount) || (snapshot.bottleCount != renderedSnapshot_.bottleCount))
     {
         tft.setTextSize(1);
         tft.setTextColor(COLOR_WHITE, COLOR_PANEL_BG);
-        tft.setCursor(100, 155);
+        tft.setCursor(100, 162);
         tft.print(F("COLA: "));
         tft.print(snapshot.queueCount);
         tft.print(F(" | TOT: "));

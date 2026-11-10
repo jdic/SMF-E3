@@ -41,14 +41,19 @@ namespace ProcessParams
     constexpr uint16_t Z_HOMING_TIMEOUT_MS     = 10000; ///< Tiempo límite de búsqueda de origen en arranque [ms]
 
     // ==========================================
-    // BANDA TRANSPORTADORA
+    // BANDA TRANSPORTADORA Y COMPENSACIÓN I*R
     // ==========================================
     constexpr uint16_t BELT_SUPPLY_MV          = 12000; ///< Tensión nominal de la fuente de potencia [mV]
-    constexpr uint16_t BELT_TARGET_MV          = 6000;  ///< Tensión de operación nominal del motor [mV]
-    constexpr uint8_t  BELT_PWM                = static_cast<uint8_t>((255UL * BELT_TARGET_MV) / BELT_SUPPLY_MV); ///< Ciclo PWM nominal calculado
+    constexpr uint16_t BELT_TARGET_MV          = 4500;  ///< Tensión base en vacío del motor de la banda (4.5 V) [mV]
+    constexpr uint16_t BELT_MAX_BOOST_MV       = 7500;  ///< Tensión máxima bajo carga con compensación I*R (7.5 V) [mV]
+    constexpr uint8_t  BELT_PWM                = static_cast<uint8_t>((255UL * BELT_TARGET_MV) / BELT_SUPPLY_MV);    ///< Ciclo PWM base en vacío (~95)
+    constexpr uint8_t  BELT_MAX_BOOST_PWM      = static_cast<uint8_t>((255UL * BELT_MAX_BOOST_MV) / BELT_SUPPLY_MV); ///< Ciclo PWM tope bajo carga (~159)
+    constexpr bool     ENABLE_BELT_IR_COMP     = true;  ///< Habilita compensación automática de voltaje según corriente IS
+    constexpr uint16_t BELT_IDLE_CURRENT_ADC   = 25;    ///< Umbral ADC en vacío (ver valor "IS" en pantalla DEBUG sin peso) [0..1023]
+    constexpr uint16_t BELT_FULL_LOAD_ADC      = 220;   ///< Lectura ADC con carga donde alcanza BELT_MAX_BOOST_MV [0..1023]
     constexpr uint8_t  BELT_ACCEL_PWM_STEP     = 5;     ///< Incremento de PWM por ciclo en aceleración
     constexpr uint8_t  BELT_DECEL_PWM_STEP     = 8;     ///< Decremento de PWM por ciclo en desaceleración
-    constexpr uint16_t BELT_CURRENT_LIMIT_ADC  = 650;   ///< Umbral de sobrecorriente [cuentas ADC]
+    constexpr uint16_t BELT_CURRENT_LIMIT_ADC  = 650;   ///< Umbral de sobrecorriente para falla de atasco ERR-303 [cuentas ADC]
     constexpr uint16_t BELT_STALL_MS           = 500;   ///< Tiempo de persistencia de sobrecorriente para declarar atasco [ms]
 
     // ==========================================

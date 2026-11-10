@@ -13,14 +13,18 @@
  */
 struct ConveyorConfig
 {
-    uint8_t  rpwmPin;         ///< Pin de control PWM de avance
-    uint8_t  enPin;           ///< Pin de habilitación de potencia
-    uint8_t  currentSensePin; ///< Pin analógico de lectura de corriente (IS)
-    uint8_t  targetPwm;       ///< Ciclo de trabajo PWM nominal de avance [0..255]
-    uint8_t  accelStepPwm;    ///< Incremento de PWM por ciclo de 20 ms en rampa de aceleración [1..255]
-    uint8_t  decelStepPwm;    ///< Decremento de PWM por ciclo de 20 ms en rampa de desaceleración [1..255]
-    uint16_t currentLimitAdc; ///< Umbral de sobrecorriente en cuentas ADC [0..1023] para evaluar atasco
-    uint16_t stallTimeMs;     ///< Tiempo continuo superando currentLimitAdc para declarar atasco ERR-303 [ms]
+    uint8_t  rpwmPin;            ///< Pin de control PWM de avance
+    uint8_t  enPin;              ///< Pin de habilitación de potencia
+    uint8_t  currentSensePin;    ///< Pin analógico de lectura de corriente (IS)
+    uint8_t  targetPwm;          ///< Ciclo de trabajo PWM base en vacío [0..255]
+    uint8_t  maxBoostPwm;        ///< Ciclo de trabajo PWM máximo bajo carga con compensación I*R [0..255]
+    bool     enableIrComp;       ///< true para aumentar el PWM proporcionalmente a la corriente IS
+    uint16_t idleCurrentAdc;     ///< Corriente base en vacío [cuentas ADC] a partir de la cual inicia el boost
+    uint16_t fullLoadCurrentAdc; ///< Corriente de plena carga [cuentas ADC] donde se alcanza maxBoostPwm
+    uint8_t  accelStepPwm;       ///< Incremento de PWM por ciclo de 20 ms en rampa de aceleración [1..255]
+    uint8_t  decelStepPwm;       ///< Decremento de PWM por ciclo de 20 ms en rampa de desaceleración [1..255]
+    uint16_t currentLimitAdc;    ///< Umbral de sobrecorriente en cuentas ADC [0..1023] para evaluar atasco
+    uint16_t stallTimeMs;        ///< Tiempo continuo superando currentLimitAdc para declarar atasco ERR-303 [ms]
 };
 
 /**

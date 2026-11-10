@@ -166,16 +166,18 @@ enum class BuzzerPattern : uint8_t
  */
 struct DisplaySnapshot
 {
-    ErrorCode     error;       ///< Código de fallo activo (ErrorCode::None si no hay alarma)
-    StationMode   mode;        ///< Modo global actual de la estación
-    FillState     fillState;   ///< Fase activa del autómata de llenado
-    CappingState  capState;    ///< Fase activa del autómata de tapado
-    BottleProfile profile;     ///< Perfil de botella seleccionado
-    uint8_t       queueCount;  ///< Botellas actualmente en la cola intermedia entre Llenado y Tapado [unidades]
-    uint32_t      bottleCount; ///< Conteo acumulado de botellas completadas desde el arranque [unidades]
-    uint16_t      testFlags;   ///< Máscara de bits (TestFlags) con el estado de actuadores y fines de carrera
-    int32_t       fillZSteps;  ///< Posición actual en micropasos del eje Z1 desde Home (0 = fin de carrera superior)
-    int32_t       capZSteps;   ///< Posición actual en micropasos del eje Z2 desde Home (0 = fin de carrera superior)
+    ErrorCode     error;          ///< Código de fallo activo (ErrorCode::None si no hay alarma)
+    StationMode   mode;           ///< Modo global actual de la estación
+    FillState     fillState;      ///< Fase activa del autómata de llenado
+    CappingState  capState;       ///< Fase activa del autómata de tapado
+    BottleProfile profile;        ///< Perfil de botella seleccionado
+    uint8_t       queueCount;     ///< Botellas actualmente en la cola intermedia entre Llenado y Tapado [unidades]
+    uint32_t      bottleCount;    ///< Conteo acumulado de botellas completadas desde el arranque [unidades]
+    uint16_t      testFlags;      ///< Máscara de bits (TestFlags) con el estado de actuadores y fines de carrera
+    int32_t       fillZSteps;     ///< Posición actual en micropasos del eje Z1 desde Home (0 = fin de carrera superior)
+    int32_t       capZSteps;      ///< Posición actual en micropasos del eje Z2 desde Home (0 = fin de carrera superior)
+    uint8_t       beltPwm;        ///< Ciclo PWM actual aplicado a la banda transportadora [0..255]
+    uint16_t      beltCurrentAdc; ///< Corriente filtrada actual del motor de la banda en cuentas ADC [0..1023]
 };
 
 /**

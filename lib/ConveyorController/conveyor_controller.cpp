@@ -70,7 +70,41 @@ void ConveyorController::update()
         return;
     }
 
-    // 1. Generador de perfil trapezoidal de velocidad (rampa de aceleración / crucero / desaceleración)
+    // 1. Muestreo de corriente (IS) si el motor ya está energizado y cálculo de Compensación I*R
+    uint16_t currentAdc = 0U;
+    if (currentPwm_ > 0U)
+    {
+        currentAdc = motor_.sampleCurrentAdc();
+    }
+
+    if (running_)
+    {
+        uint8_t compensatedTarget = config_.targetPwm;
+
+        if (config_.enableIrComp &&
+            (config_.maxBoostPwm > config_.targetPwm) &&
+            (config_.fullLoadCurrentAdc > config_.idleCurrentAdc) &&
+            (currentAdc > config_.idleCurrentAdc))
+        {
+            const uint16_t deltaAdc = currentAdc - config_.idleCurrentAdc;
+            const uint16_t spanAdc  = config_.fullLoadCurrentAdc - config_.idleCurrentAdc;
+            const uint16_t boostSpanPwm =
+                static_cast<uint16_t>(config_.maxBoostPwm - config_.targetPwm);
+
+            const uint32_t rawBoost =
+                (static_cast<uint32_t>(deltaAdc) * static_cast<uint32_t>(boostSpanPwm)) /
+                static_cast<uint32_t>(spanAdc);
+
+            const uint32_t boosted = static_cast<uint32_t>(config_.targetPwm) + rawBoost;
+            compensatedTarget = (boosted > config_.maxBoostPwm)
+                                    ? config_.maxBoostPwm
+                                    : static_cast<uint8_t>(boosted);
+        }
+
+        desiredPwm_ = compensatedTarget;
+    }
+
+    // 2. Generador de perfil trapezoidal de velocidad (rampa suave hacia desiredPwm_)
     if (currentPwm_ < desiredPwm_)
     {
         const uint8_t step = (config_.accelStepPwm > 0U) ? config_.accelStepPwm : 1U;
@@ -100,14 +134,13 @@ void ConveyorController::update()
         }
     }
 
-    // 2. Supervisión de sobrecorriente (IS) mientras el motor está energizado
+    // 3. Supervisión de sobrecorriente crítica (ERR-303) mientras el motor está energizado
     if (currentPwm_ == 0U)
     {
         inOvercurrent_ = false;
         return;
     }
 
-    const uint16_t currentAdc = motor_.sampleCurrentAdc();
     const uint32_t nowMs = millis();
 
     if (currentAdc >= config_.currentLimitAdc)

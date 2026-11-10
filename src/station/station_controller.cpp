@@ -69,14 +69,18 @@ namespace
     ConveyorConfig makeConveyorConfig()
     {
         ConveyorConfig cfg{};
-        cfg.rpwmPin         = HardwarePins::PIN_BTS_CONV_RPWM;
-        cfg.enPin           = HardwarePins::PIN_BTS_CONV_EN;
-        cfg.currentSensePin = HardwarePins::PIN_ADC_CONV_CURRENT;
-        cfg.targetPwm       = ProcessParams::BELT_PWM;
-        cfg.accelStepPwm    = ProcessParams::BELT_ACCEL_PWM_STEP;
-        cfg.decelStepPwm    = ProcessParams::BELT_DECEL_PWM_STEP;
-        cfg.currentLimitAdc = ProcessParams::BELT_CURRENT_LIMIT_ADC;
-        cfg.stallTimeMs     = ProcessParams::BELT_STALL_MS;
+        cfg.rpwmPin            = HardwarePins::PIN_BTS_CONV_RPWM;
+        cfg.enPin              = HardwarePins::PIN_BTS_CONV_EN;
+        cfg.currentSensePin    = HardwarePins::PIN_ADC_CONV_CURRENT;
+        cfg.targetPwm          = ProcessParams::BELT_PWM;
+        cfg.maxBoostPwm        = ProcessParams::BELT_MAX_BOOST_PWM;
+        cfg.enableIrComp       = ProcessParams::ENABLE_BELT_IR_COMP;
+        cfg.idleCurrentAdc     = ProcessParams::BELT_IDLE_CURRENT_ADC;
+        cfg.fullLoadCurrentAdc = ProcessParams::BELT_FULL_LOAD_ADC;
+        cfg.accelStepPwm       = ProcessParams::BELT_ACCEL_PWM_STEP;
+        cfg.decelStepPwm       = ProcessParams::BELT_DECEL_PWM_STEP;
+        cfg.currentLimitAdc    = ProcessParams::BELT_CURRENT_LIMIT_ADC;
+        cfg.stallTimeMs        = ProcessParams::BELT_STALL_MS;
         return cfg;
     }
 
@@ -192,7 +196,9 @@ StationController::StationController()
           0,
           0U,
           0,
-          0},
+          0,
+          0U,
+          0U},
       snapshotDirty_(true)
 {
 }
@@ -887,6 +893,8 @@ void StationController::refreshDisplaySnapshot()
     const CappingState cState    = cappingAutomaton_.getState();
     const int32_t fSteps         = fillZ_.getCurrentSteps();
     const int32_t cSteps         = capZ_.getCurrentSteps();
+    const uint8_t bPwm           = conveyor_.getCurrentPwm();
+    const uint16_t bCurrentAdc   = conveyor_.getFilteredCurrentAdc();
 
     uint16_t effectiveFlags = testFlags_ & static_cast<uint16_t>(~(TestFlags::FILL_HOME_SW | TestFlags::CAP_HOME_SW));
     if (limitSwitchFill_.isTriggered())
@@ -907,19 +915,23 @@ void StationController::refreshDisplaySnapshot()
         lastSnapshot_.bottleCount != bottleCount_ ||
         lastSnapshot_.testFlags != effectiveFlags ||
         lastSnapshot_.fillZSteps != fSteps ||
-        lastSnapshot_.capZSteps != cSteps)
+        lastSnapshot_.capZSteps != cSteps ||
+        lastSnapshot_.beltPwm != bPwm ||
+        lastSnapshot_.beltCurrentAdc != bCurrentAdc)
     {
-        lastSnapshot_.error       = effectiveErr;
-        lastSnapshot_.mode        = mode_;
-        lastSnapshot_.fillState   = fState;
-        lastSnapshot_.capState    = cState;
-        lastSnapshot_.profile     = profile_;
-        lastSnapshot_.queueCount  = interstageQueueCount_;
-        lastSnapshot_.bottleCount = bottleCount_;
-        lastSnapshot_.testFlags   = effectiveFlags;
-        lastSnapshot_.fillZSteps  = fSteps;
-        lastSnapshot_.capZSteps   = cSteps;
-        snapshotDirty_            = true;
+        lastSnapshot_.error          = effectiveErr;
+        lastSnapshot_.mode           = mode_;
+        lastSnapshot_.fillState      = fState;
+        lastSnapshot_.capState       = cState;
+        lastSnapshot_.profile        = profile_;
+        lastSnapshot_.queueCount     = interstageQueueCount_;
+        lastSnapshot_.bottleCount    = bottleCount_;
+        lastSnapshot_.testFlags      = effectiveFlags;
+        lastSnapshot_.fillZSteps     = fSteps;
+        lastSnapshot_.capZSteps      = cSteps;
+        lastSnapshot_.beltPwm        = bPwm;
+        lastSnapshot_.beltCurrentAdc = bCurrentAdc;
+        snapshotDirty_               = true;
     }
 }
 

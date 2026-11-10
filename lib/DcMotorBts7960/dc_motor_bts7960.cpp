@@ -264,6 +264,11 @@ void DcMotorBts7960::brake()
     digitalWrite(enPin_, HIGH);
     currentPwm_ = 0;
     enabled_ = true;
+    for (uint8_t i = 0; i < CURRENT_FILTER_SAMPLES; ++i)
+    {
+        currentSamples_[i] = 0;
+    }
+    filteredAdc_ = 0;
 }
 
 void DcMotorBts7960::stop()
@@ -277,13 +282,41 @@ void DcMotorBts7960::stop()
     digitalWrite(enPin_, LOW);
     currentPwm_ = 0;
     enabled_ = false;
+    for (uint8_t i = 0; i < CURRENT_FILTER_SAMPLES; ++i)
+    {
+        currentSamples_[i] = 0;
+    }
+    filteredAdc_ = 0;
 }
 
 uint16_t DcMotorBts7960::sampleCurrentAdc()
 {
-    if (currentSensePin_ == UNUSED_PIN)
+    if (currentSensePin_ == UNUSED_PIN || !enabled_ || currentPwm_ == 0U)
     {
         return 0;
+    }
+
+    // En el puente H BTS7960, el espejo de corriente IS solo entrega señal mientras el MOSFET
+    // superior está conduciendo (pulso PWM en HIGH). A voltajes bajos (ej. 4.5 V / 24 V -> PWM ~18%),
+    // sincronizamos la lectura ADC con el estado HIGH del pin PWM activo (timeout de 1 periodo ~2.2 ms).
+    if (currentPwm_ < 255U)
+    {
+        const uint8_t activePwmPin =
+            (lpwmPin_ != UNUSED_PIN && digitalRead(lpwmPin_) == HIGH) ? lpwmPin_ : rpwmPin_;
+
+        if (digitalRead(activePwmPin) == LOW)
+        {
+            const uint32_t waitStartUs = micros();
+            while (digitalRead(activePwmPin) == LOW)
+            {
+                if ((micros() - waitStartUs) >= 2200UL)
+                {
+                    break;
+                }
+            }
+            // Breve asentamiento del espejo de corriente IS del BTS7960 (~15 us tras flanco de subida)
+            delayMicroseconds(15);
+        }
     }
 
     currentSamples_[sampleIndex_] = static_cast<uint16_t>(analogRead(currentSensePin_));
