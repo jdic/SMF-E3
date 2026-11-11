@@ -48,12 +48,13 @@ namespace ProcessParams
     constexpr uint16_t BELT_MAX_BOOST_MV       = 7500;  ///< Tensión máxima bajo carga con compensación I*R (7.5 V) [mV]
     constexpr uint8_t  BELT_PWM                = static_cast<uint8_t>((255UL * BELT_TARGET_MV) / BELT_SUPPLY_MV);    ///< Ciclo PWM base en vacío (~95)
     constexpr uint8_t  BELT_MAX_BOOST_PWM      = static_cast<uint8_t>((255UL * BELT_MAX_BOOST_MV) / BELT_SUPPLY_MV); ///< Ciclo PWM tope bajo carga (~159)
-    constexpr bool     ENABLE_BELT_IR_COMP     = true;  ///< Habilita compensación automática de voltaje según corriente IS
+    constexpr bool     ENABLE_BELT_IR_COMP     = false;  ///< Habilita compensación automática de voltaje según corriente IS
     constexpr uint16_t BELT_IDLE_CURRENT_ADC   = 25;    ///< Umbral ADC en vacío (ver valor "IS" en pantalla DEBUG sin peso) [0..1023]
     constexpr uint16_t BELT_FULL_LOAD_ADC      = 220;   ///< Lectura ADC con carga donde alcanza BELT_MAX_BOOST_MV [0..1023]
     constexpr uint8_t  BELT_ACCEL_PWM_STEP     = 5;     ///< Incremento de PWM por ciclo en aceleración
     constexpr uint8_t  BELT_DECEL_PWM_STEP     = 8;     ///< Decremento de PWM por ciclo en desaceleración
-    constexpr uint16_t BELT_CURRENT_LIMIT_ADC  = 650;   ///< Umbral de sobrecorriente para falla de atasco ERR-303 [cuentas ADC]
+    constexpr bool     ENABLE_BELT_STALL_PROT  = false; ///< Habilita corte por atasco ERR-303 en A8 (activar tras calibrar IS)
+    constexpr uint16_t BELT_CURRENT_LIMIT_ADC  = 900;   ///< Umbral de sobrecorriente para falla de atasco ERR-303 [cuentas ADC]
     constexpr uint16_t BELT_STALL_MS           = 500;   ///< Tiempo de persistencia de sobrecorriente para declarar atasco [ms]
 
     // ==========================================
@@ -71,9 +72,9 @@ namespace ProcessParams
         CCW = 1  ///< Sentido antihorario / espejo (180° -> 0°)
     };
 
-    constexpr ServoDir FILL_STOP_DIR           = ServoDir::CW; ///< Sentido del servo de tope 1 (Llenado): CW o CCW
+    constexpr ServoDir FILL_STOP_DIR           = ServoDir::CCW; ///< Sentido del servo de tope 1 (Llenado): CW o CCW
     constexpr ServoDir FILL_CLAMP_DIR          = ServoDir::CW; ///< Sentido del servo de sujeción 1 (Llenado): CW o CCW
-    constexpr ServoDir CAP_STOP_DIR            = ServoDir::CW; ///< Sentido del servo de tope 2 (Tapado): CW o CCW
+    constexpr ServoDir CAP_STOP_DIR            = ServoDir::CCW; ///< Sentido del servo de tope 2 (Tapado): CW o CCW
     constexpr ServoDir CAP_CLAMP_DIR           = ServoDir::CW; ///< Sentido del servo de sujeción 2 (Tapado): CW o CCW
 
     constexpr uint8_t  FILL_STOP_UP_DEG        = 10;    ///< Ángulo de reposo del brazo de tope de llenado [grados]

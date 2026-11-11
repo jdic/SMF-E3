@@ -181,6 +181,7 @@ DcMotorBts7960::DcMotorBts7960(
       enPin_(enPin),
       lpwmPin_(lpwmPin),
       currentSensePin_(currentSensePin),
+      activePwmPin_(UNUSED_PIN),
       currentPwm_(0),
       enabled_(false),
       currentSamples_{0},
@@ -227,8 +228,9 @@ void DcMotorBts7960::driveForward(uint8_t pwm)
 
     digitalWrite(enPin_, HIGH);
     writePwmPin(rpwmPin_, pwm);
-    currentPwm_ = pwm;
-    enabled_ = true;
+    activePwmPin_ = rpwmPin_;
+    currentPwm_   = pwm;
+    enabled_      = true;
 }
 
 void DcMotorBts7960::driveReverse(uint8_t pwm)
@@ -248,8 +250,9 @@ void DcMotorBts7960::driveReverse(uint8_t pwm)
     writePwmPin(rpwmPin_, 0);
     digitalWrite(enPin_, HIGH);
     writePwmPin(lpwmPin_, pwm);
-    currentPwm_ = pwm;
-    enabled_ = true;
+    activePwmPin_ = lpwmPin_;
+    currentPwm_   = pwm;
+    enabled_      = true;
 }
 
 void DcMotorBts7960::brake()
@@ -262,8 +265,9 @@ void DcMotorBts7960::brake()
 
     // En el BTS7960, EN = HIGH con ambos PWM en LOW activa el frenado por rama inferior
     digitalWrite(enPin_, HIGH);
-    currentPwm_ = 0;
-    enabled_ = true;
+    activePwmPin_ = UNUSED_PIN;
+    currentPwm_   = 0;
+    enabled_      = true;
     for (uint8_t i = 0; i < CURRENT_FILTER_SAMPLES; ++i)
     {
         currentSamples_[i] = 0;
@@ -280,8 +284,9 @@ void DcMotorBts7960::stop()
     }
 
     digitalWrite(enPin_, LOW);
-    currentPwm_ = 0;
-    enabled_ = false;
+    activePwmPin_ = UNUSED_PIN;
+    currentPwm_   = 0;
+    enabled_      = false;
     for (uint8_t i = 0; i < CURRENT_FILTER_SAMPLES; ++i)
     {
         currentSamples_[i] = 0;
@@ -291,31 +296,35 @@ void DcMotorBts7960::stop()
 
 uint16_t DcMotorBts7960::sampleCurrentAdc()
 {
-    if (currentSensePin_ == UNUSED_PIN || !enabled_ || currentPwm_ == 0U)
+    if (currentSensePin_ == UNUSED_PIN || !enabled_ || currentPwm_ == 0U || activePwmPin_ == UNUSED_PIN)
     {
         return 0;
     }
 
-    // En el puente H BTS7960, el espejo de corriente IS solo entrega señal mientras el MOSFET
-    // superior está conduciendo (pulso PWM en HIGH). A voltajes bajos (ej. 4.5 V / 24 V -> PWM ~18%),
-    // sincronizamos la lectura ADC con el estado HIGH del pin PWM activo (timeout de 1 periodo ~2.2 ms).
+    // IMPORTANTE (AVR): No usar digitalRead() sobre un pin con PWM activo, ya que wiring_digital.c
+    // invoca internamente turnOffPWM(timer) y apaga la salida PWM por hardware. Se lee directamente
+    // el registro PINx del puerto para sincronizar el muestreo ADC con el pulso HIGH del MOSFET superior.
     if (currentPwm_ < 255U)
     {
-        const uint8_t activePwmPin =
-            (lpwmPin_ != UNUSED_PIN && digitalRead(lpwmPin_) == HIGH) ? lpwmPin_ : rpwmPin_;
-
-        if (digitalRead(activePwmPin) == LOW)
+        const uint8_t port = digitalPinToPort(activePwmPin_);
+        if (port != NOT_A_PIN)
         {
-            const uint32_t waitStartUs = micros();
-            while (digitalRead(activePwmPin) == LOW)
+            volatile uint8_t* const pinReg  = portInputRegister(port);
+            const uint8_t           bitMask = digitalPinToBitMask(activePwmPin_);
+
+            if ((*pinReg & bitMask) == 0U)
             {
-                if ((micros() - waitStartUs) >= 2200UL)
+                const uint32_t waitStartUs = micros();
+                while ((*pinReg & bitMask) == 0U)
                 {
-                    break;
+                    if ((micros() - waitStartUs) >= 2200UL)
+                    {
+                        break;
+                    }
                 }
+                // Breve asentamiento del espejo de corriente IS del BTS7960 (~15 us tras flanco de subida)
+                delayMicroseconds(15);
             }
-            // Breve asentamiento del espejo de corriente IS del BTS7960 (~15 us tras flanco de subida)
-            delayMicroseconds(15);
         }
     }
 
@@ -328,7 +337,7 @@ uint16_t DcMotorBts7960::sampleCurrentAdc()
         sum += currentSamples_[i];
     }
 
-    filteredAdc_ = static_cast<uint16_t>(sum / CURRENT_FILTER_SAMPLES);
+    filteredAdc_ = static_cast<uint16_t>((sum + (CURRENT_FILTER_SAMPLES - 1U)) / CURRENT_FILTER_SAMPLES);
     return filteredAdc_;
 }
 

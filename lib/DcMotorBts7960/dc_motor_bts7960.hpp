@@ -100,6 +100,7 @@ private:
     uint8_t  enPin_;
     uint8_t  lpwmPin_;
     uint8_t  currentSensePin_;
+    uint8_t  activePwmPin_;
     uint8_t  currentPwm_;
     bool     enabled_;
     uint16_t currentSamples_[CURRENT_FILTER_SAMPLES];

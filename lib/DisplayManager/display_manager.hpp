@@ -66,7 +66,9 @@ public:
     static constexpr int16_t  LAYOUT_BAR_Y      = 190;     ///< Coordenada Y donde inicia la barra inferior fija de navegación [px]
     static constexpr int16_t  CONTENT_HEIGHT    = 190;     ///< Altura disponible para el contenido de cada Screen [px]
     static constexpr int16_t  MARKER_RADIUS     = 4;       ///< Radio en píxeles de la mira del último touch [px]
-    static constexpr int16_t  RAW_GLITCH_BAND   = 12;      ///< Diferencia máxima admisible entre 2 muestras ADC seguidas
+    static constexpr int16_t  RAW_GLITCH_BAND   = 18;      ///< Diferencia máxima admisible entre 2 muestras ADC seguidas
+    static constexpr uint8_t  TOUCH_RELEASE_TICKS = 3U;    ///< Muestras consecutivas sin presión para confirmar liberación (~75 ms)
+    static constexpr uint32_t TOUCH_COOLDOWN_MS = 220UL;   ///< Tiempo mínimo antirrebote entre dos pulsaciones de comando [ms]
     static constexpr uint8_t  LANDSCAPE_ROT     = 1;       ///< Rotación horizontal estándar (320x240)
     static constexpr uint16_t TOUCH_RX_OHMS     = 300U;    ///< Resistencia nominal en placa X del panel táctil [ohms]
     static constexpr uint16_t FALLBACK_TFT_ID   = 0x9341U; ///< ID de respaldo ILI9341 si readID() devuelve valor inválido
@@ -182,6 +184,11 @@ private:
     bool                hasLastMarker_;       ///< Indica si hay un marcador de depuración dibujado
     int16_t             lastMarkerX_;         ///< Última coordenada X de la mira de depuración [px]
     int16_t             lastMarkerY_;         ///< Última coordenada Y de la mira de depuración [px]
+    bool                touchHeld_;           ///< Estado filtrado de contacto táctil activo (con histéresis de liberación)
+    uint8_t             touchReleaseCount_;   ///< Contador de muestras consecutivas sin toque para evitar falsos sueltes
+    int16_t             lastTouchPx_;         ///< Última coordenada X válida durante la retención táctil [px]
+    int16_t             lastTouchPy_;         ///< Última coordenada Y válida durante la retención táctil [px]
+    uint32_t            lastCommandMs_;       ///< Marca temporal del último comando táctil disparado [ms]
 
     // Botones táctiles de las 5 pestañas de navegación inferior (layout_base.svg)
     Adafruit_GFX_Button btnNavHome_;          ///< Pestaña 0: HOME (X = 0..63, Y = 190..239)

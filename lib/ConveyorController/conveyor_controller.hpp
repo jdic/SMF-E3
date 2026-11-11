@@ -23,6 +23,7 @@ struct ConveyorConfig
     uint16_t fullLoadCurrentAdc; ///< Corriente de plena carga [cuentas ADC] donde se alcanza maxBoostPwm
     uint8_t  accelStepPwm;       ///< Incremento de PWM por ciclo de 20 ms en rampa de aceleración [1..255]
     uint8_t  decelStepPwm;       ///< Decremento de PWM por ciclo de 20 ms en rampa de desaceleración [1..255]
+    bool     enableStallProt;    ///< true para habilitar corte automático por sobrecorriente ERR-303
     uint16_t currentLimitAdc;    ///< Umbral de sobrecorriente en cuentas ADC [0..1023] para evaluar atasco
     uint16_t stallTimeMs;        ///< Tiempo continuo superando currentLimitAdc para declarar atasco ERR-303 [ms]
 };

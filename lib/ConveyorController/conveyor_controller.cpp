@@ -135,7 +135,7 @@ void ConveyorController::update()
     }
 
     // 3. Supervisión de sobrecorriente crítica (ERR-303) mientras el motor está energizado
-    if (currentPwm_ == 0U)
+    if (currentPwm_ == 0U || !config_.enableStallProt)
     {
         inOvercurrent_ = false;
         return;

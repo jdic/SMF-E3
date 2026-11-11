@@ -83,6 +83,7 @@ namespace
         cfg.fullLoadCurrentAdc = ProcessParams::BELT_FULL_LOAD_ADC;
         cfg.accelStepPwm       = ProcessParams::BELT_ACCEL_PWM_STEP;
         cfg.decelStepPwm       = ProcessParams::BELT_DECEL_PWM_STEP;
+        cfg.enableStallProt    = ProcessParams::ENABLE_BELT_STALL_PROT;
         cfg.currentLimitAdc    = ProcessParams::BELT_CURRENT_LIMIT_ADC;
         cfg.stallTimeMs        = ProcessParams::BELT_STALL_MS;
         return cfg;

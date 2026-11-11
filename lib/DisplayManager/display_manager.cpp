@@ -333,6 +333,11 @@ DisplayManager::DisplayManager(const DisplayTouchConfig& config)
       hasLastMarker_(false),
       lastMarkerX_(0),
       lastMarkerY_(0),
+      touchHeld_(false),
+      touchReleaseCount_(0U),
+      lastTouchPx_(0),
+      lastTouchPy_(0),
+      lastCommandMs_(0UL),
       btnNavHome_(),
       btnNavAutoFill_(),
       btnNavAutoCap_(),
@@ -553,9 +558,32 @@ void DisplayManager::render(const DisplaySnapshot& snapshot)
 
 TouchCommand DisplayManager::pollTouchCommand()
 {
-    int16_t px = 0;
-    int16_t py = 0;
-    const bool touched = readTouchPixel(px, py);
+    int16_t rawPx = 0;
+    int16_t rawPy = 0;
+    const bool rawTouched = readTouchPixel(rawPx, rawPy);
+
+    // Filtro de retención táctil: evita que un corte de 1 o 2 muestras (por ruido eléctrico al
+    // conmutar motores/relés o micro-deslizamiento del dedo) simule que se soltó y volvió a pulsar
+    if (rawTouched)
+    {
+        touchHeld_         = true;
+        touchReleaseCount_ = 0U;
+        lastTouchPx_       = rawPx;
+        lastTouchPy_       = rawPy;
+    }
+    else if (touchHeld_)
+    {
+        touchReleaseCount_++;
+        if (touchReleaseCount_ >= TOUCH_RELEASE_TICKS)
+        {
+            touchHeld_         = false;
+            touchReleaseCount_ = 0U;
+        }
+    }
+
+    const bool    touched = touchHeld_;
+    const int16_t px      = lastTouchPx_;
+    const int16_t py      = lastTouchPy_;
 
     // 1. Pestañas de navegación fija en la barra inferior (layout_base.svg)
     btnNavHome_.press(touched && btnNavHome_.contains(px, py));
@@ -595,6 +623,7 @@ TouchCommand DisplayManager::pollTouchCommand()
     }
 
     const bool isTestMode = hasRenderedSnapshot_ && (renderedSnapshot_.mode == StationMode::TestMode);
+    TouchCommand cmd = TouchCommand::None;
 
     // 2. Botones de la pantalla Settings
     if (currentScreen_ == ScreenId::Settings)
@@ -606,30 +635,12 @@ TouchCommand DisplayManager::pollTouchCommand()
         btnReleaseArms_.press(touched && btnReleaseArms_.contains(px, py));
         btnConfirmClear_.press(touched && btnConfirmClear_.contains(px, py));
 
-        if (btnTestMode_.justPressed())
-        {
-            return TouchCommand::ToggleTestMode;
-        }
-        if (btnSetProfile_.justPressed())
-        {
-            return TouchCommand::CycleBottleProfile;
-        }
-        if (btnJogFillUp_.justPressed())
-        {
-            return TouchCommand::JogFillZUp;
-        }
-        if (btnJogCapUp_.justPressed())
-        {
-            return TouchCommand::JogCapZUp;
-        }
-        if (btnReleaseArms_.justPressed())
-        {
-            return TouchCommand::ReleaseArms;
-        }
-        if (btnConfirmClear_.justPressed())
-        {
-            return TouchCommand::ConfirmLineClear;
-        }
+        if (btnTestMode_.justPressed())          { cmd = TouchCommand::ToggleTestMode; }
+        else if (btnSetProfile_.justPressed())   { cmd = TouchCommand::CycleBottleProfile; }
+        else if (btnJogFillUp_.justPressed())    { cmd = TouchCommand::JogFillZUp; }
+        else if (btnJogCapUp_.justPressed())     { cmd = TouchCommand::JogCapZUp; }
+        else if (btnReleaseArms_.justPressed())  { cmd = TouchCommand::ReleaseArms; }
+        else if (btnConfirmClear_.justPressed()) { cmd = TouchCommand::ConfirmLineClear; }
     }
     else
     {
@@ -652,10 +663,10 @@ TouchCommand DisplayManager::pollTouchCommand()
             btnHomeTowerRed_.press(touched && btnHomeTowerRed_.contains(px, py));
             btnBottomAction_.press(false);
 
-            if (btnHomeBelt_.justPressed())       { return TouchCommand::TestToggleBelt; }
-            if (btnHomeBuzzer_.justPressed())     { return TouchCommand::TestToggleBuzzer; }
-            if (btnHomeTowerGreen_.justPressed()) { return TouchCommand::TestToggleTowerGreen; }
-            if (btnHomeTowerRed_.justPressed())   { return TouchCommand::TestToggleTowerRed; }
+            if (btnHomeBelt_.justPressed())            { cmd = TouchCommand::TestToggleBelt; }
+            else if (btnHomeBuzzer_.justPressed())     { cmd = TouchCommand::TestToggleBuzzer; }
+            else if (btnHomeTowerGreen_.justPressed()) { cmd = TouchCommand::TestToggleTowerGreen; }
+            else if (btnHomeTowerRed_.justPressed())   { cmd = TouchCommand::TestToggleTowerRed; }
         }
         else
         {
@@ -669,7 +680,7 @@ TouchCommand DisplayManager::pollTouchCommand()
                 hasRenderedSnapshot_ &&
                 (renderedSnapshot_.mode == StationMode::ErrorStop))
             {
-                return TouchCommand::AcknowledgeAlarm;
+                cmd = TouchCommand::AcknowledgeAlarm;
             }
         }
     }
@@ -693,19 +704,19 @@ TouchCommand DisplayManager::pollTouchCommand()
 
         if (currentScreen_ == ScreenId::AutoFill)
         {
-            if (btnActStopArm_.justPressed())   { return TouchCommand::TestToggleFillStopArm; }
-            if (btnActClampArm_.justPressed())  { return TouchCommand::TestToggleFillClampArm; }
-            if (btnActMainPower_.justPressed()) { return TouchCommand::TestToggleFillPump; }
-            if (btnActJogZUp_.justPressed())    { return TouchCommand::JogFillZUp; }
-            if (btnActJogZDown_.justPressed())  { return TouchCommand::TestJogFillZDown; }
+            if (btnActStopArm_.justPressed())        { cmd = TouchCommand::TestToggleFillStopArm; }
+            else if (btnActClampArm_.justPressed())  { cmd = TouchCommand::TestToggleFillClampArm; }
+            else if (btnActMainPower_.justPressed()) { cmd = TouchCommand::TestToggleFillPump; }
+            else if (btnActJogZUp_.justPressed())    { cmd = TouchCommand::JogFillZUp; }
+            else if (btnActJogZDown_.justPressed())  { cmd = TouchCommand::TestJogFillZDown; }
         }
         else
         {
-            if (btnActStopArm_.justPressed())   { return TouchCommand::TestToggleCapStopArm; }
-            if (btnActClampArm_.justPressed())  { return TouchCommand::TestToggleCapClampArm; }
-            if (btnActMainPower_.justPressed()) { return TouchCommand::TestToggleChuckMotor; }
-            if (btnActJogZUp_.justPressed())    { return TouchCommand::JogCapZUp; }
-            if (btnActJogZDown_.justPressed())  { return TouchCommand::TestJogCapZDown; }
+            if (btnActStopArm_.justPressed())        { cmd = TouchCommand::TestToggleCapStopArm; }
+            else if (btnActClampArm_.justPressed())  { cmd = TouchCommand::TestToggleCapClampArm; }
+            else if (btnActMainPower_.justPressed()) { cmd = TouchCommand::TestToggleChuckMotor; }
+            else if (btnActJogZUp_.justPressed())    { cmd = TouchCommand::JogCapZUp; }
+            else if (btnActJogZDown_.justPressed())  { cmd = TouchCommand::TestJogCapZDown; }
         }
     }
     else
@@ -717,7 +728,17 @@ TouchCommand DisplayManager::pollTouchCommand()
         btnActJogZDown_.press(false);
     }
 
-    return TouchCommand::None;
+    if (cmd != TouchCommand::None)
+    {
+        const uint32_t nowMs = millis();
+        if ((nowMs - lastCommandMs_) < TOUCH_COOLDOWN_MS)
+        {
+            return TouchCommand::None;
+        }
+        lastCommandMs_ = nowMs;
+    }
+
+    return cmd;
 }
 
 void DisplayManager::updateTouchNavigation()
