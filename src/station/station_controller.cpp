@@ -106,23 +106,23 @@ StationController::StationController()
     : presenceFill_(
           HardwarePins::PIN_PRESENCE_FILL,
           ProcessParams::SENSOR_DEBOUNCE_MS,
-          true,
-          false),
+          ProcessParams::OPTICAL_ACTIVE_HIGH,
+          ProcessParams::OPTICAL_USE_PULLUP),
       positionFill_(
           HardwarePins::PIN_POS_FILL,
           ProcessParams::SENSOR_DEBOUNCE_MS,
-          true,
-          false),
+          ProcessParams::OPTICAL_ACTIVE_HIGH,
+          ProcessParams::OPTICAL_USE_PULLUP),
       presenceCap_(
           HardwarePins::PIN_PRESENCE_CAP,
           ProcessParams::SENSOR_DEBOUNCE_MS,
-          true,
-          false),
+          ProcessParams::OPTICAL_ACTIVE_HIGH,
+          ProcessParams::OPTICAL_USE_PULLUP),
       positionCap_(
           HardwarePins::PIN_POS_CAP,
           ProcessParams::SENSOR_DEBOUNCE_MS,
-          true,
-          false),
+          ProcessParams::OPTICAL_ACTIVE_HIGH,
+          ProcessParams::OPTICAL_USE_PULLUP),
       limitSwitchFill_(
           HardwarePins::PIN_LIMIT_SWITCH_FILL,
           ProcessParams::SENSOR_DEBOUNCE_MS,
@@ -202,6 +202,7 @@ StationController::StationController()
           0U,
           0,
           0,
+          0U,
           0U,
           0U},
       snapshotDirty_(true)
@@ -911,6 +912,18 @@ void StationController::refreshDisplaySnapshot()
         effectiveFlags |= TestFlags::CAP_HOME_SW;
     }
 
+    uint16_t inFlags = 0U;
+    if (presenceFill_.isTriggered())    { inFlags |= InputFlags::PRESENCE_FILL; }
+    if (positionFill_.isTriggered())    { inFlags |= InputFlags::POS_FILL; }
+    if (presenceCap_.isTriggered())     { inFlags |= InputFlags::PRESENCE_CAP; }
+    if (positionCap_.isTriggered())     { inFlags |= InputFlags::POS_CAP; }
+    if (limitSwitchFill_.isTriggered()) { inFlags |= InputFlags::LIMIT_FILL; }
+    if (limitSwitchCap_.isTriggered())  { inFlags |= InputFlags::LIMIT_CAP; }
+    if (btnStart_.isTriggered())        { inFlags |= InputFlags::BTN_START; }
+    if (btnStop_.isTriggered())         { inFlags |= InputFlags::BTN_STOP; }
+    if (btnReset_.isTriggered())        { inFlags |= InputFlags::BTN_RESET; }
+    if (estopAux_.isTriggered())        { inFlags |= InputFlags::ESTOP_ACTIVE; }
+
     if (lastSnapshot_.error != effectiveErr ||
         lastSnapshot_.mode != mode_ ||
         lastSnapshot_.fillState != fState ||
@@ -922,7 +935,8 @@ void StationController::refreshDisplaySnapshot()
         lastSnapshot_.fillZSteps != fSteps ||
         lastSnapshot_.capZSteps != cSteps ||
         lastSnapshot_.beltPwm != bPwm ||
-        lastSnapshot_.beltCurrentAdc != bCurrentAdc)
+        lastSnapshot_.beltCurrentAdc != bCurrentAdc ||
+        lastSnapshot_.inputFlags != inFlags)
     {
         lastSnapshot_.error          = effectiveErr;
         lastSnapshot_.mode           = mode_;
@@ -936,6 +950,7 @@ void StationController::refreshDisplaySnapshot()
         lastSnapshot_.capZSteps      = cSteps;
         lastSnapshot_.beltPwm        = bPwm;
         lastSnapshot_.beltCurrentAdc = bCurrentAdc;
+        lastSnapshot_.inputFlags     = inFlags;
         snapshotDirty_               = true;
     }
 }

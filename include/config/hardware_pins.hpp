@@ -45,7 +45,7 @@ namespace HardwarePins
 
     // Motor de cabezal de apriete:
     constexpr uint8_t PIN_BTS_CHUCK_RPWM    = 11; ///< PWM de modulación de giro de apriete
-    constexpr uint8_t PIN_BTS_CHUCK_EN      = 14; ///< Habilitación del puente para apriete
+    constexpr uint8_t PIN_BTS_CHUCK_EN      = 32; ///< Habilitación del puente para apriete OG14
     constexpr uint8_t PIN_ADC_CHUCK_CURRENT = A9; ///< Lectura analógica de corriente de apriete (IS)
 
     // =========================================================================

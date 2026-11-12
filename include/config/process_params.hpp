@@ -15,15 +15,17 @@
 namespace ProcessParams
 {
     // ==========================================
-    // SENSORES DIGITALES (antirrebote)
+    // SENSORES DIGITALES (antirrebote y polaridad)
     // ==========================================
     constexpr uint16_t SENSOR_DEBOUNCE_MS      = 25;    ///< Ventana de estabilidad de lectura digital [ms]
+    constexpr bool     OPTICAL_ACTIVE_HIGH     = false; ///< false: sensor da LOW con objeto (NPN/típico IR); true: HIGH con objeto
+    constexpr bool     OPTICAL_USE_PULLUP      = true;  ///< Habilita pullup interno para salidas NPN a colector abierto
 
     // ==========================================
     // FLUJO ENTRE ETAPAS Y HABILITACIÓN DE MÓDULOS
     // ==========================================
     constexpr bool     ENABLE_INTERSTAGE_QUEUE = false; ///< Retiene botellas en llenado cuando la cola alcanza MAX_INTERSTAGE_QUEUE
-    constexpr bool     ENABLE_CAPPING_STATION  = false; ///< Habilita el autómata de tapado (false opera únicamente llenado)
+    constexpr bool     ENABLE_CAPPING_STATION  = true;  ///< Habilita el autómata de tapado (false opera únicamente llenado)
     constexpr uint8_t  MAX_INTERSTAGE_QUEUE    = 2;     ///< Capacidad máxima de botellas entre etapas [unidades]
 
     // ==========================================
@@ -37,8 +39,8 @@ namespace ProcessParams
     constexpr uint16_t Z_JOG_STEPS             = 400;   ///< Paso de avance manual en recuperación [step]
     constexpr int32_t  FILL_Z_MAX_TRAVEL_STEPS = 24000; ///< Límite inferior de recorrido en llenado [step]
     constexpr int32_t  CAP_Z_MAX_TRAVEL_STEPS  = 24000; ///< Límite inferior de recorrido en tapado [step]
-    constexpr uint16_t Z_MOVE_TIMEOUT_MS       = 5000;  ///< Tiempo límite de desplazamiento vertical [ms]
-    constexpr uint16_t Z_HOMING_TIMEOUT_MS     = 10000; ///< Tiempo límite de búsqueda de origen en arranque [ms]
+    constexpr uint16_t Z_MOVE_TIMEOUT_MS       = 6500;  ///< Tiempo límite de desplazamiento vertical [ms]
+    constexpr uint16_t Z_HOMING_TIMEOUT_MS     = 18500; ///< Tiempo límite de búsqueda de origen en arranque [ms]
 
     // ==========================================
     // BANDA TRANSPORTADORA Y COMPENSACIÓN I*R
@@ -49,7 +51,7 @@ namespace ProcessParams
     constexpr uint8_t  BELT_PWM                = static_cast<uint8_t>((255UL * BELT_TARGET_MV) / BELT_SUPPLY_MV);    ///< Ciclo PWM base en vacío (~95)
     constexpr uint8_t  BELT_MAX_BOOST_PWM      = static_cast<uint8_t>((255UL * BELT_MAX_BOOST_MV) / BELT_SUPPLY_MV); ///< Ciclo PWM tope bajo carga (~159)
     constexpr bool     ENABLE_BELT_IR_COMP     = false;  ///< Habilita compensación automática de voltaje según corriente IS
-    constexpr uint16_t BELT_IDLE_CURRENT_ADC   = 25;    ///< Umbral ADC en vacío (ver valor "IS" en pantalla DEBUG sin peso) [0..1023]
+    constexpr uint16_t BELT_IDLE_CURRENT_ADC   = 300;    ///< Umbral ADC en vacío (ver valor "IS" en pantalla DEBUG sin peso) [0..1023]
     constexpr uint16_t BELT_FULL_LOAD_ADC      = 220;   ///< Lectura ADC con carga donde alcanza BELT_MAX_BOOST_MV [0..1023]
     constexpr uint8_t  BELT_ACCEL_PWM_STEP     = 5;     ///< Incremento de PWM por ciclo en aceleración
     constexpr uint8_t  BELT_DECEL_PWM_STEP     = 8;     ///< Decremento de PWM por ciclo en desaceleración
@@ -81,10 +83,10 @@ namespace ProcessParams
     constexpr uint8_t  FILL_STOP_DOWN_DEG      = 100;   ///< Ángulo de bloqueo del brazo de tope de llenado [grados]
     constexpr uint8_t  FILL_CLAMP_UP_DEG       = 10;    ///< Ángulo de reposo del brazo de sujeción de llenado [grados]
     constexpr uint8_t  FILL_CLAMP_DOWN_DEG     = 95;    ///< Ángulo de bloqueo del brazo de sujeción de llenado [grados]
-    constexpr uint8_t  CAP_STOP_UP_DEG         = 10;    ///< Ángulo de reposo del brazo de tope de tapado [grados]
-    constexpr uint8_t  CAP_STOP_DOWN_DEG       = 100;   ///< Ángulo de bloqueo del brazo de tope de tapado [grados]
-    constexpr uint8_t  CAP_CLAMP_UP_DEG        = 10;    ///< Ángulo de reposo del brazo de sujeción de tapado [grados]
-    constexpr uint8_t  CAP_CLAMP_DOWN_DEG      = 95;    ///< Ángulo de bloqueo del brazo de sujeción de tapado [grados]
+    constexpr uint8_t  CAP_STOP_UP_DEG         = 100;    ///< Ángulo de reposo del brazo de tope de tapado [grados]
+    constexpr uint8_t  CAP_STOP_DOWN_DEG       = 10;   ///< Ángulo de bloqueo del brazo de tope de tapado [grados]
+    constexpr uint8_t  CAP_CLAMP_UP_DEG        = 95;    ///< Ángulo de reposo del brazo de sujeción de tapado [grados]
+    constexpr uint8_t  CAP_CLAMP_DOWN_DEG      = 10;    ///< Ángulo de bloqueo del brazo de sujeción de tapado [grados]
     constexpr uint16_t CLAMP_DELAY_MS          = 1000;  ///< Tiempo de espera entre accionamiento de brazos [ms]
     constexpr uint16_t CLAMP_SENSOR_TIMEOUT_MS = 3000;  ///< Tiempo límite para detección en sensor de posición [ms]
     constexpr uint16_t ARM_MOVE_MS             = 600;   ///< Tiempo de transición mecánica de los brazos [ms]
@@ -148,7 +150,7 @@ namespace ProcessParams
      */
     constexpr BottleProfileParams BOTTLE_PROFILES[] =
     {
-        { 0, 0, 0 }, // Small
-        { 0, 0, 0 }  // Large
+        { 0, 21878, 3500 }, // Small
+        { 0, 9200, 5000 }  // Large
     };
 }

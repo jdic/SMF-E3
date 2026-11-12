@@ -215,6 +215,14 @@ namespace
         tft.setCursor(cursorX, cursorY);
         tft.print(label);
     }
+
+    void drawInputBadge(int16_t x, int16_t y, bool active, uint16_t activeColor = COLOR_GREEN_OK)
+    {
+        tft.setTextSize(1);
+        tft.setTextColor(active ? activeColor : COLOR_DARK_GRAY, COLOR_BG);
+        tft.setCursor(x, y);
+        tft.print(active ? F("[ON ]") : F("[OFF]"));
+    }
 }
 
 // ============================================================================
@@ -328,6 +336,7 @@ DisplayManager::DisplayManager(const DisplayTouchConfig& config)
           0U,
           0,
           0,
+          0U,
           0U,
           0U},
       hasLastMarker_(false),
@@ -1198,32 +1207,57 @@ void DisplayManager::drawDebugStaticFrame()
     // Encabezado (Debug permanece igual sin importar el modo)
     tft.setTextSize(1);
     tft.setTextColor(COLOR_CYAN, COLOR_BG);
-    tft.setCursor(8, 10);
-    tft.print(F("DIAGN\x93STICO EN VIVO Y SE\x91""ALES I/O"));
+    tft.setCursor(8, 6);
+    tft.print(F("DIAGN\x93STICO EN VIVO: ENTRADAS, EJES Y BANDA"));
 
-    // Tarjeta 1: Estado General y Error Activo (Y = 26..66)
-    tft.drawRect(6, 26, 308, 40, COLOR_DARK_GRAY);
-    tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_BG);
-    tft.setCursor(14, 34);
-    tft.print(F("MODO / ERROR:"));
+    // Tarjeta 1: Sensores Ópticos y Fines de Carrera (Limit Switches) (Y = 20..70)
+    tft.drawRect(6, 20, 308, 50, COLOR_DARK_GRAY);
+    tft.setTextColor(COLOR_CYAN, COLOR_BG);
+    tft.setCursor(12, 25);
+    tft.print(F("SENSORES \x93PTICOS Y LIMIT SWITCHES (HOME):"));
 
-    // Tarjeta 2: Posición en Pasos de los Ejes Z desde Home=0 (Y = 72..132)
-    tft.drawRect(6, 72, 308, 60, COLOR_DARK_GRAY);
     tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_BG);
-    tft.setCursor(14, 80);
-    tft.print(F("POSICI\x93N EJES Z (PASOS DESDE HOME = 0):"));
-    tft.setCursor(14, 96);
+    tft.setCursor(12, 39);
+    tft.print(F("LLEN: PRE1:"));
+    tft.setCursor(116, 39);
+    tft.print(F("POS1:"));
+    tft.setCursor(184, 39);
+    tft.print(F("FC-Z1:"));
+
+    tft.setCursor(12, 53);
+    tft.print(F("TAP : PRE2:"));
+    tft.setCursor(116, 53);
+    tft.print(F("POS2:"));
+    tft.setCursor(184, 53);
+    tft.print(F("FC-Z2:"));
+
+    // Tarjeta 2: Botonera de Control y Paro de Emergencia E-STOP (Y = 74..98)
+    tft.drawRect(6, 74, 308, 24, COLOR_DARK_GRAY);
+    tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_BG);
+    tft.setCursor(12, 82);
+    tft.print(F("BTN : STRT:"));
+    tft.setCursor(112, 82);
+    tft.print(F("STOP:"));
+    tft.setCursor(178, 82);
+    tft.print(F("RST:"));
+    tft.setCursor(238, 82);
+    tft.print(F("ESTOP:"));
+
+    // Tarjeta 3: Posición en Pasos de los Ejes Z desde Home=0 (Y = 102..142)
+    tft.drawRect(6, 102, 308, 40, COLOR_DARK_GRAY);
+    tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_BG);
+    tft.setCursor(12, 109);
     tft.print(F("Z1 (LLENADO):"));
-    tft.setCursor(14, 114);
+    tft.setCursor(12, 125);
     tft.print(F("Z2 (TAPADO) :"));
 
-    // Tarjeta 3: Banda (Voltaje, PWM, Corriente IS) y Producción (Y = 136..182)
-    tft.drawRect(6, 136, 308, 46, COLOR_DARK_GRAY);
+    // Tarjeta 4: Banda (Voltaje, PWM, Corriente IS) y Alarma Activa (Y = 146..186)
+    tft.drawRect(6, 146, 308, 40, COLOR_DARK_GRAY);
     tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_BG);
-    tft.setCursor(14, 144);
+    tft.setCursor(12, 153);
     tft.print(F("BANDA:"));
-    tft.setCursor(14, 162);
-    tft.print(F("COLA / PROD:"));
+    tft.setCursor(12, 169);
+    tft.print(F("ALRM :"));
 }
 
 void DisplayManager::renderAutoFillDynamic(const DisplaySnapshot& snapshot, bool fullRedraw)
@@ -1380,36 +1414,58 @@ void DisplayManager::renderAutoCapDynamic(const DisplaySnapshot& snapshot, bool 
 
 void DisplayManager::renderDebugDynamic(const DisplaySnapshot& snapshot, bool fullRedraw)
 {
-    if (fullRedraw || (snapshot.mode != renderedSnapshot_.mode) || (snapshot.error != renderedSnapshot_.error))
-    {
-        uint16_t dummyBg = 0;
-        uint16_t dummyFg = 0;
-        tft.setTextSize(1);
-        tft.setTextColor(COLOR_CYAN, COLOR_BG);
-        tft.setCursor(100, 34);
-        tft.print(getModeProgmem(snapshot.mode, dummyBg, dummyFg));
+    const uint16_t diffIn = snapshot.inputFlags ^ renderedSnapshot_.inputFlags;
 
-        tft.setCursor(14, 48);
-        if (snapshot.error != ErrorCode::None)
-        {
-            tft.setTextColor(COLOR_RED_ALARM, COLOR_BG);
-            tft.print(getErrorProgmem(snapshot.error, dummyBg, dummyFg));
-        }
-        else
-        {
-            tft.setTextColor(COLOR_GREEN_OK, COLOR_BG);
-            tft.print(F("SIN ALARMAS ACTIVAS (OK)  "));
-        }
+    // 1. Tarjeta 1: Sensores Ópticos y Fines de Carrera (Limit Switches)
+    if (fullRedraw || ((diffIn & InputFlags::PRESENCE_FILL) != 0U))
+    {
+        drawInputBadge(78, 39, (snapshot.inputFlags & InputFlags::PRESENCE_FILL) != 0U);
+    }
+    if (fullRedraw || ((diffIn & InputFlags::POS_FILL) != 0U))
+    {
+        drawInputBadge(146, 39, (snapshot.inputFlags & InputFlags::POS_FILL) != 0U);
+    }
+    if (fullRedraw || ((diffIn & InputFlags::LIMIT_FILL) != 0U))
+    {
+        drawInputBadge(220, 39, (snapshot.inputFlags & InputFlags::LIMIT_FILL) != 0U);
+    }
+    if (fullRedraw || ((diffIn & InputFlags::PRESENCE_CAP) != 0U))
+    {
+        drawInputBadge(78, 53, (snapshot.inputFlags & InputFlags::PRESENCE_CAP) != 0U);
+    }
+    if (fullRedraw || ((diffIn & InputFlags::POS_CAP) != 0U))
+    {
+        drawInputBadge(146, 53, (snapshot.inputFlags & InputFlags::POS_CAP) != 0U);
+    }
+    if (fullRedraw || ((diffIn & InputFlags::LIMIT_CAP) != 0U))
+    {
+        drawInputBadge(220, 53, (snapshot.inputFlags & InputFlags::LIMIT_CAP) != 0U);
     }
 
-    const uint16_t diffFlags = snapshot.testFlags ^ renderedSnapshot_.testFlags;
+    // 2. Tarjeta 2: Botonera de Control (START, STOP, RESET) y Paro de Emergencia (E-STOP)
+    if (fullRedraw || ((diffIn & InputFlags::BTN_START) != 0U))
+    {
+        drawInputBadge(76, 82, (snapshot.inputFlags & InputFlags::BTN_START) != 0U);
+    }
+    if (fullRedraw || ((diffIn & InputFlags::BTN_STOP) != 0U))
+    {
+        drawInputBadge(142, 82, (snapshot.inputFlags & InputFlags::BTN_STOP) != 0U);
+    }
+    if (fullRedraw || ((diffIn & InputFlags::BTN_RESET) != 0U))
+    {
+        drawInputBadge(202, 82, (snapshot.inputFlags & InputFlags::BTN_RESET) != 0U);
+    }
+    if (fullRedraw || ((diffIn & InputFlags::ESTOP_ACTIVE) != 0U))
+    {
+        drawInputBadge(274, 82, (snapshot.inputFlags & InputFlags::ESTOP_ACTIVE) != 0U, COLOR_RED_ALARM);
+    }
 
-    // Pasos del Eje Z1 (Llenado) + indicador de fin de carrera superior (HOME = 0)
+    // 3. Tarjeta 3: Pasos del Eje Z1 y Z2 + indicador de fin de carrera superior (HOME = 0)
     if (fullRedraw ||
         (snapshot.fillZSteps != renderedSnapshot_.fillZSteps) ||
-        ((diffFlags & TestFlags::FILL_HOME_SW) != 0U))
+        ((diffIn & InputFlags::LIMIT_FILL) != 0U))
     {
-        const bool isHomeSw = (snapshot.testFlags & TestFlags::FILL_HOME_SW) != 0U;
+        const bool isHomeSw = (snapshot.inputFlags & InputFlags::LIMIT_FILL) != 0U;
         char z1Buf[28];
         snprintf(
             z1Buf,
@@ -1420,16 +1476,15 @@ void DisplayManager::renderDebugDynamic(const DisplaySnapshot& snapshot, bool fu
 
         tft.setTextSize(1);
         tft.setTextColor(isHomeSw ? COLOR_GREEN_OK : COLOR_CYAN, COLOR_BG);
-        tft.setCursor(100, 96);
+        tft.setCursor(96, 109);
         tft.print(z1Buf);
     }
 
-    // Pasos del Eje Z2 (Tapado) + indicador de fin de carrera superior (HOME = 0)
     if (fullRedraw ||
         (snapshot.capZSteps != renderedSnapshot_.capZSteps) ||
-        ((diffFlags & TestFlags::CAP_HOME_SW) != 0U))
+        ((diffIn & InputFlags::LIMIT_CAP) != 0U))
     {
-        const bool isHomeSw = (snapshot.testFlags & TestFlags::CAP_HOME_SW) != 0U;
+        const bool isHomeSw = (snapshot.inputFlags & InputFlags::LIMIT_CAP) != 0U;
         char z2Buf[28];
         snprintf(
             z2Buf,
@@ -1440,11 +1495,11 @@ void DisplayManager::renderDebugDynamic(const DisplaySnapshot& snapshot, bool fu
 
         tft.setTextSize(1);
         tft.setTextColor(isHomeSw ? COLOR_GREEN_OK : COLOR_CYAN, COLOR_BG);
-        tft.setCursor(100, 114);
+        tft.setCursor(96, 125);
         tft.print(z2Buf);
     }
 
-    // Telemetría en vivo de la Banda: Voltaje efectivo (V), ciclo PWM y corriente IS (cuentas ADC)
+    // 4. Tarjeta 4: Telemetría en vivo de la Banda (V, PWM, IS ADC) y Alarma Activa
     if (fullRedraw ||
         (snapshot.beltPwm != renderedSnapshot_.beltPwm) ||
         (snapshot.beltCurrentAdc != renderedSnapshot_.beltCurrentAdc))
@@ -1467,20 +1522,26 @@ void DisplayManager::renderDebugDynamic(const DisplaySnapshot& snapshot, bool fu
         tft.setTextSize(1);
         tft.setTextColor((snapshot.beltPwm > ProcessParams::BELT_PWM) ? COLOR_ORANGE_REC : COLOR_CYAN,
                          COLOR_BG);
-        tft.setCursor(60, 144);
+        tft.setCursor(56, 153);
         tft.print(beltBuf);
     }
 
-    if (fullRedraw || (snapshot.queueCount != renderedSnapshot_.queueCount) || (snapshot.bottleCount != renderedSnapshot_.bottleCount))
+    if (fullRedraw || (snapshot.error != renderedSnapshot_.error))
     {
+        uint16_t dummyBg = 0;
+        uint16_t dummyFg = 0;
         tft.setTextSize(1);
-        tft.setTextColor(COLOR_WHITE, COLOR_BG);
-        tft.setCursor(100, 162);
-        tft.print(F("COLA: "));
-        tft.print(snapshot.queueCount);
-        tft.print(F(" | TOT: "));
-        tft.print(snapshot.bottleCount);
-        tft.print(F("    "));
+        tft.setCursor(56, 169);
+        if (snapshot.error != ErrorCode::None)
+        {
+            tft.setTextColor(COLOR_RED_ALARM, COLOR_BG);
+            tft.print(getErrorProgmem(snapshot.error, dummyBg, dummyFg));
+        }
+        else
+        {
+            tft.setTextColor(COLOR_GREEN_OK, COLOR_BG);
+            tft.print(F("OK: SISTEMA SIN ALARMAS   "));
+        }
     }
 }
 

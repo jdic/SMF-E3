@@ -148,6 +148,24 @@ namespace TestFlags
 }
 
 /**
+ * @namespace InputFlags
+ * @brief Banderas de bit con el estado instantáneo de todos los sensores, fines de carrera y botones.
+ */
+namespace InputFlags
+{
+    constexpr uint16_t PRESENCE_FILL = (1U << 0); ///< Sensor óptico presencia 1 (Llenado, Pin 15)
+    constexpr uint16_t POS_FILL      = (1U << 1); ///< Sensor óptico posición 1 (Llenado, Pin 16)
+    constexpr uint16_t PRESENCE_CAP  = (1U << 2); ///< Sensor óptico presencia 2 (Tapado, Pin 17)
+    constexpr uint16_t POS_CAP       = (1U << 3); ///< Sensor óptico posición 2 (Tapado, Pin 18)
+    constexpr uint16_t LIMIT_FILL    = (1U << 4); ///< Fin de carrera superior Z1 (Llenado, Pin 23)
+    constexpr uint16_t LIMIT_CAP     = (1U << 5); ///< Fin de carrera superior Z2 (Tapado, Pin 25)
+    constexpr uint16_t BTN_START     = (1U << 6); ///< Pulsador físico START (Pin 46)
+    constexpr uint16_t BTN_STOP      = (1U << 7); ///< Pulsador físico STOP (Pin 48)
+    constexpr uint16_t BTN_RESET     = (1U << 8); ///< Pulsador físico RESET (Pin 52)
+    constexpr uint16_t ESTOP_ACTIVE  = (1U << 9); ///< Contacto auxiliar de emergencia E-STOP (Pin 50)
+}
+
+/**
  * @enum BuzzerPattern
  * @brief Patrones acústicos no bloqueantes emitidos por el driver AlarmBuzzer según severidad.
  */
@@ -178,6 +196,7 @@ struct DisplaySnapshot
     int32_t       capZSteps;      ///< Posición actual en micropasos del eje Z2 desde Home (0 = fin de carrera superior)
     uint8_t       beltPwm;        ///< Ciclo PWM actual aplicado a la banda transportadora [0..255]
     uint16_t      beltCurrentAdc; ///< Corriente filtrada actual del motor de la banda en cuentas ADC [0..1023]
+    uint16_t      inputFlags;     ///< Máscara de bits (InputFlags) con el estado de todos los sensores y botones
 };
 
 /**
