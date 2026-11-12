@@ -194,9 +194,11 @@ struct DisplaySnapshot
     uint16_t      testFlags;      ///< Máscara de bits (TestFlags) con el estado de actuadores y fines de carrera
     int32_t       fillZSteps;     ///< Posición actual en micropasos del eje Z1 desde Home (0 = fin de carrera superior)
     int32_t       capZSteps;      ///< Posición actual en micropasos del eje Z2 desde Home (0 = fin de carrera superior)
-    uint8_t       beltPwm;        ///< Ciclo PWM actual aplicado a la banda transportadora [0..255]
-    uint16_t      beltCurrentAdc; ///< Corriente filtrada actual del motor de la banda en cuentas ADC [0..1023]
-    uint16_t      inputFlags;     ///< Máscara de bits (InputFlags) con el estado de todos los sensores y botones
+    uint8_t       beltPwm;         ///< Ciclo PWM actual aplicado a la banda transportadora [0..255]
+    uint16_t      beltCurrentAdc;  ///< Corriente filtrada actual del motor de la banda en cuentas ADC [0..1023]
+    uint8_t       chuckPwm;        ///< Ciclo PWM actual aplicado al motor de apriete de tapas [0..255]
+    uint16_t      chuckCurrentAdc; ///< Corriente filtrada actual del motor de apriete en cuentas ADC [0..1023]
+    uint16_t      inputFlags;      ///< Máscara de bits (InputFlags) con el estado de todos los sensores y botones
 };
 
 /**

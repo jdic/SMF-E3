@@ -1,0 +1,89 @@
+<svg width="320" height="240" viewBox="0 0 320 240" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <rect id="background" width="320" height="240" fill="#000000"/>
+
+  <!-- Top Header Banner (Y = 0..28) -->
+  <g id="top_bar">
+    <rect id="header_bg" x="0" y="0" width="320" height="28" fill="#00BC00"/>
+    <text id="header_mode_text" x="10" y="20" fill="#FFFFFF" font-family="monospace" font-size="16" font-weight="bold">MODO: OPERANDO EN LINEA</text>
+  </g>
+
+  <!-- Central Content Area (Y = 28..189) -->
+  <g id="content_home">
+    <!-- Card 1: Etapa 1 Llenado (X=6, Y=34, W=308, H=34) -->
+    <g id="card_fill">
+      <rect x="6.5" y="34.5" width="307" height="33" fill="#000000" stroke="#313031"/>
+      <text x="14" y="54" fill="#C6C3C6" font-family="monospace" font-size="8">LLENADO:</text>
+      <text x="74" y="57" fill="#00FFFF" font-family="monospace" font-size="16" font-weight="bold">BOMBEANDO</text>
+    </g>
+
+    <!-- Card 2: Etapa 2 Tapado (X=6, Y=72, W=308, H=34) -->
+    <g id="card_cap">
+      <rect x="6.5" y="72.5" width="307" height="33" fill="#000000" stroke="#313031"/>
+      <text x="14" y="92" fill="#C6C3C6" font-family="monospace" font-size="8">TAPADO :</text>
+      <text x="74" y="95" fill="#C6C3C6" font-family="monospace" font-size="16" font-weight="bold">ESPERA BOTELLA</text>
+    </g>
+
+    <!-- Card 3: Cola, Perfil y Produccion (X=6, Y=110, W=308, H=30) -->
+    <g id="card_counters">
+      <rect x="6.5" y="110.5" width="307" height="29" fill="#000000" stroke="#313031"/>
+      <text x="14" y="128" fill="#C6C3C6" font-family="monospace" font-size="8">COLA:</text>
+      <text x="48" y="128" fill="#FFFFFF" font-family="monospace" font-size="8">1/5</text>
+      <text x="104" y="128" fill="#C6C3C6" font-family="monospace" font-size="8">PERFIL:</text>
+      <text x="150" y="128" fill="#00FFFF" font-family="monospace" font-size="8">GRANDE</text>
+      <text x="218" y="128" fill="#C6C3C6" font-family="monospace" font-size="8">PROD:</text>
+      <text x="252" y="128" fill="#00BC00" font-family="monospace" font-size="8">   12</text>
+    </g>
+
+    <!-- Card 4: Banner de Diagnostico / Error (X=6, Y=144, W=308, H=34) -->
+    <g id="card_alarm_banner">
+      <rect x="6.5" y="144.5" width="307" height="33" fill="#000000" stroke="#313031"/>
+      <text x="12" y="167" fill="#00BC00" font-family="monospace" font-size="16" font-weight="bold">OK: SISTEMA SIN ALARMAS</text>
+    </g>
+  </g>
+
+  <!-- Optional HUD Overlay V/I (X=184, Y=29, W=130, H=26) -->
+  <g id="overlay_vi_hud">
+    <rect x="184.5" y="29.5" width="129" height="25" fill="#000000" stroke="#FFFF00"/>
+    <text x="189" y="40" fill="#FFFF00" font-family="monospace" font-size="8">CLAMP-  85 ADC| 0.4A</text>
+    <text x="189" y="51" fill="#FFFF00" font-family="monospace" font-size="8">FILL - 120 ADC| 0.5A</text>
+  </g>
+
+  <!-- Bottom Navigation Bar (Y = 190..239) -->
+  <g id="bottom_nav_bar">
+    <rect x="0.5" y="190.5" width="319" height="49" fill="#000000" stroke="#FFFFFF"/>
+    <line x1="64.5" y1="190" x2="64.5" y2="240" stroke="#FFFFFF"/>
+    <line x1="128.5" y1="190" x2="128.5" y2="240" stroke="#FFFFFF"/>
+    <line x1="192.5" y1="190" x2="192.5" y2="240" stroke="#FFFFFF"/>
+    <line x1="254.5" y1="190" x2="254.5" y2="240" stroke="#FFFFFF"/>
+    <!-- Active Tab Indicator (Home) -->
+    <rect id="active_tab_indicator" x="1" y="237" width="63" height="2" fill="#00FFFF"/>
+    <rect x="8" y="191" width="48" height="48" fill="url(#pattern1_1_2)"/>
+    <rect x="72" y="191" width="48" height="48" fill="url(#pattern2_1_2)"/>
+    <rect x="136" y="191" width="48" height="48" fill="url(#pattern4_1_2)"/>
+    <rect x="199" y="191" width="48" height="48" fill="url(#pattern3_1_2)"/>
+    <rect x="267" y="195" width="40" height="40" fill="url(#pattern0_1_2)"/>
+  </g>
+
+  <defs>
+    <pattern id="pattern0_1_2" patternContentUnits="objectBoundingBox" width="1" height="1">
+      <use xlink:href="#image0_1_2" transform="scale(0.0208333)"/>
+    </pattern>
+    <pattern id="pattern1_1_2" patternContentUnits="objectBoundingBox" width="1" height="1">
+      <use xlink:href="#image1_1_2" transform="scale(0.0208333)"/>
+    </pattern>
+    <pattern id="pattern2_1_2" patternContentUnits="objectBoundingBox" width="1" height="1">
+      <use xlink:href="#image2_1_2" transform="scale(0.0208333)"/>
+    </pattern>
+    <pattern id="pattern3_1_2" patternContentUnits="objectBoundingBox" width="1" height="1">
+      <use xlink:href="#image3_1_2" transform="scale(0.0208333)"/>
+    </pattern>
+    <pattern id="pattern4_1_2" patternContentUnits="objectBoundingBox" width="1" height="1">
+      <use xlink:href="#image4_1_2" transform="scale(0.0208333)"/>
+    </pattern>
+    <image id="image0_1_2" width="48" height="48" preserveAspectRatio="none" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAABgklEQVR4Ae3AA6AkWZbG8f937o3IzKdyS2Oubdu2bdu2bdu2bWmMnpZKr54yMyLu+Xa3anqmhztr1a8C5j+Abf41JPEfgOB/N4L/3Qj+d6PyXGzzopDECyOJB7LNC2ObF4UkHoDgfzeC/90I/nej8i+QxPNjm38P2zyQJJ4f27wQBP+7EfzvRvC/G5V/I0n8a0jiPwHB/24IMC+EbR5IEv+ZbPNAknghCP53o/IfzDYvjCT+AxH870a1zf9ktnkhCP53o/LvZJsHksQLY5sHksS/A8H/blSeiyT+O0nihbHNAxD870bwvxvB/25UnottXhhJ/Geyzb8Cwf9uVP6dJPFAtnlhJPEfiOB/N6okXhjb/HeSxAtB8L8blf9gkvgvRPC/GwLMA9jmgSTx38k2DySJByD4343Kv5FtXhhJPJBtXhhJ/BsQ/O9G8L8bwf9uVP4Ftnl+JPFAtvnXkMQD2ebfgOB/N4L/3Qj+d0OA+Q9gm38NSfwHIPjfjeB/N4L/3fhHzKRVeZazMgYAAAAASUVORK5CYII="/>
+    <image id="image1_1_2" width="48" height="48" preserveAspectRatio="none" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAABLUlEQVR4Ae3AA6AkWZbG8f937o3IzKdyS2Oubdu2bdu2bdu2bWmMnpZKr54yMyLu+Xa3anqmhztr1a8C5n8vgv/dCP53I/jfjcp/MNu8MJL4D0TwvxvB/24E/7tR+XeyzQNJ4oWxzQNJ4t+B4H83gv/dCP53Q4D5V7DNA0ni38M2DySJfwWC/90I/ncj+N8NAeaFsM0DSeI/k20eSBIvBMH/bgT/uxH874YA8wC2eSBJ/HeyzQNJ4gEI/ncj+N+N4H83Kv/BbPPCSOI/EMH/bgT/uxH870bl38k2DySJF8Y2DySJfweC/90I/ncj+N+N4H83gv/dCP53I/jfjeB/N4L/3Qj+dyP43w0B5oWwzX8nSbwQBP+7EfzvRvC/GwLM/14E/7sR/O9G8L8b/wi7oy1g8/kDpAAAAABJRU5ErkJggg=="/>
+    <image id="image2_1_2" width="48" height="48" preserveAspectRatio="none" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAABHElEQVR4Ae3AA6AkWZbG8f937o3IzKdyS2Oubdu2bdu2bdu2bWmMnpZKr54yMyLu+Xa3anqmhztr1a8C5n8vgv/dCP53I/jfjcp/Ets8kCT+ExD870bwvxvB/25U/oPY5oEk8UC2eSBJ/Acg+N+N4H83gv/dCP53I/jfjeB/N4L/3RBg/g1s80CS+NewzQNJ4t+A4H83gv/dCP53I/jfjeB/N4L/3Qj+d0OAeRHY5oEk8R/JNg8kiRcBwf9uBP+7EfzvRvC/G8H/bgT/uxH870bwvxvB/24E/7sR/O+GAPNvYJsHksS/hm0eSBL/BgT/uxH870bwvxsCzH8A2/xrSOI/AMH/bgT/uxH874YA878Xwf9uBP+7Efzvxj8CkmUkXBlCXSsAAAAASUVORK5CYII="/>
+    <image id="image3_1_2" width="48" height="48" preserveAspectRatio="none" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAABN0lEQVR4Ae3AA6AkWZbG8f937o3IzKdyS2Oubdu2bdu2bdu2bWmMnpZKr54yMyLu+Xa3anqmhztr1a8C5n8vgv/dCP53I/jfjeB/N4L/3ai8ALZ5IEm8MLb515DEC2ObB5LE80HwvxvB/24E/7tR+Teyzb+HbR5IEv8GBP+7EfzvRvC/GwLMi8A2DySJ/0i2eSBJvAgI/ncj+N+N4H83Kv9GtvkfgOB/N4L/3Qj+d0OAAWzzv4kkAIL/3Qj+dyP43w0B5kVgm38NSTyQbf41JPEiIPjfjeB/N4L/3Qj+dyP4343gfzeC/92ovAC2eSBJPJBt/iNJ4oFs80CSeD4I/ncj+N+N4H83Kv9Gkngg2zyQbV4YSfwHIPjfjeB/N4L/3RBg/vci+N+N4H83gv/dCP53I/jfjX8ELzA1Xhe5j0gAAAAASUVORK5CYII="/>
+    <image id="image4_1_2" width="48" height="48" preserveAspectRatio="none" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAABCUlEQVR4Ae3AA6AkWZbG8f937o3IzKdyS2Oubdu2bdu2bdu2bWmMnpZKr54yMyLu+Xa3anqmhztr1a8C5n8vgv/dqPwHsc2/hiT+AxD870bwvxvB/25U/pNI4oFs85+A4H83gv/dCP53I/jfjeB/N4L/3Qj+d0OA+TewzQNJ4l/DNg8kiX8Dgv/dCP53I/jfDQHmRWCbB5LEfyTbPJAkXgQE/7sR/O9G8L8bwf9uBP+7EfzvRvC/G8H/bgT/uxH870bwvxvB/24E/7sR/O9G8L8bwf9uBP+7EfzvRvC/G8H/bgT/uxH870bwvxsCzL+Bbf4jSeLfgOB/N4L/3Qj+d0OA+d+L4H83/hHqZBpe9H+UJwAAAABJRU5ErkJggg=="/>
+  </defs>
+</svg>

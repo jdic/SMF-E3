@@ -338,6 +338,8 @@ DisplayManager::DisplayManager(const DisplayTouchConfig& config)
           0,
           0U,
           0U,
+          0U,
+          0U,
           0U},
       hasLastMarker_(false),
       lastMarkerX_(0),
@@ -347,12 +349,14 @@ DisplayManager::DisplayManager(const DisplayTouchConfig& config)
       lastTouchPx_(0),
       lastTouchPy_(0),
       lastCommandMs_(0UL),
+      showPowerOverlay_(false),
       btnNavHome_(),
       btnNavAutoFill_(),
       btnNavAutoCap_(),
       btnNavDebug_(),
       btnNavSettings_(),
       btnTestMode_(),
+      btnPowerOverlay_(),
       btnSetProfile_(),
       btnJogFillUp_(),
       btnJogCapUp_(),
@@ -488,6 +492,11 @@ void DisplayManager::showScreen(ScreenId screen, bool forceRedraw)
             break;
     }
 
+    if (hasRenderedSnapshot_ && showPowerOverlay_)
+    {
+        renderPowerOverlay(renderedSnapshot_, true);
+    }
+
     if (config_.debugShowCoords)
     {
         drawCalibrationTargets();
@@ -559,6 +568,11 @@ void DisplayManager::render(const DisplaySnapshot& snapshot)
 
         default:
             break;
+    }
+
+    if (showPowerOverlay_)
+    {
+        renderPowerOverlay(snapshot, fullRedraw);
     }
 
     renderedSnapshot_    = snapshot;
@@ -638,11 +652,32 @@ TouchCommand DisplayManager::pollTouchCommand()
     if (currentScreen_ == ScreenId::Settings)
     {
         btnTestMode_.press(touched && btnTestMode_.contains(px, py));
+        btnPowerOverlay_.press(touched && btnPowerOverlay_.contains(px, py));
         btnSetProfile_.press(touched && btnSetProfile_.contains(px, py));
         btnJogFillUp_.press(touched && btnJogFillUp_.contains(px, py));
         btnJogCapUp_.press(touched && btnJogCapUp_.contains(px, py));
         btnReleaseArms_.press(touched && btnReleaseArms_.contains(px, py));
         btnConfirmClear_.press(touched && btnConfirmClear_.contains(px, py));
+
+        if (btnPowerOverlay_.justPressed())
+        {
+            const uint32_t nowMs = millis();
+            if ((nowMs - lastCommandMs_) >= TOUCH_COOLDOWN_MS)
+            {
+                lastCommandMs_    = nowMs;
+                showPowerOverlay_ = !showPowerOverlay_;
+                tft.fillRect(166, 34, 48, 48, COLOR_BG);
+                if (showPowerOverlay_)
+                {
+                    tft.drawBitmap(166, 34, UIIcons::ICON_CHECKBOX_ON_48x48, 48, 48, COLOR_YELLOW_WARN);
+                }
+                else
+                {
+                    tft.drawBitmap(166, 34, UIIcons::ICON_CHECKBOX_OFF_48x48, 48, 48, COLOR_WHITE);
+                }
+            }
+            return TouchCommand::None;
+        }
 
         if (btnTestMode_.justPressed())          { cmd = TouchCommand::ToggleTestMode; }
         else if (btnSetProfile_.justPressed())   { cmd = TouchCommand::CycleBottleProfile; }
@@ -654,6 +689,7 @@ TouchCommand DisplayManager::pollTouchCommand()
     else
     {
         btnTestMode_.press(false);
+        btnPowerOverlay_.press(false);
         btnSetProfile_.press(false);
         btnJogFillUp_.press(false);
         btnJogCapUp_.press(false);
@@ -814,8 +850,10 @@ void DisplayManager::initLayoutButtons()
     btnNavSettings_.initButton(&tft, 287, 215, 66, 50, 0, 0, 0, emptyLabel, 1);
 
     // Botones en Settings:
-    // Checkbox TEST MODE: X = 6..314 (W = 308, centro X = 160), Y = 32..84 (H = 52, centro Y = 58)
-    btnTestMode_.initButton(&tft, 160, 58, 308, 52, 0, 0, 0, emptyLabel, 1);
+    // Checkbox TEST MODE (izq): X = 6..158 (W = 152, centro X = 82), Y = 32..84 (H = 52, centro Y = 58)
+    btnTestMode_.initButton(&tft, 82, 58, 152, 52, 0, 0, 0, emptyLabel, 1);
+    // Checkbox OVERLAY V/I (der): X = 162..314 (W = 152, centro X = 238), Y = 32..84 (H = 52, centro Y = 58)
+    btnPowerOverlay_.initButton(&tft, 238, 58, 152, 52, 0, 0, 0, emptyLabel, 1);
     // Botón CAMBIAR PERFIL: X = 190..312 (W = 122, centro X = 251), Y = 90..120 (H = 30, centro Y = 105)
     btnSetProfile_.initButton(&tft, 251, 105, 122, 30, 0, 0, 0, emptyLabel, 1);
     // Cuadrícula de 4 botones de recuperación manual en Settings:
@@ -885,16 +923,25 @@ void DisplayManager::drawSettingsStaticFrame()
     tft.setCursor(10, 6);
     tft.print(F("AJUSTES Y TEST MODE"));
 
-    // Tarjeta de Checkbox TEST MODE (Y = 32..84, H = 52 para alojar icono 48x48)
-    tft.drawRect(6, 32, 308, 52, COLOR_DARK_GRAY);
-    tft.setTextSize(2);
-    tft.setTextColor(COLOR_WHITE, COLOR_BG);
-    tft.setCursor(66, 42);
-    tft.print(F("TEST MODE"));
+    // Tarjeta 1 (Izquierda): Checkbox TEST MODE (X = 6..158, Y = 32..84)
+    tft.drawRect(6, 32, 152, 52, COLOR_DARK_GRAY);
     tft.setTextSize(1);
+    tft.setTextColor(COLOR_WHITE, COLOR_BG);
+    tft.setCursor(62, 44);
+    tft.print(F("TEST MODE"));
     tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_BG);
-    tft.setCursor(66, 64);
-    tft.print(F("Accionar actuadores manualmente"));
+    tft.setCursor(62, 58);
+    tft.print(F("Actuadores man."));
+
+    // Tarjeta 2 (Derecha): Checkbox OVERLAY V/I (X = 162..314, Y = 32..84)
+    tft.drawRect(162, 32, 152, 52, COLOR_DARK_GRAY);
+    tft.setTextSize(1);
+    tft.setTextColor(COLOR_YELLOW_WARN, COLOR_BG);
+    tft.setCursor(218, 44);
+    tft.print(F("OVERLAY V/I"));
+    tft.setTextColor(COLOR_LIGHT_GRAY, COLOR_BG);
+    tft.setCursor(218, 58);
+    tft.print(F("HUD ADC | Amp"));
 
     // Tarjeta de formato de botella (Y = 90..120)
     tft.drawRect(6, 90, 178, 30, COLOR_DARK_GRAY);
@@ -1063,6 +1110,19 @@ void DisplayManager::renderSettingsDynamic(const DisplaySnapshot& snapshot, bool
         else
         {
             tft.drawBitmap(10, 34, UIIcons::ICON_CHECKBOX_OFF_48x48, 48, 48, COLOR_WHITE);
+        }
+    }
+
+    // 1b. Icono Checkbox 48x48 de OVERLAY V/I (X = 166, Y = 34)
+    if (fullRedraw)
+    {
+        if (showPowerOverlay_)
+        {
+            tft.drawBitmap(166, 34, UIIcons::ICON_CHECKBOX_ON_48x48, 48, 48, COLOR_YELLOW_WARN);
+        }
+        else
+        {
+            tft.drawBitmap(166, 34, UIIcons::ICON_CHECKBOX_OFF_48x48, 48, 48, COLOR_WHITE);
         }
     }
 
@@ -1625,4 +1685,71 @@ void DisplayManager::drawTouchMarker(int16_t x, int16_t y, uint16_t color)
     tft.drawCircle(x, y, MARKER_RADIUS, color);
     tft.drawFastHLine(x - MARKER_RADIUS, y, (MARKER_RADIUS * 2) + 1, color);
     tft.drawFastVLine(x, y - MARKER_RADIUS, (MARKER_RADIUS * 2) + 1, color);
+}
+
+void DisplayManager::renderPowerOverlay(const DisplaySnapshot& snapshot, bool fullRedraw)
+{
+    if (!showPowerOverlay_ || (currentScreen_ == ScreenId::Settings) || (currentScreen_ == ScreenId::None))
+    {
+        return;
+    }
+
+    // Detectar si algún elemento dinámico subyacente en la esquina superior derecha se acaba de repintar
+    const uint16_t diffTest = snapshot.testFlags ^ renderedSnapshot_.testFlags;
+    const uint16_t diffIn   = snapshot.inputFlags ^ renderedSnapshot_.inputFlags;
+
+    const bool underlyingRedrawn =
+        fullRedraw ||
+        (snapshot.mode != renderedSnapshot_.mode) ||
+        (snapshot.fillState != renderedSnapshot_.fillState) ||
+        (snapshot.capState != renderedSnapshot_.capState) ||
+        ((diffTest & (TestFlags::BUZZER_ON | TestFlags::FILL_CLAMP_DN | TestFlags::CAP_CLAMP_DN)) != 0U) ||
+        ((currentScreen_ == ScreenId::Debug) && (diffIn != 0U));
+
+    const bool valuesChanged =
+        (snapshot.beltCurrentAdc != renderedSnapshot_.beltCurrentAdc) ||
+        (snapshot.chuckCurrentAdc != renderedSnapshot_.chuckCurrentAdc) ||
+        (snapshot.beltPwm != renderedSnapshot_.beltPwm) ||
+        (snapshot.chuckPwm != renderedSnapshot_.chuckPwm);
+
+    if (!underlyingRedrawn && !valuesChanged)
+    {
+        return;
+    }
+
+    if (underlyingRedrawn)
+    {
+        tft.fillRect(185, 30, 128, 24, COLOR_BG);
+        tft.drawRect(184, 29, 130, 26, COLOR_YELLOW_WARN);
+    }
+
+    // Conversión entera de ADC (0..1023 -> 0..5.0V en R_IS=1kOhm, k_ILIS=8500 -> ~42.5A FS) a décimas de Amperio
+    const uint16_t clampTenthsA = static_cast<uint16_t>(
+        (static_cast<uint32_t>(snapshot.chuckCurrentAdc) * 425UL + 511UL) / 1023UL);
+    const uint16_t fillTenthsA = static_cast<uint16_t>(
+        (static_cast<uint32_t>(snapshot.beltCurrentAdc) * 425UL + 511UL) / 1023UL);
+
+    char line1[24];
+    char line2[24];
+    snprintf(
+        line1,
+        sizeof(line1),
+        "CLAMP-%4u ADC|%2u.%uA",
+        snapshot.chuckCurrentAdc,
+        clampTenthsA / 10U,
+        clampTenthsA % 10U);
+    snprintf(
+        line2,
+        sizeof(line2),
+        "FILL -%4u ADC|%2u.%uA",
+        snapshot.beltCurrentAdc,
+        fillTenthsA / 10U,
+        fillTenthsA % 10U);
+
+    tft.setTextSize(1);
+    tft.setTextColor(COLOR_YELLOW_WARN, COLOR_BG);
+    tft.setCursor(189, 33);
+    tft.print(line1);
+    tft.setCursor(189, 44);
+    tft.print(line2);
 }

@@ -204,6 +204,8 @@ StationController::StationController()
           0,
           0U,
           0U,
+          0U,
+          0U,
           0U},
       snapshotDirty_(true)
 {
@@ -466,6 +468,10 @@ void StationController::updateMotionProfiles()
     fillZ_.updateMotionProfile();
     capZ_.updateMotionProfile();
     conveyor_.update();
+    if (chuckMotor_.isRunning())
+    {
+        chuckMotor_.sampleCurrentAdc();
+    }
 }
 
 void StationController::handleTouchCommand(TouchCommand cmd)
@@ -901,6 +907,8 @@ void StationController::refreshDisplaySnapshot()
     const int32_t cSteps         = capZ_.getCurrentSteps();
     const uint8_t bPwm           = conveyor_.getCurrentPwm();
     const uint16_t bCurrentAdc   = conveyor_.getFilteredCurrentAdc();
+    const uint8_t cPwm           = chuckMotor_.getCurrentPwm();
+    const uint16_t cCurrentAdc   = chuckMotor_.getFilteredCurrentAdc();
 
     uint16_t effectiveFlags = testFlags_ & static_cast<uint16_t>(~(TestFlags::FILL_HOME_SW | TestFlags::CAP_HOME_SW));
     if (limitSwitchFill_.isTriggered())
@@ -936,22 +944,26 @@ void StationController::refreshDisplaySnapshot()
         lastSnapshot_.capZSteps != cSteps ||
         lastSnapshot_.beltPwm != bPwm ||
         lastSnapshot_.beltCurrentAdc != bCurrentAdc ||
+        lastSnapshot_.chuckPwm != cPwm ||
+        lastSnapshot_.chuckCurrentAdc != cCurrentAdc ||
         lastSnapshot_.inputFlags != inFlags)
     {
-        lastSnapshot_.error          = effectiveErr;
-        lastSnapshot_.mode           = mode_;
-        lastSnapshot_.fillState      = fState;
-        lastSnapshot_.capState       = cState;
-        lastSnapshot_.profile        = profile_;
-        lastSnapshot_.queueCount     = interstageQueueCount_;
-        lastSnapshot_.bottleCount    = bottleCount_;
-        lastSnapshot_.testFlags      = effectiveFlags;
-        lastSnapshot_.fillZSteps     = fSteps;
-        lastSnapshot_.capZSteps      = cSteps;
-        lastSnapshot_.beltPwm        = bPwm;
-        lastSnapshot_.beltCurrentAdc = bCurrentAdc;
-        lastSnapshot_.inputFlags     = inFlags;
-        snapshotDirty_               = true;
+        lastSnapshot_.error           = effectiveErr;
+        lastSnapshot_.mode            = mode_;
+        lastSnapshot_.fillState       = fState;
+        lastSnapshot_.capState        = cState;
+        lastSnapshot_.profile         = profile_;
+        lastSnapshot_.queueCount      = interstageQueueCount_;
+        lastSnapshot_.bottleCount     = bottleCount_;
+        lastSnapshot_.testFlags       = effectiveFlags;
+        lastSnapshot_.fillZSteps      = fSteps;
+        lastSnapshot_.capZSteps       = cSteps;
+        lastSnapshot_.beltPwm         = bPwm;
+        lastSnapshot_.beltCurrentAdc  = bCurrentAdc;
+        lastSnapshot_.chuckPwm        = cPwm;
+        lastSnapshot_.chuckCurrentAdc = cCurrentAdc;
+        lastSnapshot_.inputFlags      = inFlags;
+        snapshotDirty_                = true;
     }
 }
 

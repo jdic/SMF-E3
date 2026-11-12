@@ -173,6 +173,7 @@ private:
     void renderDebugDynamic(const DisplaySnapshot& snapshot, bool fullRedraw);
     void renderSettingsDynamic(const DisplaySnapshot& snapshot, bool fullRedraw);
     void renderBottomActionArea(const DisplaySnapshot& snapshot, bool fullRedraw);
+    void renderPowerOverlay(const DisplaySnapshot& snapshot, bool fullRedraw);
 
     DisplayTouchConfig  config_;              ///< Configuración de pines y calibración del panel táctil
     TouchScreen         ts_;                  ///< Instancia del lector resistivo de 4 hilos
@@ -189,6 +190,7 @@ private:
     int16_t             lastTouchPx_;         ///< Última coordenada X válida durante la retención táctil [px]
     int16_t             lastTouchPy_;         ///< Última coordenada Y válida durante la retención táctil [px]
     uint32_t            lastCommandMs_;       ///< Marca temporal del último comando táctil disparado [ms]
+    bool                showPowerOverlay_;    ///< Habilita el overlay amarillo (ADC | A) de motores en la esquina sup-der
 
     // Botones táctiles de las 5 pestañas de navegación inferior (layout_base.svg)
     Adafruit_GFX_Button btnNavHome_;          ///< Pestaña 0: HOME (X = 0..63, Y = 190..239)
@@ -199,6 +201,7 @@ private:
 
     // Botones de Settings
     Adafruit_GFX_Button btnTestMode_;         ///< Botón/Checkbox en Settings: activar/desactivar TEST MODE
+    Adafruit_GFX_Button btnPowerOverlay_;     ///< Botón/Checkbox en Settings: activar/desactivar OVERLAY de corriente/voltaje
     Adafruit_GFX_Button btnSetProfile_;       ///< Botón en Settings: alternar perfil de botella
     Adafruit_GFX_Button btnJogFillUp_;        ///< Botón en Settings: subir eje Z de llenado en ManualRecovery
     Adafruit_GFX_Button btnJogCapUp_;         ///< Botón en Settings: subir eje Z de tapado en ManualRecovery
