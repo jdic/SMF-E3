@@ -49,18 +49,16 @@ struct DisplayTouchConfig
 
 /**
  * @class DisplayManager
- * @brief Administra el Layout inferior fijo (barra de navegación Lopaka), el tablero Home y la vista Settings/Recuperación.
+ * @brief Administra el Layout inferior fijo de 5 pestañas (`layout_base.svg`) y las 5 pantallas HMI.
  *
- * El Layout inferior (Y = 183..239) se dibuja una sola vez y permanece fijo. Al cambiar entre
- * ScreenId::Home y ScreenId::Settings únicamente se limpia el área de contenido superior (Y = 0..182)
- * para evitar parpadeos en la barra inferior. Dentro de cada vista sólo se redibujan los campos
- * modificados (dirty flags).
+ * El Layout inferior (Y = 190..239) se dibuja una sola vez y permanece fijo. Al cambiar entre
+ * pestañas (Home, AutoFill, AutoCap, Debug, Settings) únicamente se limpia el área de contenido
+ * superior (Y = 0..189) y se actualizan los 2 iconos de pestaña afectados para evitar parpadeos.
+ * Dentro de cada vista sólo se redibujan los campos modificados (dirty flags).
  */
 class DisplayManager
 {
 public:
-    using ScreenDrawFn = void (*)(void);
-
     static constexpr int16_t  SCREEN_WIDTH      = 320;     ///< Ancho total en rotación horizontal [px]
     static constexpr int16_t  SCREEN_HEIGHT     = 240;     ///< Alto total en rotación horizontal [px]
     static constexpr int16_t  LAYOUT_BAR_Y      = 190;     ///< Coordenada Y donde inicia la barra inferior fija de navegación [px]
@@ -81,7 +79,7 @@ public:
     explicit DisplayManager(const DisplayTouchConfig& config = defaultTouchConfig());
 
     /**
-     * @brief Detecta el controlador (ILI9341), inicializa el bus paralelo de 8 bits y configura los botones del Layout.
+     * @brief Detecta el controlador (ILI9341) e inicializa el bus paralelo de 8 bits en modo horizontal.
      */
     void init();
 
@@ -96,8 +94,8 @@ public:
     /**
      * @brief Cambia la pantalla activa conservando la barra inferior fija (Layout) sin parpadeo.
      *
-     * @param screen Identificador de pantalla (ScreenId::Home o ScreenId::Settings).
-     * @param forceRedraw true para redibujar también el Layout inferior; false para actualizar sólo el contenido.
+     * @param screen Identificador de pantalla (Home, AutoFill, AutoCap, Debug o Settings).
+     * @param forceRedraw true para forzar el redibujado del contenido aunque coincida con la pantalla activa.
      */
     void showScreen(ScreenId screen, bool forceRedraw = false);
 
@@ -113,14 +111,14 @@ public:
     /**
      * @brief Muestrea el panel táctil, gestiona la navegación inferior y devuelve el comando operativo pulsado.
      *
-     * Función no bloqueante. Debe invocarse periódicamente desde la tarea de interfaz (cada 50 ms).
+     * Función no bloqueante. Debe invocarse periódicamente desde la tarea de interfaz (cada 25 ms).
      *
      * @return TouchCommand disparado en el ciclo actual, o TouchCommand::None si no hubo pulsación de comando.
      */
     TouchCommand pollTouchCommand();
 
     /**
-     * @brief Lee el panel táctil y cambia entre Home y Settings al tocar los iconos de la barra inferior.
+     * @brief Lee el panel táctil y gestiona la navegación entre las 5 pestañas de la barra inferior.
      *
      * Función no bloqueante mantenida por compatibilidad; invoca internamente pollTouchCommand().
      */
@@ -156,7 +154,6 @@ public:
     static DisplayTouchConfig defaultTouchConfig();
 
 private:
-    void initLayoutButtons();
     void restoreSharedTftPins();
     void drawCalibrationTargets();
     void updateDebugOverlay(int16_t rawX, int16_t rawY, int16_t rawZ, int16_t px, int16_t py);
@@ -172,7 +169,6 @@ private:
     void renderAutoCapDynamic(const DisplaySnapshot& snapshot, bool fullRedraw);
     void renderDebugDynamic(const DisplaySnapshot& snapshot, bool fullRedraw);
     void renderSettingsDynamic(const DisplaySnapshot& snapshot, bool fullRedraw);
-    void renderBottomActionArea(const DisplaySnapshot& snapshot, bool fullRedraw);
     void renderPowerOverlay(const DisplaySnapshot& snapshot, bool fullRedraw);
 
     DisplayTouchConfig  config_;              ///< Configuración de pines y calibración del panel táctil
@@ -191,34 +187,4 @@ private:
     int16_t             lastTouchPy_;         ///< Última coordenada Y válida durante la retención táctil [px]
     uint32_t            lastCommandMs_;       ///< Marca temporal del último comando táctil disparado [ms]
     bool                showPowerOverlay_;    ///< Habilita el overlay amarillo (ADC | A) de motores en la esquina sup-der
-
-    // Botones táctiles de las 5 pestañas de navegación inferior (layout_base.svg)
-    Adafruit_GFX_Button btnNavHome_;          ///< Pestaña 0: HOME (X = 0..63, Y = 190..239)
-    Adafruit_GFX_Button btnNavAutoFill_;      ///< Pestaña 1: AUTO 1 - Llenado (X = 64..127, Y = 190..239)
-    Adafruit_GFX_Button btnNavAutoCap_;       ///< Pestaña 2: AUTO 2 - Tapado (X = 128..191, Y = 190..239)
-    Adafruit_GFX_Button btnNavDebug_;         ///< Pestaña 3: DEBUG (X = 192..253, Y = 190..239)
-    Adafruit_GFX_Button btnNavSettings_;      ///< Pestaña 4: SETTINGS (X = 254..319, Y = 190..239)
-
-    // Botones de Settings
-    Adafruit_GFX_Button btnTestMode_;         ///< Botón/Checkbox en Settings: activar/desactivar TEST MODE
-    Adafruit_GFX_Button btnPowerOverlay_;     ///< Botón/Checkbox en Settings: activar/desactivar OVERLAY de corriente/voltaje
-    Adafruit_GFX_Button btnSetProfile_;       ///< Botón en Settings: alternar perfil de botella
-    Adafruit_GFX_Button btnJogFillUp_;        ///< Botón en Settings: subir eje Z de llenado en ManualRecovery
-    Adafruit_GFX_Button btnJogCapUp_;         ///< Botón en Settings: subir eje Z de tapado en ManualRecovery
-    Adafruit_GFX_Button btnReleaseArms_;      ///< Botón en Settings: levantar brazos inmediatamente en ManualRecovery
-    Adafruit_GFX_Button btnConfirmClear_;     ///< Botón en Settings: confirmar despeje de línea y re-homing
-
-    // Botones de control manual en Home (TestMode) y alarma en Home (ErrorStop)
-    Adafruit_GFX_Button btnHomeBelt_;         ///< Botón en Home (TestMode): Banda 7V ON/OFF
-    Adafruit_GFX_Button btnHomeBuzzer_;       ///< Botón en Home (TestMode): Buzzer ON/OFF
-    Adafruit_GFX_Button btnHomeTowerGreen_;   ///< Botón en Home (TestMode): Torreta Verde ON/OFF
-    Adafruit_GFX_Button btnHomeTowerRed_;     ///< Botón en Home (TestMode): Torreta Roja ON/OFF
-    Adafruit_GFX_Button btnBottomAction_;     ///< Botón contextual de alerta/rearme rápido en Home
-
-    // Botones de control manual en Auto 1 / Auto 2 (TestMode)
-    Adafruit_GFX_Button btnActStopArm_;       ///< Botón en Auto 1/2 (TestMode): Brazo de Tope Arriba/Abajo
-    Adafruit_GFX_Button btnActClampArm_;      ///< Botón en Auto 1/2 (TestMode): Brazo de Sujeción Arriba/Abajo
-    Adafruit_GFX_Button btnActMainPower_;     ///< Botón en Auto 1/2 (TestMode): Bomba / Motor Apriete ON/OFF
-    Adafruit_GFX_Button btnActJogZUp_;        ///< Botón en Auto 1/2 (TestMode): Subir eje Z (+JOG)
-    Adafruit_GFX_Button btnActJogZDown_;      ///< Botón en Auto 1/2 (TestMode): Bajar eje Z (-JOG)
 };
