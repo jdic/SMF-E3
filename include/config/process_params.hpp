@@ -31,16 +31,32 @@ namespace ProcessParams
     // ==========================================
     // EJES Z (MOTORES A PASOS)
     // ==========================================
+    /**
+     * @enum StepperDir
+     * @brief Sentido de giro del motor a pasos (polaridad del pin DIR) para bajar hacia la botella.
+     *        - CW : Nivel HIGH en DIR para bajar (LOW para subir).
+     *        - CCW: Nivel LOW en DIR para bajar (HIGH para subir).
+     */
+    enum class StepperDir : uint8_t
+    {
+        CW  = 0, ///< Bajar con DIR = HIGH, subir con DIR = LOW
+        CCW = 1  ///< Bajar con DIR = LOW,  subir con DIR = HIGH
+    };
+
+    constexpr StepperDir FILL_Z_DOWN_DIR       = StepperDir::CCW; ///< Sentido para BAJAR eje Z1 (Llenado): CW o CCW
+    constexpr StepperDir CAP_Z_DOWN_DIR        = StepperDir::CCW; ///< Sentido para BAJAR eje Z2 (Tapado): CW o CCW
+
     constexpr uint16_t Z_STEPS_PER_MM          = 400;   ///< Relación cinemática vertical [step/mm]
     constexpr uint16_t Z_CRUISE_SPEED          = 4000;  ///< Velocidad de crucero en traslación [step/s]
+    constexpr uint16_t CAP_Z_ENGAGE_SPEED      = 800;   ///< Velocidad de bajada lenta en tapado tras capEngageSteps [step/s] (800 = 2 mm/s)
     constexpr uint16_t Z_HOMING_SPEED          = 1000;  ///< Velocidad de búsqueda de origen [step/s]
     constexpr uint16_t Z_ACCEL                 = 8000;  ///< Aceleración y desaceleración de rampa [step/s^2]
     constexpr uint16_t Z_HOME_BACKOFF_STEPS    = 200;   ///< Retroceso tras contacto con fin de carrera [step]
     constexpr uint16_t Z_JOG_STEPS             = 400;   ///< Paso de avance manual en recuperación [step]
     constexpr int32_t  FILL_Z_MAX_TRAVEL_STEPS = 24000; ///< Límite inferior de recorrido en llenado [step]
     constexpr int32_t  CAP_Z_MAX_TRAVEL_STEPS  = 24000; ///< Límite inferior de recorrido en tapado [step]
-    constexpr uint16_t Z_MOVE_TIMEOUT_MS       = 6500;  ///< Tiempo límite de desplazamiento vertical [ms]
-    constexpr uint16_t Z_HOMING_TIMEOUT_MS     = 18500; ///< Tiempo límite de búsqueda de origen en arranque [ms]
+    constexpr uint16_t Z_MOVE_TIMEOUT_MS       = 12000; ///< Tiempo límite de desplazamiento vertical [ms]
+    constexpr uint16_t Z_HOMING_TIMEOUT_MS     = 21000; ///< Tiempo límite de búsqueda de origen en arranque [ms]
 
     // ==========================================
     // BANDA TRANSPORTADORA Y COMPENSACIÓN I*R
@@ -83,19 +99,21 @@ namespace ProcessParams
     constexpr uint8_t  FILL_STOP_DOWN_DEG      = 100;   ///< Ángulo de bloqueo del brazo de tope de llenado [grados]
     constexpr uint8_t  FILL_CLAMP_UP_DEG       = 10;    ///< Ángulo de reposo del brazo de sujeción de llenado [grados]
     constexpr uint8_t  FILL_CLAMP_DOWN_DEG     = 95;    ///< Ángulo de bloqueo del brazo de sujeción de llenado [grados]
-    constexpr uint8_t  CAP_STOP_UP_DEG         = 100;    ///< Ángulo de reposo del brazo de tope de tapado [grados]
-    constexpr uint8_t  CAP_STOP_DOWN_DEG       = 10;   ///< Ángulo de bloqueo del brazo de tope de tapado [grados]
-    constexpr uint8_t  CAP_CLAMP_UP_DEG        = 95;    ///< Ángulo de reposo del brazo de sujeción de tapado [grados]
-    constexpr uint8_t  CAP_CLAMP_DOWN_DEG      = 10;    ///< Ángulo de bloqueo del brazo de sujeción de tapado [grados]
+    constexpr uint8_t  CAP_STOP_UP_DEG         = 10;    ///< Ángulo de reposo del brazo de tope de tapado [grados]
+    constexpr uint8_t  CAP_STOP_DOWN_DEG       = 100;   ///< Ángulo de bloqueo del brazo de tope de tapado [grados]
+    constexpr uint8_t  CAP_CLAMP_UP_DEG        = 10;    ///< Ángulo de reposo del brazo de sujeción de tapado [grados]
+    constexpr uint8_t  CAP_CLAMP_DOWN_DEG      = 95;    ///< Ángulo de bloqueo del brazo de sujeción de tapado [grados]
     constexpr uint16_t CLAMP_DELAY_MS          = 1000;  ///< Tiempo de espera entre accionamiento de brazos [ms]
     constexpr uint16_t CLAMP_SENSOR_TIMEOUT_MS = 3000;  ///< Tiempo límite para detección en sensor de posición [ms]
     constexpr uint16_t ARM_MOVE_MS             = 600;   ///< Tiempo de transición mecánica de los brazos [ms]
+    constexpr uint16_t BOTTLE_LOST_GRACE_MS    = 500;  ///< Espera antes de declarar botella perdida tras perder presencia [ms]
     constexpr uint16_t RELEASE_GAP_MS          = 500;   ///< Intervalo entre liberación de sujeción y tope [ms]
     constexpr uint16_t RELEASE_MS              = 1500;  ///< Tiempo total de despeje de botella [ms]
 
     // ==========================================
     // DOSIFICACIÓN (BOMBA)
     // ==========================================
+    constexpr bool     PUMP_RELAY_ACTIVE_LOW   = true;  ///< Nivel activo del relevador de la bomba (true = LOW, false = HIGH)
     constexpr uint16_t DRIP_MS                 = 1000;  ///< Tiempo de escurrimiento tras corte de bombeo [ms]
     constexpr uint16_t MAX_PUMP_ON_MS          = 8000;  ///< Límite de seguridad de activación continua de bomba [ms]
 
@@ -112,6 +130,7 @@ namespace ProcessParams
     // SEÑALIZACIÓN (TORRETA Y ALARMA SONORA)
     // ==========================================
     constexpr bool     TOWER_RELAY_ACTIVE_LOW  = true;  ///< Nivel activo del módulo de relevadores (true = LOW)
+    constexpr bool     ENABLE_BUZZER           = true; ///< Habilita la alarma sonora (false desactiva el buzzer temporalmente)
     constexpr uint16_t BUZZER_BOOT_ON_MS       = 80;    ///< Duración de pulso de inicio [ms]
     constexpr uint16_t BUZZER_BOOT_OFF_MS      = 80;    ///< Intervalo entre pulsos de inicio [ms]
     constexpr uint8_t  BUZZER_BOOT_PULSES      = 2;     ///< Cantidad de pulsos en inicio
@@ -140,9 +159,10 @@ namespace ProcessParams
      */
     struct BottleProfileParams
     {
-        int32_t  fillZSteps; ///< Desplazamiento vertical de boquilla [step]
-        int32_t  capZSteps;  ///< Desplazamiento vertical de cabezal [step]
-        uint16_t fillMs;     ///< Tiempo de dosificación [ms]
+        int32_t  fillZSteps;     ///< Desplazamiento vertical de boquilla [step]
+        int32_t  capZSteps;      ///< Desplazamiento vertical de cabezal [step]
+        int32_t  capEngageSteps; ///< Paso desde el cual enciende el motor de tapado y baja lento hasta capZSteps [step]
+        uint16_t fillMs;         ///< Tiempo de dosificación [ms]
     };
 
     /**
@@ -150,7 +170,7 @@ namespace ProcessParams
      */
     constexpr BottleProfileParams BOTTLE_PROFILES[] =
     {
-        { 0, 21878, 3500 }, // Small
-        { 0, 9200, 5000 }  // Large
+        { 18443, 21240, 16400, 7500 },  // Small
+        { 5600, 8800, 2800, 10500 }     // Large
     };
 }

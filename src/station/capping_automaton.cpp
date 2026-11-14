@@ -22,7 +22,8 @@ CappingAutomaton::CappingAutomaton(
       stageTimerMs_(0),
       isFirstRun_(true),
       needsClear_(false),
-      bottleCompletedEvent_(false)
+      bottleCompletedEvent_(false),
+      engageStarted_(false)
 {
 }
 
@@ -41,6 +42,7 @@ void CappingAutomaton::reset()
     isFirstRun_ = true;
     needsClear_ = false;
     bottleCompletedEvent_ = false;
+    engageStarted_ = false;
 }
 
 void CappingAutomaton::stopImmediate()
@@ -137,11 +139,21 @@ void CappingAutomaton::onEntry(CappingState state)
 
         case CappingState::LoweringHead:
         {
+            engageStarted_ = false;
             const uint8_t idx = static_cast<uint8_t>(profile_);
-            const int32_t targetSteps = ProcessParams::BOTTLE_PROFILES[idx].capZSteps;
-            if (!zAxis_.moveToTarget(targetSteps, ProcessParams::Z_CRUISE_SPEED))
+            const auto& profileParams = ProcessParams::BOTTLE_PROFILES[idx];
+            const uint16_t initialSpeed = (profileParams.capEngageSteps <= 0)
+                                              ? ProcessParams::CAP_Z_ENGAGE_SPEED
+                                              : ProcessParams::Z_CRUISE_SPEED;
+            if (!zAxis_.moveToTarget(profileParams.capZSteps, initialSpeed))
             {
                 triggerFault(ErrorCode::CapZSoftLimitHit);
+            }
+            else if (profileParams.capEngageSteps <= 0)
+            {
+                // Si capEngageSteps <= 0, inicia lento y con el motor encendido desde el origen.
+                engageStarted_ = true;
+                chuckMotor_.driveForward(ProcessParams::CHUCK_PWM);
             }
             break;
         }
@@ -191,14 +203,15 @@ void CappingAutomaton::onDuring(CappingState state)
 
         case CappingState::ClampArmDown:
             // Mientras el 2do brazo baja (ARM_MOVE_MS), StationController pausa la banda.
-            // Al concluir el descenso de ambos brazos, se valida el sensor de posición exacta.
+            // Al concluir el descenso de ambos brazos, se valida el sensor de posición exacta
+            // esperando BOTTLE_LOST_GRACE_MS si se perdió momentáneamente la presencia.
             if (elapsedMs >= ProcessParams::ARM_MOVE_MS)
             {
                 if (positionSensor_.isTriggered())
                 {
                     nextState_ = CappingState::LoweringHead;
                 }
-                else
+                else if (elapsedMs >= (ProcessParams::ARM_MOVE_MS + ProcessParams::BOTTLE_LOST_GRACE_MS))
                 {
                     triggerFault(ErrorCode::CapBottleLost);
                 }
@@ -206,6 +219,16 @@ void CappingAutomaton::onDuring(CappingState state)
             break;
 
         case CappingState::LoweringHead:
+        {
+            const uint8_t idx = static_cast<uint8_t>(profile_);
+            const int32_t engageSteps = ProcessParams::BOTTLE_PROFILES[idx].capEngageSteps;
+            if (!engageStarted_ && (zAxis_.getCurrentSteps() >= engageSteps))
+            {
+                engageStarted_ = true;
+                zAxis_.setCruiseSpeed(ProcessParams::CAP_Z_ENGAGE_SPEED);
+                chuckMotor_.driveForward(ProcessParams::CHUCK_PWM);
+            }
+
             if (zAxis_.hasSoftLimitTripped())
             {
                 triggerFault(ErrorCode::CapZSoftLimitHit);
@@ -219,6 +242,7 @@ void CappingAutomaton::onDuring(CappingState state)
                 triggerFault(ErrorCode::CapZLoweringTimeout);
             }
             break;
+        }
 
         case CappingState::TighteningCap:
         {

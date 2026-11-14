@@ -211,14 +211,15 @@ void FillingAutomaton::onDuring(FillState state)
 
         case FillState::ClampArmDown:
             // Mientras el 2do brazo baja (ARM_MOVE_MS), StationController pausa la banda.
-            // Al concluir el descenso de ambos brazos, se valida el sensor de posición exacta.
+            // Al concluir el descenso de ambos brazos, se valida el sensor de posición exacta
+            // esperando BOTTLE_LOST_GRACE_MS si se perdió momentáneamente la presencia.
             if (elapsedMs >= ProcessParams::ARM_MOVE_MS)
             {
                 if (positionSensor_.isTriggered())
                 {
                     nextState_ = FillState::LoweringNozzle;
                 }
-                else
+                else if (elapsedMs >= (ProcessParams::ARM_MOVE_MS + ProcessParams::BOTTLE_LOST_GRACE_MS))
                 {
                     triggerFault(ErrorCode::FillBottleLost);
                 }

@@ -86,17 +86,17 @@ namespace HardwarePins
     // =========================================================================
     // SEÑALIZACIÓN Y ACTUADORES DE SALIDA
     // =========================================================================
-    constexpr uint8_t PIN_BUZZER            = 39; ///< Alarma sonora
-    constexpr uint8_t PIN_TOWER_GREEN       = 41; ///< Indicador luminoso de operación normal
+    constexpr uint8_t PIN_BUZZER            = 28; ///< Alarma sonora
+    constexpr uint8_t PIN_TOWER_GREEN       = 26; ///< Indicador luminoso de operación normal
     constexpr uint8_t PIN_STATUS_LED        = PIN_TOWER_GREEN; ///< Alias de compatibilidad para indicador de estado
-    constexpr uint8_t PIN_TOWER_RED         = 43; ///< Indicador luminoso de parada o alarma
-    constexpr uint8_t PIN_PUMP_FILL         = 45; ///< Activación de bomba de llenado
+    constexpr uint8_t PIN_TOWER_RED         = 24; ///< Indicador luminoso de parada o alarma
+    constexpr uint8_t PIN_PUMP_FILL         = 30; ///< Activación de bomba de llenado
 
     // =========================================================================
     // SERVOMOTORES DE RETENCIÓN DE BOTELLA
     // =========================================================================
     constexpr uint8_t PIN_SERVO_FILL_STOP   = 47; ///< Brazo de tope en módulo de llenado
     constexpr uint8_t PIN_SERVO_FILL_CLAMP  = 49; ///< Brazo de sujeción en módulo de llenado
-    constexpr uint8_t PIN_SERVO_CAP_STOP    = 51; ///< Brazo de tope en módulo de tapado
-    constexpr uint8_t PIN_SERVO_CAP_CLAMP   = 53; ///< Brazo de sujeción en módulo de tapado
+    constexpr uint8_t PIN_SERVO_CAP_STOP    = 53; ///< Brazo de tope en módulo de tapado
+    constexpr uint8_t PIN_SERVO_CAP_CLAMP   = 51; ///< Brazo de sujeción en módulo de tapado
 }

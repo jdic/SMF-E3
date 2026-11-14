@@ -30,8 +30,8 @@ struct BottleGateConfig
  * @brief Coordina de forma no bloqueante los dos brazos con servomotor (tope y sujeción) de una estación.
  *
  * Opera sobre servomotores sin retroalimentación de posición mediante temporizaciones con millis().
- * En la liberación (releaseBottle), levanta primero el brazo de sujeción y, tras releaseGapMs,
- * levanta el brazo de tope para que la botella salga suavemente empujada por la banda en movimiento.
+ * En la liberación (releaseBottle), levanta primero el brazo de tope y, tras releaseGapMs,
+ * levanta el brazo de sujeción para que la banda arranque y saque la botella sin obstáculos.
  */
 class BottleGate
 {
@@ -77,7 +77,7 @@ public:
     void raiseClampArm();
 
     /**
-     * @brief Inicia la secuencia escalonada de liberación: sube sujeción de inmediato y agenda subir el tope.
+     * @brief Inicia la secuencia escalonada de liberación: sube tope de inmediato y agenda subir sujeción.
      *
      * Función no bloqueante; requiere llamadas periódicas a update() para ejecutar la segunda etapa tras releaseGapMs.
      */
@@ -103,6 +103,12 @@ public:
      */
     bool isSettled() const;
 
+    /**
+     * @brief Indica si releaseBottle() está esperando que termine de subir el brazo de tope antes de soltar sujeción y arrancar banda.
+     * @return true mientras el brazo de sujeción sigue reteniendo la botella durante releaseGapMs.
+     */
+    bool isWaitingToClearStop() const;
+
 private:
     uint8_t resolveStopAngle(uint8_t deg) const;
     uint8_t resolveClampAngle(uint8_t deg) const;
@@ -111,6 +117,6 @@ private:
     Servo            stopServo_;
     Servo            clampServo_;
     uint32_t         actionStartMs_;
-    bool             pendingStopArmUp_;
+    bool             pendingClampArmUp_;
     bool             settled_;
 };

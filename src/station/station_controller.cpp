@@ -47,7 +47,7 @@ namespace
         cfg.maxTravelSteps       = ProcessParams::FILL_Z_MAX_TRAVEL_STEPS;
         cfg.accelStepsPerSec2    = ProcessParams::Z_ACCEL;
         cfg.homeBackoffSteps     = ProcessParams::Z_HOME_BACKOFF_STEPS;
-        cfg.dirDownHigh          = true;
+        cfg.dirDownHigh          = (ProcessParams::FILL_Z_DOWN_DIR == ProcessParams::StepperDir::CW);
         cfg.enableActiveLow      = true;
         cfg.limitSwitchActiveLow = true;
         return cfg;
@@ -64,7 +64,7 @@ namespace
         cfg.maxTravelSteps       = ProcessParams::CAP_Z_MAX_TRAVEL_STEPS;
         cfg.accelStepsPerSec2    = ProcessParams::Z_ACCEL;
         cfg.homeBackoffSteps     = ProcessParams::Z_HOME_BACKOFF_STEPS;
-        cfg.dirDownHigh          = true;
+        cfg.dirDownHigh          = (ProcessParams::CAP_Z_DOWN_DIR == ProcessParams::StepperDir::CW);
         cfg.enableActiveLow      = true;
         cfg.limitSwitchActiveLow = true;
         return cfg;
@@ -160,7 +160,7 @@ StationController::StationController()
       fillPump_(
           HardwarePins::PIN_PUMP_FILL,
           ProcessParams::MAX_PUMP_ON_MS,
-          true),
+          !ProcessParams::PUMP_RELAY_ACTIVE_LOW),
       chuckMotor_(
           HardwarePins::PIN_BTS_CHUCK_RPWM,
           HardwarePins::PIN_BTS_CHUCK_EN,
@@ -374,15 +374,28 @@ void StationController::update()
                 break;
             }
 
-            // Coordinación de avance de banda: se pausa por solicitud de STOP o durante
-            // la carrera de descenso del brazo de sujeción para fijar la botella.
-            const bool pauseBeltForClamping =
-                linePaused_ ||
-                (fillingAutomaton_.getState() == FillState::ClampArmDown) ||
-                (ProcessParams::ENABLE_CAPPING_STATION &&
-                 (cappingAutomaton_.getState() == CappingState::ClampArmDown));
+            // Coordinación de avance de banda: se detiene por solicitud de STOP, mientras
+            // cualquier autómata tenga una botella posicionada y retenida (evita arrastrar la base),
+            // o durante la etapa inicial de liberación mientras termina de subir el brazo de tope.
+            // La banda avanza en Idle, StopArmDown (llevando botella a POS) y al soltar sujeción en ReleasingBottle.
+            const FillState fillSt = fillingAutomaton_.getState();
+            const bool fillHoldingBottle =
+                ((fillSt != FillState::Idle) &&
+                 (fillSt != FillState::StopArmDown) &&
+                 (fillSt != FillState::ReleasingBottle)) ||
+                ((fillSt == FillState::ReleasingBottle) && fillGate_.isWaitingToClearStop());
 
-            if (pauseBeltForClamping)
+            const CappingState capSt = cappingAutomaton_.getState();
+            const bool capHoldingBottle =
+                ProcessParams::ENABLE_CAPPING_STATION &&
+                (((capSt != CappingState::Idle) &&
+                  (capSt != CappingState::StopArmDown) &&
+                  (capSt != CappingState::ReleasingBottle)) ||
+                 ((capSt == CappingState::ReleasingBottle) && capGate_.isWaitingToClearStop()));
+
+            const bool pauseBelt = linePaused_ || fillHoldingBottle || capHoldingBottle;
+
+            if (pauseBelt)
             {
                 if (conveyor_.isRunning())
                 {
@@ -598,6 +611,12 @@ void StationController::handleTouchCommand(TouchCommand cmd)
         case TouchCommand::TestToggleBuzzer:
             if (mode_ == StationMode::TestMode)
             {
+                if (!ProcessParams::ENABLE_BUZZER)
+                {
+                    testFlags_ &= static_cast<uint16_t>(~TestFlags::BUZZER_ON);
+                    buzzer_.silence();
+                    break;
+                }
                 testFlags_ ^= TestFlags::BUZZER_ON;
                 const bool turnOn = (testFlags_ & TestFlags::BUZZER_ON) != 0U;
                 const bool buzzerActiveLow = ProcessParams::TOWER_RELAY_ACTIVE_LOW;

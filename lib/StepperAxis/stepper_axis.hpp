@@ -131,6 +131,15 @@ public:
     void stop();
 
     /**
+     * @brief Actualiza en vuelo la velocidad límite de crucero de la rampa trapezoidal.
+     *
+     * Permite reducir o ajustar la velocidad sin detener el desplazamiento en curso.
+     *
+     * @param maxSpeed Nueva velocidad de crucero en pasos por segundo [step/s] (rango [1..8000]).
+     */
+    void setCruiseSpeed(uint16_t maxSpeed);
+
+    /**
      * @brief Habilita o deshabilita la etapa de potencia del driver paso a paso (línea EN).
      *
      * @param enable true para energizar las bobinas; false para liberar el eje (usado en ErrorStop).

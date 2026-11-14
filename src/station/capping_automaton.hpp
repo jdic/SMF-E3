@@ -134,4 +134,5 @@ private:
     bool            isFirstRun_;           ///< Bandera para disparar onEntry() en el primer ciclo del estado
     bool            needsClear_;           ///< Impide re-disparo en Idle hasta que la botella saliente despeje los sensores
     bool            bottleCompletedEvent_; ///< Pulso de evento para incrementar bottleCount y descontar cola intermedia
+    bool            engageStarted_;        ///< Indica si ya se activó el motor de roscado y la bajada lenta en LoweringHead
 };

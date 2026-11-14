@@ -145,6 +145,20 @@ bool StepperAxis::moveToTarget(int32_t targetSteps, uint16_t maxSpeed)
     return true;
 }
 
+void StepperAxis::setCruiseSpeed(uint16_t maxSpeed)
+{
+    uint16_t clampedSpeed = (maxSpeed > MAX_ALLOWED_SPEED) ? MAX_ALLOWED_SPEED : maxSpeed;
+    if (clampedSpeed == 0U)
+    {
+        clampedSpeed = 1U;
+    }
+
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+    {
+        cruiseSpeedStepsPerSec_ = clampedSpeed;
+    }
+}
+
 void StepperAxis::moveTowardHomeSwitch(uint16_t maxSpeed)
 {
     const uint16_t clampedSpeed = (maxSpeed > MAX_ALLOWED_SPEED) ? MAX_ALLOWED_SPEED : maxSpeed;
@@ -344,6 +358,12 @@ void StepperAxis::updateMotionProfile()
         nextSpeed = (candidate > cruiseSpeedStepsPerSec_)
                         ? cruiseSpeedStepsPerSec_
                         : static_cast<uint16_t>(candidate);
+    }
+    else if (speed > cruiseSpeedStepsPerSec_)
+    {
+        nextSpeed = (speed > (cruiseSpeedStepsPerSec_ + deltaV))
+                        ? (speed - deltaV)
+                        : cruiseSpeedStepsPerSec_;
     }
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE)

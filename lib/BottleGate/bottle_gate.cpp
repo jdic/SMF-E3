@@ -5,7 +5,7 @@ BottleGate::BottleGate(const BottleGateConfig& config)
       stopServo_(),
       clampServo_(),
       actionStartMs_(0),
-      pendingStopArmUp_(false),
+      pendingClampArmUp_(false),
       settled_(true)
 {
 }
@@ -24,7 +24,7 @@ void BottleGate::init()
 
 void BottleGate::lowerStopArm()
 {
-    pendingStopArmUp_ = false;
+    pendingClampArmUp_ = false;
     stopServo_.write(resolveStopAngle(config_.stopDownDeg));
     actionStartMs_ = millis();
     settled_ = false;
@@ -32,7 +32,7 @@ void BottleGate::lowerStopArm()
 
 void BottleGate::raiseStopArm()
 {
-    pendingStopArmUp_ = false;
+    pendingClampArmUp_ = false;
     stopServo_.write(resolveStopAngle(config_.stopUpDeg));
     actionStartMs_ = millis();
     settled_ = false;
@@ -40,7 +40,7 @@ void BottleGate::raiseStopArm()
 
 void BottleGate::lowerClampArm()
 {
-    pendingStopArmUp_ = false;
+    pendingClampArmUp_ = false;
     clampServo_.write(resolveClampAngle(config_.clampDownDeg));
     actionStartMs_ = millis();
     settled_ = false;
@@ -48,7 +48,7 @@ void BottleGate::lowerClampArm()
 
 void BottleGate::raiseClampArm()
 {
-    pendingStopArmUp_ = false;
+    pendingClampArmUp_ = false;
     clampServo_.write(resolveClampAngle(config_.clampUpDeg));
     actionStartMs_ = millis();
     settled_ = false;
@@ -56,16 +56,16 @@ void BottleGate::raiseClampArm()
 
 void BottleGate::releaseBottle()
 {
-    // Etapa 1: levantar el brazo de sujecion y aguardar releaseGapMs antes de levantar el tope
-    clampServo_.write(resolveClampAngle(config_.clampUpDeg));
+    // Etapa 1: levantar primero el brazo de tope y aguardar releaseGapMs antes de soltar sujecion
+    stopServo_.write(resolveStopAngle(config_.stopUpDeg));
     actionStartMs_ = millis();
-    pendingStopArmUp_ = true;
+    pendingClampArmUp_ = true;
     settled_ = false;
 }
 
 void BottleGate::raiseArmsImmediate()
 {
-    pendingStopArmUp_ = false;
+    pendingClampArmUp_ = false;
     clampServo_.write(resolveClampAngle(config_.clampUpDeg));
     stopServo_.write(resolveStopAngle(config_.stopUpDeg));
     actionStartMs_ = millis();
@@ -76,14 +76,14 @@ void BottleGate::update()
 {
     const uint32_t nowMs = millis();
 
-    if (pendingStopArmUp_)
+    if (pendingClampArmUp_)
     {
-        // Etapa 2 de releaseBottle: levantar el brazo de tope tras cumplirse releaseGapMs
+        // Etapa 2 de releaseBottle: levantar el brazo de sujecion tras cumplirse releaseGapMs
         if ((nowMs - actionStartMs_) >= config_.releaseGapMs)
         {
-            stopServo_.write(resolveStopAngle(config_.stopUpDeg));
+            clampServo_.write(resolveClampAngle(config_.clampUpDeg));
             actionStartMs_ = nowMs;
-            pendingStopArmUp_ = false;
+            pendingClampArmUp_ = false;
         }
         return;
     }
@@ -99,7 +99,12 @@ void BottleGate::update()
 
 bool BottleGate::isSettled() const
 {
-    return (!pendingStopArmUp_ && settled_);
+    return (!pendingClampArmUp_ && settled_);
+}
+
+bool BottleGate::isWaitingToClearStop() const
+{
+    return pendingClampArmUp_;
 }
 
 uint8_t BottleGate::resolveStopAngle(uint8_t deg) const
