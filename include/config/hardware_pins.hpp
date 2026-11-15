@@ -99,4 +99,87 @@ namespace HardwarePins
     constexpr uint8_t PIN_SERVO_FILL_CLAMP  = 49; ///< Brazo de sujeción en módulo de llenado
     constexpr uint8_t PIN_SERVO_CAP_STOP    = 53; ///< Brazo de tope en módulo de tapado
     constexpr uint8_t PIN_SERVO_CAP_CLAMP   = 51; ///< Brazo de sujeción en módulo de tapado
+
+    // =========================================================================
+    // VALIDACIÓN EN TIEMPO DE COMPILACIÓN (PREVENCIÓN DE COLISIÓN DE PINES)
+    // =========================================================================
+    namespace Detail
+    {
+        constexpr bool isPinInList(uint8_t)
+        {
+            return false;
+        }
+
+        template <typename... Rest>
+        constexpr bool isPinInList(uint8_t target, uint8_t first, Rest... rest)
+        {
+            return (target == first) || isPinInList(target, rest...);
+        }
+
+        constexpr bool arePinsUnique()
+        {
+            return true;
+        }
+
+        template <typename... Rest>
+        constexpr bool arePinsUnique(uint8_t first, Rest... rest)
+        {
+            return !isPinInList(first, rest...) && arePinsUnique(rest...);
+        }
+    } // namespace Detail
+
+    // Nota: PIN_TOUCH_YP (A1) y PIN_TOUCH_XM (A2) comparten físicamente líneas
+    // con PIN_TFT_WR y PIN_TFT_RS por el diseño del shield TFT paralelo de 8 bits,
+    // y PIN_STATUS_LED es un alias explícito de PIN_TOWER_GREEN.
+    // Todos los demás pines activos de sensores y actuadores deben ser únicos.
+    static_assert(
+        Detail::arePinsUnique(
+            // Pantalla y panel táctil
+            PIN_TFT_RD,
+            PIN_TFT_WR,
+            PIN_TFT_RS,
+            PIN_TFT_CS,
+            PIN_TFT_RST,
+            PIN_TOUCH_XP,
+            PIN_TOUCH_YM,
+            // Motores DC (IBT-2)
+            PIN_BTS_CONV_RPWM,
+            PIN_BTS_CONV_EN,
+            PIN_ADC_CONV_CURRENT,
+            PIN_BTS_CHUCK_RPWM,
+            PIN_BTS_CHUCK_EN,
+            PIN_ADC_CHUCK_CURRENT,
+            // Sensores ópticos de presencia y posición
+            PIN_PRESENCE_FILL,
+            PIN_POS_FILL,
+            PIN_PRESENCE_CAP,
+            PIN_POS_CAP,
+            // Botonera de control y seguridad
+            PIN_BTN_START,
+            PIN_BTN_STOP,
+            PIN_ESTOP_AUX,
+            PIN_BTN_RESET,
+            // Fines de carrera ejes Z
+            PIN_LIMIT_SWITCH_FILL,
+            PIN_LIMIT_SWITCH_CAP,
+            // Motores a pasos ejes Z
+            PIN_STEPPER_CAP_EN,
+            PIN_STEPPER_CAP_DIR,
+            PIN_STEPPER_CAP_STEP,
+            PIN_STEPPER_FILL_EN,
+            PIN_STEPPER_FILL_DIR,
+            PIN_STEPPER_FILL_STEP,
+            // Señalización y bomba
+            PIN_BUZZER,
+            PIN_TOWER_GREEN,
+            PIN_TOWER_RED,
+            PIN_PUMP_FILL,
+            // Servomotores
+            PIN_SERVO_FILL_STOP,
+            PIN_SERVO_FILL_CLAMP,
+            PIN_SERVO_CAP_STOP,
+            PIN_SERVO_CAP_CLAMP
+        ),
+        "Colision de pines detectada en HardwarePins: dos o mas perifericos tienen asignado el mismo pin."
+    );
 }
