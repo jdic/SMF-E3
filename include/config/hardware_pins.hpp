@@ -126,7 +126,20 @@ namespace HardwarePins
         {
             return !isPinInList(first, rest...) && arePinsUnique(rest...);
         }
+
+        constexpr bool isReservedTimerPwmPin(uint8_t pin)
+        {
+            // Timer3 (pines 2, 3, 5) es exclusivo de StepperAxis (ISR a 20 kHz)
+            // Timer5 (pines 44, 45, 46) es exclusivo de la librería Servo
+            return isPinInList(pin, 2U, 3U, 5U, 44U, 45U, 46U);
+        }
     } // namespace Detail
+
+    static_assert(
+        !Detail::isReservedTimerPwmPin(PIN_BTS_CONV_RPWM) &&
+        !Detail::isReservedTimerPwmPin(PIN_BTS_CHUCK_RPWM),
+        "Conflicto de Timer en HardwarePins: los pines PWM de motores DC no pueden usar Timer3 (2,3,5) ni Timer5 (44,45,46)."
+    );
 
     // Nota: PIN_TOUCH_YP (A1) y PIN_TOUCH_XM (A2) comparten físicamente líneas
     // con PIN_TFT_WR y PIN_TFT_RS por el diseño del shield TFT paralelo de 8 bits,

@@ -1,176 +1,4 @@
 #include "dc_motor_bts7960.hpp"
-#include <avr/interrupt.h>
-
-namespace
-{
-    /**
-     * @brief Canal de modulación PWM asistido por Timer4 (976 Hz) para pines cuyo temporizador
-     *        nativo (Timer5 en pines 44, 45 y 46) está ocupado por la librería Servo.
-     */
-    struct Timer4PwmChannel
-    {
-        uint8_t           pin;
-        volatile uint8_t* portOut;
-        uint8_t           bitMask;
-    };
-
-    constexpr uint8_t MAX_TIMER4_CHANNELS = 2;
-    Timer4PwmChannel  g_timer4Channels[MAX_TIMER4_CHANNELS] =
-    {
-        { DcMotorBts7960::UNUSED_PIN, nullptr, 0 },
-        { DcMotorBts7960::UNUSED_PIN, nullptr, 0 }
-    };
-    bool g_timer4Initialized = false;
-
-    bool usesTimer5Pin(uint8_t pin)
-    {
-        return (pin == 44U) || (pin == 45U) || (pin == 46U);
-    }
-
-    void ensureTimer4Init()
-    {
-        if (g_timer4Initialized)
-        {
-            return;
-        }
-
-        const uint8_t sreg = SREG;
-        cli();
-
-        // Timer4 en Fast PWM de 8 bits (WGM43:0 = 0101, TOP = 0x00FF) con prescaler 64 (~976.5 Hz)
-        TCCR4A = _BV(WGM40);
-        TCCR4B = _BV(WGM42) | _BV(CS41) | _BV(CS40);
-        TCNT4  = 0;
-        TIMSK4 = 0;
-        TIFR4  = _BV(OCF4B) | _BV(OCF4C) | _BV(TOV4);
-
-        g_timer4Initialized = true;
-        SREG = sreg;
-    }
-
-    int8_t findOrAllocateTimer4Channel(uint8_t pin)
-    {
-        for (uint8_t i = 0; i < MAX_TIMER4_CHANNELS; ++i)
-        {
-            if (g_timer4Channels[i].pin == pin)
-            {
-                return static_cast<int8_t>(i);
-            }
-        }
-
-        for (uint8_t i = 0; i < MAX_TIMER4_CHANNELS; ++i)
-        {
-            if (g_timer4Channels[i].pin == DcMotorBts7960::UNUSED_PIN)
-            {
-                const uint8_t port = digitalPinToPort(pin);
-                if (port == NOT_A_PIN)
-                {
-                    return -1;
-                }
-                g_timer4Channels[i].pin     = pin;
-                g_timer4Channels[i].portOut = portOutputRegister(port);
-                g_timer4Channels[i].bitMask = digitalPinToBitMask(pin);
-                return static_cast<int8_t>(i);
-            }
-        }
-
-        return -1;
-    }
-
-    void writePwmPin(uint8_t pin, uint8_t pwm)
-    {
-        if (!usesTimer5Pin(pin))
-        {
-            analogWrite(pin, pwm);
-            return;
-        }
-
-        ensureTimer4Init();
-        const int8_t ch = findOrAllocateTimer4Channel(pin);
-        if (ch < 0)
-        {
-            digitalWrite(pin, (pwm >= 128U) ? HIGH : LOW);
-            return;
-        }
-
-        const uint8_t sreg = SREG;
-        cli();
-
-        // Desconectar salida OC5x del Timer5 por si analogWrite fue invocado previamente
-        if (pin == 44U)
-        {
-            TCCR5A &= static_cast<uint8_t>(~_BV(COM5C1));
-        }
-        else if (pin == 45U)
-        {
-            TCCR5A &= static_cast<uint8_t>(~_BV(COM5B1));
-        }
-        else if (pin == 46U)
-        {
-            TCCR5A &= static_cast<uint8_t>(~_BV(COM5A1));
-        }
-
-        const uint8_t ieMask = (ch == 0) ? _BV(OCIE4B) : _BV(OCIE4C);
-
-        if (pwm == 0U)
-        {
-            TIMSK4 &= static_cast<uint8_t>(~ieMask);
-            *g_timer4Channels[ch].portOut &= static_cast<uint8_t>(~g_timer4Channels[ch].bitMask);
-        }
-        else if (pwm == 255U)
-        {
-            TIMSK4 &= static_cast<uint8_t>(~ieMask);
-            *g_timer4Channels[ch].portOut |= g_timer4Channels[ch].bitMask;
-        }
-        else
-        {
-            if (ch == 0)
-            {
-                OCR4B = pwm;
-            }
-            else
-            {
-                OCR4C = pwm;
-            }
-            TIMSK4 |= static_cast<uint8_t>(_BV(TOIE4) | ieMask);
-        }
-
-        if ((TIMSK4 & (_BV(OCIE4B) | _BV(OCIE4C))) == 0U)
-        {
-            TIMSK4 &= static_cast<uint8_t>(~_BV(TOIE4));
-        }
-
-        SREG = sreg;
-    }
-}
-
-ISR(TIMER4_OVF_vect)
-{
-    if ((TIMSK4 & _BV(OCIE4B)) != 0U && g_timer4Channels[0].portOut != nullptr)
-    {
-        *g_timer4Channels[0].portOut |= g_timer4Channels[0].bitMask;
-    }
-    if ((TIMSK4 & _BV(OCIE4C)) != 0U && g_timer4Channels[1].portOut != nullptr)
-    {
-        *g_timer4Channels[1].portOut |= g_timer4Channels[1].bitMask;
-    }
-}
-
-ISR(TIMER4_COMPB_vect)
-{
-    if (g_timer4Channels[0].portOut != nullptr)
-    {
-        *g_timer4Channels[0].portOut &= static_cast<uint8_t>(~g_timer4Channels[0].bitMask);
-    }
-}
-
-ISR(TIMER4_COMPC_vect)
-{
-    if (g_timer4Channels[1].portOut != nullptr)
-    {
-        *g_timer4Channels[1].portOut &= static_cast<uint8_t>(~g_timer4Channels[1].bitMask);
-    }
-}
 
 DcMotorBts7960::DcMotorBts7960(
     uint8_t rpwmPin,
@@ -223,11 +51,11 @@ void DcMotorBts7960::driveForward(uint8_t pwm)
     // Garantizar que LPWM quede en cero antes de modular RPWM
     if (lpwmPin_ != UNUSED_PIN)
     {
-        writePwmPin(lpwmPin_, 0);
+        analogWrite(lpwmPin_, 0);
     }
 
     digitalWrite(enPin_, HIGH);
-    writePwmPin(rpwmPin_, pwm);
+    analogWrite(rpwmPin_, pwm);
     activePwmPin_ = rpwmPin_;
     currentPwm_   = pwm;
     enabled_      = true;
@@ -247,9 +75,9 @@ void DcMotorBts7960::driveReverse(uint8_t pwm)
     }
 
     // Garantizar que RPWM quede en cero antes de modular LPWM
-    writePwmPin(rpwmPin_, 0);
+    analogWrite(rpwmPin_, 0);
     digitalWrite(enPin_, HIGH);
-    writePwmPin(lpwmPin_, pwm);
+    analogWrite(lpwmPin_, pwm);
     activePwmPin_ = lpwmPin_;
     currentPwm_   = pwm;
     enabled_      = true;
@@ -257,10 +85,10 @@ void DcMotorBts7960::driveReverse(uint8_t pwm)
 
 void DcMotorBts7960::brake()
 {
-    writePwmPin(rpwmPin_, 0);
+    analogWrite(rpwmPin_, 0);
     if (lpwmPin_ != UNUSED_PIN)
     {
-        writePwmPin(lpwmPin_, 0);
+        analogWrite(lpwmPin_, 0);
     }
 
     // En el BTS7960, EN = HIGH con ambos PWM en LOW activa el frenado por rama inferior
@@ -277,10 +105,10 @@ void DcMotorBts7960::brake()
 
 void DcMotorBts7960::stop()
 {
-    writePwmPin(rpwmPin_, 0);
+    analogWrite(rpwmPin_, 0);
     if (lpwmPin_ != UNUSED_PIN)
     {
-        writePwmPin(lpwmPin_, 0);
+        analogWrite(lpwmPin_, 0);
     }
 
     digitalWrite(enPin_, LOW);
