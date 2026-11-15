@@ -1,8 +1,21 @@
-# Arquitectura de Software y Hardware: Estación 3 (Llenado y Tapado)
+# SMF-E3 — Estación 3 (Llenado y Tapado)
 
 Este documento describe la arquitectura técnica real e implementada de la **Estación 3 (Llenado y Tapado)** para una línea de Sistemas de Manufactura Flexible (FMS), incluyendo sus estándares de codificación, patrones de diseño embebido, máquinas de estados (FSM), interfaz HMI táctil de 5 pestañas, modo de prueba manual (`TestMode`), compensación de carga $I \times R$, modelo de concurrencia cooperativa + ISR y mapeo físico de pines.
 
 El controlador principal de la estación es un **Arduino Mega 2560 (ATmega2560, 8 bits AVR @ 16 MHz, 256 KB Flash, 8 KB SRAM, 4 KB EEPROM, lógica de 5 V)**.
+
+## Compilación y Carga (PlatformIO)
+
+```bash
+# Compilar el firmware
+pio run -e megaatmega2560
+
+# Compilar y cargar al Arduino Mega 2560
+pio run -e megaatmega2560 -t upload
+
+# Abrir monitor serie (115200 baudios)
+pio device monitor -b 115200
+```
 
 ---
 
@@ -277,7 +290,7 @@ Con el **`TEST MODE`** integrado en la pantalla `Settings` y la telemetría en v
 ```text
 SMF-E3/
 ├── platformio.ini                       # Configuración de entorno megaatmega2560 y librerías fijas
-├── ARCHITECTURE.md                      # Documentación técnica integral de la estación
+├── README.md                            # Documentación técnica integral y guía de la estación
 ├── include/
 │   ├── config/
 │   │   ├── hardware_pins.hpp            # Mapeo centralizado de pines GPIO/ADC y validación static_assert
