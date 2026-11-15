@@ -8,8 +8,10 @@ bool StepperAxis::timer3Initialized_ = false;
 
 StepperAxis::StepperAxis(const StepperAxisConfig& config)
     : config_(config),
-      stepMaskPortC_(0),
-      limitMaskPortA_(0),
+      stepOutReg_(nullptr),
+      limitInReg_(nullptr),
+      stepBitMask_(0),
+      limitBitMask_(0),
       currentSteps_(0),
       targetSteps_(0),
       maxTravelSteps_(config.maxTravelSteps),
@@ -36,8 +38,13 @@ void StepperAxis::init()
 
     pinMode(config_.limitSwitchPin, INPUT_PULLUP);
 
-    stepMaskPortC_ = digitalPinToBitMask(config_.stepPin);
-    limitMaskPortA_ = digitalPinToBitMask(config_.limitSwitchPin);
+    const uint8_t stepPort  = digitalPinToPort(config_.stepPin);
+    const uint8_t limitPort = digitalPinToPort(config_.limitSwitchPin);
+
+    stepOutReg_   = (stepPort != NOT_A_PIN) ? portOutputRegister(stepPort) : nullptr;
+    limitInReg_   = (limitPort != NOT_A_PIN) ? portInputRegister(limitPort) : nullptr;
+    stepBitMask_  = digitalPinToBitMask(config_.stepPin);
+    limitBitMask_ = digitalPinToBitMask(config_.limitSwitchPin);
 
     const uint8_t slotIndex = static_cast<uint8_t>(config_.slot);
     if (slotIndex < MAX_SLOTS)
@@ -430,14 +437,14 @@ int32_t StepperAxis::getCurrentSteps() const
     return pos;
 }
 
-uint8_t StepperAxis::handleTimerIsrTick()
+bool StepperAxis::handleTimerIsrTick()
 {
     if (!moving_)
     {
-        return 0;
+        return false;
     }
 
-    // 1. Vigilancia de fin de carrera superior en PINA cuando el eje sube (!dirDown_)
+    // 1. Vigilancia de fin de carrera superior cuando el eje sube (!dirDown_)
     if (!dirDown_ && isLimitSwitchTriggeredIsr())
     {
         moving_ = false;
@@ -453,7 +460,7 @@ uint8_t StepperAxis::handleTimerIsrTick()
         {
             homingPhase_ = HomingPhase::Homed;
         }
-        return 0;
+        return false;
     }
 
     // 2. Vigilancia de soft limit inferior cuando el eje baja (dirDown_)
@@ -462,7 +469,7 @@ uint8_t StepperAxis::handleTimerIsrTick()
         moving_ = false;
         currentSpeedStepsPerSec_ = 0;
         softLimitTripped_ = true;
-        return 0;
+        return false;
     }
 
     // 3. Verificacion de llegada a la cota objetivo
@@ -470,14 +477,14 @@ uint8_t StepperAxis::handleTimerIsrTick()
     {
         moving_ = false;
         currentSpeedStepsPerSec_ = 0;
-        return 0;
+        return false;
     }
 
     // 4. Acumulador de fase para generacion de pulsos a 20 kHz
     phaseAccumulator_ += currentSpeedStepsPerSec_;
     if (phaseAccumulator_ < ISR_FREQ_HZ)
     {
-        return 0;
+        return false;
     }
 
     phaseAccumulator_ -= ISR_FREQ_HZ;
@@ -496,7 +503,7 @@ uint8_t StepperAxis::handleTimerIsrTick()
         currentSpeedStepsPerSec_ = 0;
     }
 
-    return stepMaskPortC_;
+    return (stepOutReg_ != nullptr);
 }
 
 void StepperAxis::initTimer3Once()
@@ -531,31 +538,43 @@ void StepperAxis::setDirectionDown(bool down)
 
 bool StepperAxis::isLimitSwitchTriggeredIsr() const
 {
-    const bool pinHigh = ((PINA & limitMaskPortA_) != 0U);
+    if (limitInReg_ == nullptr)
+    {
+        return false;
+    }
+    const bool pinHigh = ((*limitInReg_ & limitBitMask_) != 0U);
     return config_.limitSwitchActiveLow ? !pinHigh : pinHigh;
 }
 
 void StepperAxis::handleTimer3Isr()
 {
-    uint8_t pulseMask = 0;
-
     StepperAxis* const axis0 = instances_[0];
-    if (axis0 != nullptr)
-    {
-        pulseMask |= axis0->handleTimerIsrTick();
-    }
+    const bool step0 = (axis0 != nullptr) && axis0->handleTimerIsrTick();
 
     StepperAxis* const axis1 = instances_[1];
-    if (axis1 != nullptr)
-    {
-        pulseMask |= axis1->handleTimerIsrTick();
-    }
+    const bool step1 = (axis1 != nullptr) && axis1->handleTimerIsrTick();
 
-    if (pulseMask != 0U)
+    if (step0 || step1)
     {
-        PORTC |= pulseMask;
+        if (step0)
+        {
+            *(axis0->stepOutReg_) |= axis0->stepBitMask_;
+        }
+        if (step1)
+        {
+            *(axis1->stepOutReg_) |= axis1->stepBitMask_;
+        }
+
         _delay_us(STEP_PULSE_WIDTH_US);
-        PORTC &= static_cast<uint8_t>(~pulseMask);
+
+        if (step0)
+        {
+            *(axis0->stepOutReg_) &= static_cast<uint8_t>(~axis0->stepBitMask_);
+        }
+        if (step1)
+        {
+            *(axis1->stepOutReg_) &= static_cast<uint8_t>(~axis1->stepBitMask_);
+        }
     }
 }
 

@@ -39,8 +39,8 @@ struct StepperAxisConfig
  * @class StepperAxis
  * @brief Gestiona el perfil trapezoidal de velocidad, homing y vigilancia en ISR de un eje Z paso a paso.
  *
- * Los pulsos STEP se emiten desde la ISR del Timer3 a 20 kHz mediante escritura directa sobre PORTC.
- * En cada tick de la ISR se lee directamente el fin de carrera superior en PINA y se evalúa el soft limit
+ * Los pulsos STEP se emiten desde la ISR del Timer3 a 20 kHz mediante acceso directo a los registros de puerto AVR.
+ * En cada tick de la ISR se lee directamente el registro de entrada del fin de carrera superior y se evalúa el soft limit
  * inferior para detener el motor en tiempo real duro sin depender del super-loop.
  */
 class StepperAxis
@@ -56,7 +56,7 @@ public:
     /**
      * @brief Construye un controlador de eje paso a paso Z.
      *
-     * @param config Estructura de configuración con pines de PORTC/PORTA, aceleración y límites.
+     * @param config Estructura de configuración con pines GPIO, aceleración y límites.
      */
     explicit StepperAxis(const StepperAxisConfig& config);
 
@@ -202,7 +202,7 @@ public:
     static void handleTimer3Isr();
 
 private:
-    uint8_t handleTimerIsrTick();
+    bool handleTimerIsrTick();
 
     enum class HomingPhase : uint8_t
     {
@@ -220,10 +220,12 @@ private:
     static StepperAxis* instances_[MAX_SLOTS];
     static bool         timer3Initialized_;
 
-    StepperAxisConfig     config_;
-    uint8_t               stepMaskPortC_;
-    uint8_t               limitMaskPortA_;
-    volatile int32_t      currentSteps_;
+    StepperAxisConfig       config_;
+    volatile uint8_t*       stepOutReg_;
+    volatile const uint8_t* limitInReg_;
+    uint8_t                 stepBitMask_;
+    uint8_t                 limitBitMask_;
+    volatile int32_t        currentSteps_;
     volatile int32_t      targetSteps_;
     volatile int32_t      maxTravelSteps_;
     volatile uint16_t     currentSpeedStepsPerSec_;
