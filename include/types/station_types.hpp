@@ -199,6 +199,30 @@ struct DisplaySnapshot
     uint8_t       chuckPwm;        ///< Ciclo PWM actual aplicado al motor de apriete de tapas [0..255]
     uint16_t      chuckCurrentAdc; ///< Corriente filtrada actual del motor de apriete en cuentas ADC [0..1023]
     uint16_t      inputFlags;      ///< Máscara de bits (InputFlags) con el estado de todos los sensores y botones
+
+    bool operator==(const DisplaySnapshot& other) const
+    {
+        return (error == other.error) &&
+               (mode == other.mode) &&
+               (fillState == other.fillState) &&
+               (capState == other.capState) &&
+               (profile == other.profile) &&
+               (queueCount == other.queueCount) &&
+               (bottleCount == other.bottleCount) &&
+               (testFlags == other.testFlags) &&
+               (fillZSteps == other.fillZSteps) &&
+               (capZSteps == other.capZSteps) &&
+               (beltPwm == other.beltPwm) &&
+               (beltCurrentAdc == other.beltCurrentAdc) &&
+               (chuckPwm == other.chuckPwm) &&
+               (chuckCurrentAdc == other.chuckCurrentAdc) &&
+               (inputFlags == other.inputFlags);
+    }
+
+    bool operator!=(const DisplaySnapshot& other) const
+    {
+        return !(*this == other);
+    }
 };
 
 /**

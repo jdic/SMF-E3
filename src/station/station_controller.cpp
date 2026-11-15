@@ -1,106 +1,7 @@
 #include "station_controller.hpp"
+#include "station_hardware_factory.hpp"
 #include "config/hardware_pins.hpp"
 #include "config/process_params.hpp"
-
-namespace
-{
-    BottleGateConfig makeFillGateConfig()
-    {
-        BottleGateConfig cfg{};
-        cfg.stopPin      = HardwarePins::PIN_SERVO_FILL_STOP;
-        cfg.clampPin     = HardwarePins::PIN_SERVO_FILL_CLAMP;
-        cfg.stopUpDeg    = ProcessParams::FILL_STOP_UP_DEG;
-        cfg.stopDownDeg  = ProcessParams::FILL_STOP_DOWN_DEG;
-        cfg.clampUpDeg   = ProcessParams::FILL_CLAMP_UP_DEG;
-        cfg.clampDownDeg = ProcessParams::FILL_CLAMP_DOWN_DEG;
-        cfg.stopReverse  = (ProcessParams::FILL_STOP_DIR  == ProcessParams::ServoDir::CCW);
-        cfg.clampReverse = (ProcessParams::FILL_CLAMP_DIR == ProcessParams::ServoDir::CCW);
-        cfg.armMoveMs    = ProcessParams::ARM_MOVE_MS;
-        cfg.releaseGapMs = ProcessParams::RELEASE_GAP_MS;
-        return cfg;
-    }
-
-    BottleGateConfig makeCapGateConfig()
-    {
-        BottleGateConfig cfg{};
-        cfg.stopPin      = HardwarePins::PIN_SERVO_CAP_STOP;
-        cfg.clampPin     = HardwarePins::PIN_SERVO_CAP_CLAMP;
-        cfg.stopUpDeg    = ProcessParams::CAP_STOP_UP_DEG;
-        cfg.stopDownDeg  = ProcessParams::CAP_STOP_DOWN_DEG;
-        cfg.clampUpDeg   = ProcessParams::CAP_CLAMP_UP_DEG;
-        cfg.clampDownDeg = ProcessParams::CAP_CLAMP_DOWN_DEG;
-        cfg.stopReverse  = (ProcessParams::CAP_STOP_DIR  == ProcessParams::ServoDir::CCW);
-        cfg.clampReverse = (ProcessParams::CAP_CLAMP_DIR == ProcessParams::ServoDir::CCW);
-        cfg.armMoveMs    = ProcessParams::ARM_MOVE_MS;
-        cfg.releaseGapMs = ProcessParams::RELEASE_GAP_MS;
-        return cfg;
-    }
-
-    StepperAxisConfig makeFillZConfig()
-    {
-        StepperAxisConfig cfg{};
-        cfg.slot                 = StepperSlot::FillZ;
-        cfg.stepPin              = HardwarePins::PIN_STEPPER_FILL_STEP;
-        cfg.dirPin               = HardwarePins::PIN_STEPPER_FILL_DIR;
-        cfg.enPin                = HardwarePins::PIN_STEPPER_FILL_EN;
-        cfg.limitSwitchPin       = HardwarePins::PIN_LIMIT_SWITCH_FILL;
-        cfg.maxTravelSteps       = ProcessParams::FILL_Z_MAX_TRAVEL_STEPS;
-        cfg.accelStepsPerSec2    = ProcessParams::Z_ACCEL;
-        cfg.homeBackoffSteps     = ProcessParams::Z_HOME_BACKOFF_STEPS;
-        cfg.dirDownHigh          = (ProcessParams::FILL_Z_DOWN_DIR == ProcessParams::StepperDir::CW);
-        cfg.enableActiveLow      = true;
-        cfg.limitSwitchActiveLow = true;
-        return cfg;
-    }
-
-    StepperAxisConfig makeCapZConfig()
-    {
-        StepperAxisConfig cfg{};
-        cfg.slot                 = StepperSlot::CapZ;
-        cfg.stepPin              = HardwarePins::PIN_STEPPER_CAP_STEP;
-        cfg.dirPin               = HardwarePins::PIN_STEPPER_CAP_DIR;
-        cfg.enPin                = HardwarePins::PIN_STEPPER_CAP_EN;
-        cfg.limitSwitchPin       = HardwarePins::PIN_LIMIT_SWITCH_CAP;
-        cfg.maxTravelSteps       = ProcessParams::CAP_Z_MAX_TRAVEL_STEPS;
-        cfg.accelStepsPerSec2    = ProcessParams::Z_ACCEL;
-        cfg.homeBackoffSteps     = ProcessParams::Z_HOME_BACKOFF_STEPS;
-        cfg.dirDownHigh          = (ProcessParams::CAP_Z_DOWN_DIR == ProcessParams::StepperDir::CW);
-        cfg.enableActiveLow      = true;
-        cfg.limitSwitchActiveLow = true;
-        return cfg;
-    }
-
-    ConveyorConfig makeConveyorConfig()
-    {
-        ConveyorConfig cfg{};
-        cfg.rpwmPin            = HardwarePins::PIN_BTS_CONV_RPWM;
-        cfg.enPin              = HardwarePins::PIN_BTS_CONV_EN;
-        cfg.currentSensePin    = HardwarePins::PIN_ADC_CONV_CURRENT;
-        cfg.targetPwm          = ProcessParams::BELT_PWM;
-        cfg.maxBoostPwm        = ProcessParams::BELT_MAX_BOOST_PWM;
-        cfg.enableIrComp       = ProcessParams::ENABLE_BELT_IR_COMP;
-        cfg.idleCurrentAdc     = ProcessParams::BELT_IDLE_CURRENT_ADC;
-        cfg.fullLoadCurrentAdc = ProcessParams::BELT_FULL_LOAD_ADC;
-        cfg.accelStepPwm       = ProcessParams::BELT_ACCEL_PWM_STEP;
-        cfg.decelStepPwm       = ProcessParams::BELT_DECEL_PWM_STEP;
-        cfg.enableStallProt    = ProcessParams::ENABLE_BELT_STALL_PROT;
-        cfg.currentLimitAdc    = ProcessParams::BELT_CURRENT_LIMIT_ADC;
-        cfg.stallTimeMs        = ProcessParams::BELT_STALL_MS;
-        return cfg;
-    }
-
-    void writeTowerRelayPin(uint8_t pin, bool turnOn)
-    {
-        const bool levelHigh = ProcessParams::TOWER_RELAY_ACTIVE_LOW ? !turnOn : turnOn;
-        digitalWrite(pin, levelHigh ? HIGH : LOW);
-    }
-
-    void setTowerLights(bool greenOn, bool redOn)
-    {
-        writeTowerRelayPin(HardwarePins::PIN_TOWER_GREEN, greenOn);
-        writeTowerRelayPin(HardwarePins::PIN_TOWER_RED, redOn);
-    }
-}
 
 StationController::StationController()
     : presenceFill_(
@@ -153,10 +54,10 @@ StationController::StationController()
           ProcessParams::SENSOR_DEBOUNCE_MS,
           false,
           true),
-      fillGate_(makeFillGateConfig()),
-      capGate_(makeCapGateConfig()),
-      fillZ_(makeFillZConfig()),
-      capZ_(makeCapZConfig()),
+      fillGate_(StationHardwareFactory::makeFillGateConfig()),
+      capGate_(StationHardwareFactory::makeCapGateConfig()),
+      fillZ_(StationHardwareFactory::makeFillZConfig()),
+      capZ_(StationHardwareFactory::makeCapZConfig()),
       fillPump_(
           HardwarePins::PIN_PUMP_FILL,
           ProcessParams::MAX_PUMP_ON_MS,
@@ -166,7 +67,7 @@ StationController::StationController()
           HardwarePins::PIN_BTS_CHUCK_EN,
           DcMotorBts7960::UNUSED_PIN,
           HardwarePins::PIN_ADC_CHUCK_CURRENT),
-      conveyor_(makeConveyorConfig()),
+      conveyor_(StationHardwareFactory::makeConveyorConfig()),
       buzzer_(HardwarePins::PIN_BUZZER, !ProcessParams::TOWER_RELAY_ACTIVE_LOW),
       fillingAutomaton_(
           presenceFill_,
@@ -213,11 +114,10 @@ StationController::StationController()
 
 void StationController::init()
 {
-    // Inicializar indicadores lumínicos en estado apagado
-    setTowerLights(false, false);
+    StationHardwareFactory::setTowerLights(false, false);
     pinMode(HardwarePins::PIN_TOWER_GREEN, OUTPUT);
     pinMode(HardwarePins::PIN_TOWER_RED, OUTPUT);
-    setTowerLights(false, false);
+    StationHardwareFactory::setTowerLights(false, false);
 
     presenceFill_.init();
     positionFill_.init();
@@ -288,7 +188,7 @@ void StationController::update()
         return;
     }
 
-    // 3. Pulsadores de control y rearme
+    // 3. Pulsadores físicos de control y rearme
     if (btnReset_.onRisingEdge())
     {
         handleTouchCommand(TouchCommand::AcknowledgeAlarm);
@@ -298,7 +198,7 @@ void StationController::update()
     {
         linePaused_ = true;
         conveyor_.pauseSmooth();
-        setTowerLights(false, true);
+        StationHardwareFactory::setTowerLights(false, true);
     }
 
     if (btnStart_.onRisingEdge())
@@ -306,7 +206,7 @@ void StationController::update()
         if (mode_ == StationMode::Running && linePaused_)
         {
             linePaused_ = false;
-            setTowerLights(true, false);
+            StationHardwareFactory::setTowerLights(true, false);
         }
         else if (mode_ == StationMode::ManualRecovery)
         {
@@ -318,190 +218,22 @@ void StationController::update()
     switch (mode_)
     {
         case StationMode::Boot:
-            if (fillZ_.hasSoftLimitTripped())
-            {
-                if (ProcessParams::ENABLE_ERR_202_FILL_Z_SOFT_LIMIT)
-                {
-                    enterErrorStop(ErrorCode::FillZSoftLimitHit);
-                }
-                else
-                {
-                    fillZ_.clearSoftLimitFault();
-                }
-            }
-            else if (ProcessParams::ENABLE_CAPPING_STATION && capZ_.hasSoftLimitTripped())
-            {
-                if (ProcessParams::ENABLE_ERR_212_CAP_Z_SOFT_LIMIT)
-                {
-                    enterErrorStop(ErrorCode::CapZSoftLimitHit);
-                }
-                else
-                {
-                    capZ_.clearSoftLimitFault();
-                }
-            }
-            else if (fillZ_.isHome() && (!ProcessParams::ENABLE_CAPPING_STATION || capZ_.isHome()))
-            {
-                enterRunningMode();
-            }
-            else if (nowMs - bootStartTimeMs_ >= ProcessParams::Z_HOMING_TIMEOUT_MS)
-            {
-                if (!fillZ_.isHome())
-                {
-                    if (ProcessParams::ENABLE_ERR_201_FILL_Z_HOME_FAILED)
-                    {
-                        enterErrorStop(ErrorCode::FillZHomeFailed);
-                    }
-                    else
-                    {
-                        enterRunningMode();
-                    }
-                }
-                else
-                {
-                    if (ProcessParams::ENABLE_ERR_211_CAP_Z_HOME_FAILED)
-                    {
-                        enterErrorStop(ErrorCode::CapZHomeFailed);
-                    }
-                    else
-                    {
-                        enterRunningMode();
-                    }
-                }
-            }
+            updateBootMode(nowMs);
             break;
 
         case StationMode::Running:
-        {
-            if (conveyor_.isStalled())
-            {
-                if (ProcessParams::ENABLE_ERR_303_CONVEYOR_STALL)
-                {
-                    enterErrorStop(ErrorCode::ConveyorStall);
-                    break;
-                }
-                conveyor_.clearStall();
-            }
-
-            // Control de flujo de la cola intermedia entre Llenado y Tapado
-            const bool canReleaseFromFill =
-                !ProcessParams::ENABLE_INTERSTAGE_QUEUE ||
-                (interstageQueueCount_ < ProcessParams::MAX_INTERSTAGE_QUEUE);
-            fillingAutomaton_.setReleasePermitted(canReleaseFromFill);
-
-            fillingAutomaton_.update();
-            if (ProcessParams::ENABLE_CAPPING_STATION)
-            {
-                cappingAutomaton_.update();
-            }
-
-            if (fillingAutomaton_.getError() != ErrorCode::None)
-            {
-                enterErrorStop(fillingAutomaton_.getError());
-                break;
-            }
-
-            if (ProcessParams::ENABLE_CAPPING_STATION &&
-                cappingAutomaton_.getError() != ErrorCode::None)
-            {
-                enterErrorStop(cappingAutomaton_.getError());
-                break;
-            }
-
-            // Coordinación de avance de banda: se detiene por solicitud de STOP, mientras
-            // cualquier autómata tenga una botella posicionada y retenida (evita arrastrar la base),
-            // o durante la etapa inicial de liberación mientras termina de subir el brazo de tope.
-            // La banda avanza en Idle, StopArmDown (llevando botella a POS) y al soltar sujeción en ReleasingBottle.
-            const FillState fillSt = fillingAutomaton_.getState();
-            const bool fillHoldingBottle =
-                ((fillSt != FillState::Idle) &&
-                 (fillSt != FillState::StopArmDown) &&
-                 (fillSt != FillState::ReleasingBottle)) ||
-                ((fillSt == FillState::ReleasingBottle) && fillGate_.isWaitingToClearStop());
-
-            const CappingState capSt = cappingAutomaton_.getState();
-            const bool capHoldingBottle =
-                ProcessParams::ENABLE_CAPPING_STATION &&
-                (((capSt != CappingState::Idle) &&
-                  (capSt != CappingState::StopArmDown) &&
-                  (capSt != CappingState::ReleasingBottle)) ||
-                 ((capSt == CappingState::ReleasingBottle) && capGate_.isWaitingToClearStop()));
-
-            const bool pauseBelt = linePaused_ || fillHoldingBottle || capHoldingBottle;
-
-            if (pauseBelt)
-            {
-                if (conveyor_.isRunning())
-                {
-                    conveyor_.pauseSmooth();
-                }
-            }
-            else
-            {
-                if (!conveyor_.isRunning())
-                {
-                    conveyor_.start();
-                }
-            }
-
-            if (fillingAutomaton_.consumeBottleReleasedEvent())
-            {
-                if (ProcessParams::ENABLE_INTERSTAGE_QUEUE)
-                {
-                    if (interstageQueueCount_ < 0xFFU)
-                    {
-                        interstageQueueCount_++;
-                    }
-                }
-                else if (!ProcessParams::ENABLE_CAPPING_STATION)
-                {
-                    bottleCount_++;
-                }
-            }
-
-            if (ProcessParams::ENABLE_CAPPING_STATION &&
-                cappingAutomaton_.consumeBottleCompletedEvent())
-            {
-                bottleCount_++;
-                if (ProcessParams::ENABLE_INTERSTAGE_QUEUE && interstageQueueCount_ > 0U)
-                {
-                    interstageQueueCount_--;
-                }
-            }
-
-            // En operación nominal, mantener BootReady si aún está sonando, o reflejar advertencia 902
-            if (buzzer_.getPattern() != BuzzerPattern::BootReady)
-            {
-                const BuzzerPattern runPattern =
-                    (ProcessParams::ENABLE_ERR_902_NETWORK_LINK_LOST && networkWarningActive_)
-                        ? BuzzerPattern::Warning
-                        : BuzzerPattern::Silent;
-                buzzer_.setPattern(runPattern, nowMs);
-            }
+            updateRunningMode(nowMs);
             break;
-        }
 
         case StationMode::ErrorStop:
-            // Mantener patrón acústico de fallo mientras la alarma no haya sido reconocida
             buzzer_.setPattern(BuzzerPattern::Fault, nowMs);
             break;
 
         case StationMode::ManualRecovery:
-            // En recuperación manual el buzzer permanece en silencio para asistir al operador
             break;
 
         case StationMode::TestMode:
-            // Sincronizar bandera de bomba si se apagó automáticamente por MAX_PUMP_ON_MS
-            if (!fillPump_.isOn() && ((testFlags_ & TestFlags::FILL_PUMP_ON) != 0U))
-            {
-                testFlags_ &= static_cast<uint16_t>(~TestFlags::FILL_PUMP_ON);
-            }
-            if (conveyor_.isStalled())
-            {
-                conveyor_.stop();
-                conveyor_.clearStall();
-                testFlags_ &= static_cast<uint16_t>(~TestFlags::BELT_ON);
-            }
+            updateTestMode();
             break;
     }
 
@@ -510,6 +242,166 @@ void StationController::update()
         buzzer_.update(nowMs);
     }
     refreshDisplaySnapshot();
+}
+
+void StationController::updateBootMode(uint32_t nowMs)
+{
+    if (fillZ_.hasSoftLimitTripped())
+    {
+        if (ProcessParams::ENABLE_ERR_202_FILL_Z_SOFT_LIMIT)
+        {
+            enterErrorStop(ErrorCode::FillZSoftLimitHit);
+        }
+        else
+        {
+            fillZ_.clearSoftLimitFault();
+        }
+    }
+    else if (ProcessParams::ENABLE_CAPPING_STATION && capZ_.hasSoftLimitTripped())
+    {
+        if (ProcessParams::ENABLE_ERR_212_CAP_Z_SOFT_LIMIT)
+        {
+            enterErrorStop(ErrorCode::CapZSoftLimitHit);
+        }
+        else
+        {
+            capZ_.clearSoftLimitFault();
+        }
+    }
+    else if (fillZ_.isHome() && (!ProcessParams::ENABLE_CAPPING_STATION || capZ_.isHome()))
+    {
+        enterRunningMode();
+    }
+    else if (nowMs - bootStartTimeMs_ >= ProcessParams::Z_HOMING_TIMEOUT_MS)
+    {
+        if (!fillZ_.isHome())
+        {
+            if (ProcessParams::ENABLE_ERR_201_FILL_Z_HOME_FAILED)
+            {
+                enterErrorStop(ErrorCode::FillZHomeFailed);
+            }
+            else
+            {
+                enterRunningMode();
+            }
+        }
+        else
+        {
+            if (ProcessParams::ENABLE_ERR_211_CAP_Z_HOME_FAILED)
+            {
+                enterErrorStop(ErrorCode::CapZHomeFailed);
+            }
+            else
+            {
+                enterRunningMode();
+            }
+        }
+    }
+}
+
+void StationController::updateRunningMode(uint32_t nowMs)
+{
+    if (conveyor_.isStalled())
+    {
+        if (ProcessParams::ENABLE_ERR_303_CONVEYOR_STALL)
+        {
+            enterErrorStop(ErrorCode::ConveyorStall);
+            return;
+        }
+        conveyor_.clearStall();
+    }
+
+    const bool canReleaseFromFill =
+        !ProcessParams::ENABLE_INTERSTAGE_QUEUE ||
+        (interstageQueueCount_ < ProcessParams::MAX_INTERSTAGE_QUEUE);
+    fillingAutomaton_.setReleasePermitted(canReleaseFromFill);
+
+    fillingAutomaton_.update();
+    if (ProcessParams::ENABLE_CAPPING_STATION)
+    {
+        cappingAutomaton_.update();
+    }
+
+    if (fillingAutomaton_.getError() != ErrorCode::None)
+    {
+        enterErrorStop(fillingAutomaton_.getError());
+        return;
+    }
+
+    if (ProcessParams::ENABLE_CAPPING_STATION &&
+        cappingAutomaton_.getError() != ErrorCode::None)
+    {
+        enterErrorStop(cappingAutomaton_.getError());
+        return;
+    }
+
+    // Coordinación de banda: se pausa por STOP o mientras algún autómata tenga botella retenida
+    const bool fillHolding = fillingAutomaton_.isHoldingBottle();
+    const bool capHolding  = ProcessParams::ENABLE_CAPPING_STATION && cappingAutomaton_.isHoldingBottle();
+    const bool pauseBelt   = linePaused_ || fillHolding || capHolding;
+
+    if (pauseBelt)
+    {
+        if (conveyor_.isRunning())
+        {
+            conveyor_.pauseSmooth();
+        }
+    }
+    else
+    {
+        if (!conveyor_.isRunning())
+        {
+            conveyor_.start();
+        }
+    }
+
+    if (fillingAutomaton_.consumeBottleReleasedEvent())
+    {
+        if (ProcessParams::ENABLE_INTERSTAGE_QUEUE)
+        {
+            if (interstageQueueCount_ < 0xFFU)
+            {
+                interstageQueueCount_++;
+            }
+        }
+        else if (!ProcessParams::ENABLE_CAPPING_STATION)
+        {
+            bottleCount_++;
+        }
+    }
+
+    if (ProcessParams::ENABLE_CAPPING_STATION &&
+        cappingAutomaton_.consumeBottleCompletedEvent())
+    {
+        bottleCount_++;
+        if (ProcessParams::ENABLE_INTERSTAGE_QUEUE && interstageQueueCount_ > 0U)
+        {
+            interstageQueueCount_--;
+        }
+    }
+
+    if (buzzer_.getPattern() != BuzzerPattern::BootReady)
+    {
+        const BuzzerPattern runPattern =
+            (ProcessParams::ENABLE_ERR_902_NETWORK_LINK_LOST && networkWarningActive_)
+                ? BuzzerPattern::Warning
+                : BuzzerPattern::Silent;
+        buzzer_.setPattern(runPattern, nowMs);
+    }
+}
+
+void StationController::updateTestMode()
+{
+    if (!fillPump_.isOn() && ((testFlags_ & TestFlags::FILL_PUMP_ON) != 0U))
+    {
+        testFlags_ &= static_cast<uint16_t>(~TestFlags::FILL_PUMP_ON);
+    }
+    if (conveyor_.isStalled())
+    {
+        conveyor_.stop();
+        conveyor_.clearStall();
+        testFlags_ &= static_cast<uint16_t>(~TestFlags::BELT_ON);
+    }
 }
 
 void StationController::updateMotionProfiles()
@@ -523,6 +415,12 @@ void StationController::updateMotionProfiles()
     }
 }
 
+bool StationController::toggleTestFlag(uint16_t flag)
+{
+    testFlags_ ^= flag;
+    return (testFlags_ & flag) != 0U;
+}
+
 void StationController::handleTouchCommand(TouchCommand cmd)
 {
     if (cmd == TouchCommand::None)
@@ -530,7 +428,6 @@ void StationController::handleTouchCommand(TouchCommand cmd)
         return;
     }
 
-    // Permitir entrar/salir de TestMode y cambiar perfil sin importar el estado de E-STOP en pruebas de banco
     if (estopAux_.isTriggered() &&
         (mode_ != StationMode::TestMode) &&
         (cmd != TouchCommand::ToggleTestMode) &&
@@ -611,168 +508,102 @@ void StationController::handleTouchCommand(TouchCommand cmd)
             }
             break;
 
-        case TouchCommand::TestToggleBelt:
-            if (mode_ == StationMode::TestMode)
-            {
-                if ((testFlags_ & TestFlags::BELT_ON) != 0U)
-                {
-                    testFlags_ &= static_cast<uint16_t>(~TestFlags::BELT_ON);
-                    conveyor_.stop();
-                }
-                else
-                {
-                    testFlags_ |= TestFlags::BELT_ON;
-                    conveyor_.clearStall();
-                    conveyor_.start();
-                }
-            }
-            break;
-
-        case TouchCommand::TestToggleTowerGreen:
-            if (mode_ == StationMode::TestMode)
-            {
-                testFlags_ ^= TestFlags::TOWER_GREEN_ON;
-                writeTowerRelayPin(HardwarePins::PIN_TOWER_GREEN, (testFlags_ & TestFlags::TOWER_GREEN_ON) != 0U);
-            }
-            break;
-
-        case TouchCommand::TestToggleTowerRed:
-            if (mode_ == StationMode::TestMode)
-            {
-                testFlags_ ^= TestFlags::TOWER_RED_ON;
-                writeTowerRelayPin(HardwarePins::PIN_TOWER_RED, (testFlags_ & TestFlags::TOWER_RED_ON) != 0U);
-            }
-            break;
-
-        case TouchCommand::TestToggleBuzzer:
-            if (mode_ == StationMode::TestMode)
-            {
-                if (!ProcessParams::ENABLE_BUZZER)
-                {
-                    testFlags_ &= static_cast<uint16_t>(~TestFlags::BUZZER_ON);
-                    buzzer_.silence();
-                    break;
-                }
-                testFlags_ ^= TestFlags::BUZZER_ON;
-                const bool turnOn = (testFlags_ & TestFlags::BUZZER_ON) != 0U;
-                const bool buzzerActiveLow = ProcessParams::TOWER_RELAY_ACTIVE_LOW;
-                const bool levelHigh = buzzerActiveLow ? !turnOn : turnOn;
-                digitalWrite(HardwarePins::PIN_BUZZER, levelHigh ? HIGH : LOW);
-            }
-            break;
-
-        case TouchCommand::TestToggleFillStopArm:
-            if (mode_ == StationMode::TestMode)
-            {
-                testFlags_ ^= TestFlags::FILL_STOP_DN;
-                if ((testFlags_ & TestFlags::FILL_STOP_DN) != 0U)
-                {
-                    fillGate_.lowerStopArm();
-                }
-                else
-                {
-                    fillGate_.raiseStopArm();
-                }
-            }
-            break;
-
-        case TouchCommand::TestToggleFillClampArm:
-            if (mode_ == StationMode::TestMode)
-            {
-                testFlags_ ^= TestFlags::FILL_CLAMP_DN;
-                if ((testFlags_ & TestFlags::FILL_CLAMP_DN) != 0U)
-                {
-                    fillGate_.lowerClampArm();
-                }
-                else
-                {
-                    fillGate_.raiseClampArm();
-                }
-            }
-            break;
-
-        case TouchCommand::TestToggleFillPump:
-            if (mode_ == StationMode::TestMode)
-            {
-                if ((testFlags_ & TestFlags::FILL_PUMP_ON) != 0U)
-                {
-                    testFlags_ &= static_cast<uint16_t>(~TestFlags::FILL_PUMP_ON);
-                    fillPump_.off();
-                }
-                else
-                {
-                    testFlags_ |= TestFlags::FILL_PUMP_ON;
-                    fillPump_.on();
-                }
-            }
-            break;
-
-        case TouchCommand::TestJogFillZDown:
-            if (mode_ == StationMode::TestMode)
-            {
-                fillZ_.jogDown(ProcessParams::Z_JOG_STEPS, ProcessParams::Z_HOMING_SPEED);
-            }
-            break;
-
-        case TouchCommand::TestToggleCapStopArm:
-            if (mode_ == StationMode::TestMode)
-            {
-                testFlags_ ^= TestFlags::CAP_STOP_DN;
-                if ((testFlags_ & TestFlags::CAP_STOP_DN) != 0U)
-                {
-                    capGate_.lowerStopArm();
-                }
-                else
-                {
-                    capGate_.raiseStopArm();
-                }
-            }
-            break;
-
-        case TouchCommand::TestToggleCapClampArm:
-            if (mode_ == StationMode::TestMode)
-            {
-                testFlags_ ^= TestFlags::CAP_CLAMP_DN;
-                if ((testFlags_ & TestFlags::CAP_CLAMP_DN) != 0U)
-                {
-                    capGate_.lowerClampArm();
-                }
-                else
-                {
-                    capGate_.raiseClampArm();
-                }
-            }
-            break;
-
-        case TouchCommand::TestToggleChuckMotor:
-            if (mode_ == StationMode::TestMode)
-            {
-                if ((testFlags_ & TestFlags::CAP_CHUCK_ON) != 0U)
-                {
-                    testFlags_ &= static_cast<uint16_t>(~TestFlags::CAP_CHUCK_ON);
-                    chuckMotor_.stop();
-                }
-                else
-                {
-                    testFlags_ |= TestFlags::CAP_CHUCK_ON;
-                    chuckMotor_.driveForward(ProcessParams::CHUCK_PWM);
-                }
-            }
-            break;
-
-        case TouchCommand::TestJogCapZDown:
-            if (mode_ == StationMode::TestMode)
-            {
-                capZ_.jogDown(ProcessParams::Z_JOG_STEPS, ProcessParams::Z_HOMING_SPEED);
-            }
-            break;
-
-        case TouchCommand::None:
         default:
+            if (mode_ == StationMode::TestMode)
+            {
+                handleTestModeCommand(cmd);
+            }
             break;
     }
 
     refreshDisplaySnapshot();
+}
+
+void StationController::handleTestModeCommand(TouchCommand cmd)
+{
+    switch (cmd)
+    {
+        case TouchCommand::TestToggleBelt:
+            if (toggleTestFlag(TestFlags::BELT_ON))
+            {
+                conveyor_.clearStall();
+                conveyor_.start();
+            }
+            else
+            {
+                conveyor_.stop();
+            }
+            break;
+
+        case TouchCommand::TestToggleTowerGreen:
+            StationHardwareFactory::writeTowerRelayPin(
+                HardwarePins::PIN_TOWER_GREEN,
+                toggleTestFlag(TestFlags::TOWER_GREEN_ON));
+            break;
+
+        case TouchCommand::TestToggleTowerRed:
+            StationHardwareFactory::writeTowerRelayPin(
+                HardwarePins::PIN_TOWER_RED,
+                toggleTestFlag(TestFlags::TOWER_RED_ON));
+            break;
+
+        case TouchCommand::TestToggleBuzzer:
+            if (!ProcessParams::ENABLE_BUZZER)
+            {
+                testFlags_ &= static_cast<uint16_t>(~TestFlags::BUZZER_ON);
+                buzzer_.silence();
+                break;
+            }
+            buzzer_.setManualOverride(toggleTestFlag(TestFlags::BUZZER_ON));
+            break;
+
+        case TouchCommand::TestToggleFillStopArm:
+            if (toggleTestFlag(TestFlags::FILL_STOP_DN)) { fillGate_.lowerStopArm(); }
+            else                                         { fillGate_.raiseStopArm(); }
+            break;
+
+        case TouchCommand::TestToggleFillClampArm:
+            if (toggleTestFlag(TestFlags::FILL_CLAMP_DN)) { fillGate_.lowerClampArm(); }
+            else                                          { fillGate_.raiseClampArm(); }
+            break;
+
+        case TouchCommand::TestToggleFillPump:
+            if (toggleTestFlag(TestFlags::FILL_PUMP_ON)) { fillPump_.on(); }
+            else                                         { fillPump_.off(); }
+            break;
+
+        case TouchCommand::TestJogFillZDown:
+            fillZ_.jogDown(ProcessParams::Z_JOG_STEPS, ProcessParams::Z_HOMING_SPEED);
+            break;
+
+        case TouchCommand::TestToggleCapStopArm:
+            if (toggleTestFlag(TestFlags::CAP_STOP_DN)) { capGate_.lowerStopArm(); }
+            else                                        { capGate_.raiseStopArm(); }
+            break;
+
+        case TouchCommand::TestToggleCapClampArm:
+            if (toggleTestFlag(TestFlags::CAP_CLAMP_DN)) { capGate_.lowerClampArm(); }
+            else                                         { capGate_.raiseClampArm(); }
+            break;
+
+        case TouchCommand::TestToggleChuckMotor:
+            if (toggleTestFlag(TestFlags::CAP_CHUCK_ON))
+            {
+                chuckMotor_.driveForward(ProcessParams::CHUCK_PWM);
+            }
+            else
+            {
+                chuckMotor_.stop();
+            }
+            break;
+
+        case TouchCommand::TestJogCapZDown:
+            capZ_.jogDown(ProcessParams::Z_JOG_STEPS, ProcessParams::Z_HOMING_SPEED);
+            break;
+
+        default:
+            break;
+    }
 }
 
 void StationController::setNetworkLinkLost(bool lost)
@@ -837,7 +668,7 @@ void StationController::enterBootMode()
     linePaused_ = false;
     testFlags_ = 0U;
 
-    setTowerLights(false, false);
+    StationHardwareFactory::setTowerLights(false, false);
     buzzer_.silence();
 
     fillPump_.off();
@@ -879,7 +710,7 @@ void StationController::enterRunningMode()
     conveyor_.clearStall();
     conveyor_.start();
 
-    setTowerLights(true, false);
+    StationHardwareFactory::setTowerLights(true, false);
     buzzer_.triggerBootReady(millis());
 
     refreshDisplaySnapshot();
@@ -895,13 +726,12 @@ void StationController::enterErrorStop(ErrorCode error)
     mode_ = StationMode::ErrorStop;
     testFlags_ = 0U;
 
-    // Retener el primer fallo crítico que provocó la parada, salvo que E-STOP tome prioridad
     if (activeError_ == ErrorCode::None || error == ErrorCode::EmergencyStopPressed)
     {
         activeError_ = error;
     }
 
-    setTowerLights(false, true);
+    StationHardwareFactory::setTowerLights(false, true);
 
     fillPump_.off();
     chuckMotor_.stop();
@@ -936,7 +766,7 @@ void StationController::enterTestMode()
     linePaused_ = false;
     testFlags_ = 0U;
 
-    setTowerLights(false, false);
+    StationHardwareFactory::setTowerLights(false, false);
     buzzer_.silence();
 
     fillPump_.off();
@@ -960,25 +790,9 @@ void StationController::enterTestMode()
 
 void StationController::refreshDisplaySnapshot()
 {
-    const ErrorCode effectiveErr = computeEffectiveError();
-    const FillState fState       = fillingAutomaton_.getState();
-    const CappingState cState    = cappingAutomaton_.getState();
-    const int32_t fSteps         = fillZ_.getCurrentSteps();
-    const int32_t cSteps         = capZ_.getCurrentSteps();
-    const uint8_t bPwm           = conveyor_.getCurrentPwm();
-    const uint16_t bCurrentAdc   = conveyor_.getFilteredCurrentAdc();
-    const uint8_t cPwm           = chuckMotor_.getCurrentPwm();
-    const uint16_t cCurrentAdc   = chuckMotor_.getFilteredCurrentAdc();
-
     uint16_t effectiveFlags = testFlags_ & static_cast<uint16_t>(~(TestFlags::FILL_HOME_SW | TestFlags::CAP_HOME_SW));
-    if (limitSwitchFill_.isTriggered())
-    {
-        effectiveFlags |= TestFlags::FILL_HOME_SW;
-    }
-    if (limitSwitchCap_.isTriggered())
-    {
-        effectiveFlags |= TestFlags::CAP_HOME_SW;
-    }
+    if (limitSwitchFill_.isTriggered()) { effectiveFlags |= TestFlags::FILL_HOME_SW; }
+    if (limitSwitchCap_.isTriggered())  { effectiveFlags |= TestFlags::CAP_HOME_SW; }
 
     uint16_t inFlags = 0U;
     if (presenceFill_.isTriggered())    { inFlags |= InputFlags::PRESENCE_FILL; }
@@ -992,38 +806,27 @@ void StationController::refreshDisplaySnapshot()
     if (btnReset_.isTriggered())        { inFlags |= InputFlags::BTN_RESET; }
     if (estopAux_.isTriggered())        { inFlags |= InputFlags::ESTOP_ACTIVE; }
 
-    if (lastSnapshot_.error != effectiveErr ||
-        lastSnapshot_.mode != mode_ ||
-        lastSnapshot_.fillState != fState ||
-        lastSnapshot_.capState != cState ||
-        lastSnapshot_.profile != profile_ ||
-        lastSnapshot_.queueCount != interstageQueueCount_ ||
-        lastSnapshot_.bottleCount != bottleCount_ ||
-        lastSnapshot_.testFlags != effectiveFlags ||
-        lastSnapshot_.fillZSteps != fSteps ||
-        lastSnapshot_.capZSteps != cSteps ||
-        lastSnapshot_.beltPwm != bPwm ||
-        lastSnapshot_.beltCurrentAdc != bCurrentAdc ||
-        lastSnapshot_.chuckPwm != cPwm ||
-        lastSnapshot_.chuckCurrentAdc != cCurrentAdc ||
-        lastSnapshot_.inputFlags != inFlags)
+    const DisplaySnapshot current{
+        computeEffectiveError(),
+        mode_,
+        fillingAutomaton_.getState(),
+        cappingAutomaton_.getState(),
+        profile_,
+        interstageQueueCount_,
+        bottleCount_,
+        effectiveFlags,
+        fillZ_.getCurrentSteps(),
+        capZ_.getCurrentSteps(),
+        conveyor_.getCurrentPwm(),
+        conveyor_.getFilteredCurrentAdc(),
+        chuckMotor_.getCurrentPwm(),
+        chuckMotor_.getFilteredCurrentAdc(),
+        inFlags};
+
+    if (current != lastSnapshot_)
     {
-        lastSnapshot_.error           = effectiveErr;
-        lastSnapshot_.mode            = mode_;
-        lastSnapshot_.fillState       = fState;
-        lastSnapshot_.capState        = cState;
-        lastSnapshot_.profile         = profile_;
-        lastSnapshot_.queueCount      = interstageQueueCount_;
-        lastSnapshot_.bottleCount     = bottleCount_;
-        lastSnapshot_.testFlags       = effectiveFlags;
-        lastSnapshot_.fillZSteps      = fSteps;
-        lastSnapshot_.capZSteps       = cSteps;
-        lastSnapshot_.beltPwm         = bPwm;
-        lastSnapshot_.beltCurrentAdc  = bCurrentAdc;
-        lastSnapshot_.chuckPwm        = cPwm;
-        lastSnapshot_.chuckCurrentAdc = cCurrentAdc;
-        lastSnapshot_.inputFlags      = inFlags;
-        snapshotDirty_                = true;
+        lastSnapshot_  = current;
+        snapshotDirty_ = true;
     }
 }
 

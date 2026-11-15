@@ -48,6 +48,12 @@ public:
     void silence();
 
     /**
+     * @brief Fuerza manualmente el encendido o apagado directo del buzzer (usado en TestMode).
+     * @param[in] on true para activar la salida (respetando ENABLE_BUZZER y polaridad); false para apagar.
+     */
+    void setManualOverride(bool on);
+
+    /**
      * @brief Actualiza la máquina de tiempos no bloqueante del patrón acústico activo.
      * @param[in] nowMs Marca de tiempo actual provista por millis() [ms].
      */

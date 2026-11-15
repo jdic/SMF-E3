@@ -104,36 +104,18 @@ public:
     uint8_t getQueueCount() const;
 
 private:
-    /**
-     * @brief Transiciona la estación al modo Boot, reinicia la cola intermedia y ordena el homing de ambos ejes Z.
-     */
     void enterBootMode();
-
-    /**
-     * @brief Transiciona la estación al modo Running tras concluir exitosamente el homing de ambos ejes Z.
-     */
     void enterRunningMode();
-
-    /**
-     * @brief Ejecuta la parada segura coordinada (ErrorStop): apaga bomba, banda, motores DC y deshabilita steppers.
-     * @param[in] error Código de fallo crítico que originó la detención.
-     */
     void enterErrorStop(ErrorCode error);
-
-    /**
-     * @brief Transiciona la estación al modo de prueba manual (TestMode), apagando todos los actuadores.
-     */
     void enterTestMode();
 
-    /**
-     * @brief Compara el estado actual contra la última instantánea enviada a la TFT y activa snapshotDirty_ si cambió.
-     */
-    void refreshDisplaySnapshot();
+    void updateBootMode(uint32_t nowMs);
+    void updateRunningMode(uint32_t nowMs);
+    void updateTestMode();
+    void handleTestModeCommand(TouchCommand cmd);
+    bool toggleTestFlag(uint16_t flag);
 
-    /**
-     * @brief Calcula el código de error efectivo combinando fallos críticos y la advertencia de red ERR-902.
-     * @return ErrorCode a proyectar en pantalla y telemetría.
-     */
+    void refreshDisplaySnapshot();
     ErrorCode computeEffectiveError() const;
 
     // Sensores digitales con antirrebote

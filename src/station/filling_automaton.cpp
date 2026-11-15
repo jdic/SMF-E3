@@ -8,41 +8,17 @@ FillingAutomaton::FillingAutomaton(
     BottleGate& gate,
     StepperAxis& zAxis,
     FillPump& pump)
-    : presenceSensor_(presenceSensor),
-      positionSensor_(positionSensor),
-      limitSwitch_(limitSwitch),
-      gate_(gate),
-      zAxis_(zAxis),
+    : StationAutomatonBase<FillState>(presenceSensor, positionSensor, limitSwitch, gate, zAxis),
       pump_(pump),
-      currentState_(FillState::Idle),
-      nextState_(FillState::Idle),
-      previousState_(FillState::Idle),
-      profile_(BottleProfile::Small),
-      activeError_(ErrorCode::None),
-      stageTimerMs_(0),
-      isFirstRun_(true),
-      needsClear_(false),
-      canReleaseBottle_(true),
-      bottleReleasedEvent_(false)
+      canReleaseBottle_(true)
 {
 }
 
 void FillingAutomaton::reset()
 {
     pump_.off();
-    zAxis_.stop();
-    zAxis_.clearSoftLimitFault();
-    gate_.raiseArmsImmediate();
-
-    currentState_ = FillState::Idle;
-    nextState_ = FillState::Idle;
-    previousState_ = FillState::Idle;
-    activeError_ = ErrorCode::None;
-    stageTimerMs_ = millis();
-    isFirstRun_ = true;
-    needsClear_ = false;
+    resetBaseState();
     canReleaseBottle_ = true;
-    bottleReleasedEvent_ = false;
 }
 
 void FillingAutomaton::stopImmediate()
@@ -58,7 +34,6 @@ void FillingAutomaton::update()
         return;
     }
 
-    // Vigilancia prioritaria de sobrecarrera reportada por la ISR del Timer3
     if (zAxis_.hasSoftLimitTripped())
     {
         if (ProcessParams::ENABLE_ERR_202_FILL_Z_SOFT_LIMIT)
@@ -69,35 +44,23 @@ void FillingAutomaton::update()
         zAxis_.clearSoftLimitFault();
     }
 
-    // Limpiar el bloqueo de re-disparo en cuanto la botella saliente libere ambos sensores ópticos
-    if (needsClear_ && !presenceSensor_.isTriggered() && !positionSensor_.isTriggered())
-    {
-        needsClear_ = false;
-    }
+    updateClearLock();
 
-    // 1. Detección y ejecución de la fase de salida (Exit)
     if (nextState_ != currentState_)
     {
         onExit(currentState_);
         previousState_ = currentState_;
-        currentState_ = nextState_;
-        isFirstRun_ = true;
+        currentState_  = nextState_;
+        isFirstRun_    = true;
     }
 
-    // 2. Ejecución de la fase de entrada (Entry)
     if (isFirstRun_)
     {
         onEntry(currentState_);
         isFirstRun_ = false;
     }
 
-    // 3. Ejecución continua de la fase activa (During)
     onDuring(currentState_);
-}
-
-void FillingAutomaton::setProfile(BottleProfile profile)
-{
-    profile_ = profile;
 }
 
 void FillingAutomaton::setReleasePermitted(bool canRelease)
@@ -107,24 +70,7 @@ void FillingAutomaton::setReleasePermitted(bool canRelease)
 
 bool FillingAutomaton::consumeBottleReleasedEvent()
 {
-    const bool occurred = bottleReleasedEvent_;
-    bottleReleasedEvent_ = false;
-    return occurred;
-}
-
-FillState FillingAutomaton::getState() const
-{
-    return currentState_;
-}
-
-bool FillingAutomaton::isIdle() const
-{
-    return (currentState_ == FillState::Idle) && (activeError_ == ErrorCode::None);
-}
-
-ErrorCode FillingAutomaton::getError() const
-{
-    return activeError_;
+    return consumeBottleEvent();
 }
 
 void FillingAutomaton::onEntry(FillState state)
@@ -177,12 +123,11 @@ void FillingAutomaton::onEntry(FillState state)
             break;
 
         case FillState::WaitingQueueSlot:
-            // Los brazos permanecen abajo reteniendo la botella llena hasta tener cupo en la cola
             break;
 
         case FillState::ReleasingBottle:
-            bottleReleasedEvent_ = true;
-            needsClear_ = true;
+            bottleEvent_ = true;
+            needsClear_  = true;
             gate_.releaseBottle();
             break;
     }
@@ -195,38 +140,23 @@ void FillingAutomaton::onDuring(FillState state)
     switch (state)
     {
         case FillState::Idle:
-            if (presenceSensor_.isTriggered() && !needsClear_)
-            {
-                nextState_ = FillState::StopArmDown;
-            }
+            evalIdleTransition();
             break;
 
         case FillState::StopArmDown:
-            // Cuando el 2do sensor (en medio de ambos brazos) detecta la botella, baja el 2do brazo
-            if (positionSensor_.isTriggered())
-            {
-                nextState_ = FillState::ClampArmDown;
-            }
-            else if (elapsedMs >= ProcessParams::CLAMP_SENSOR_TIMEOUT_MS)
+            if (!evalStopArmDown(elapsedMs))
             {
                 triggerFault(ErrorCode::FillBottleLost);
             }
             break;
 
         case FillState::ClampArmDown:
-            // Mientras el 2do brazo baja (ARM_MOVE_MS), StationController pausa la banda.
-            // Al concluir el descenso de ambos brazos, se valida el sensor de posición exacta
-            // esperando BOTTLE_LOST_GRACE_MS si se perdió momentáneamente la presencia.
-            if (elapsedMs >= ProcessParams::ARM_MOVE_MS)
+            if (!evalClampArmDown(
+                    elapsedMs,
+                    FillState::LoweringNozzle,
+                    ProcessParams::ENABLE_ERR_101_FILL_BOTTLE_LOST))
             {
-                if (positionSensor_.isTriggered() || !ProcessParams::ENABLE_ERR_101_FILL_BOTTLE_LOST)
-                {
-                    nextState_ = FillState::LoweringNozzle;
-                }
-                else if (elapsedMs >= (ProcessParams::ARM_MOVE_MS + ProcessParams::BOTTLE_LOST_GRACE_MS))
-                {
-                    triggerFault(ErrorCode::FillBottleLost);
-                }
+                triggerFault(ErrorCode::FillBottleLost);
             }
             break;
 
@@ -283,10 +213,7 @@ void FillingAutomaton::onDuring(FillState state)
             break;
 
         case FillState::ReleasingBottle:
-            if (elapsedMs >= ProcessParams::RELEASE_MS)
-            {
-                nextState_ = FillState::Idle;
-            }
+            evalReleasingBottle(elapsedMs);
             break;
     }
 }
@@ -295,7 +222,6 @@ void FillingAutomaton::onExit(FillState state)
 {
     if (state == FillState::Filling)
     {
-        // Garantizar el apagado de la bomba al abandonar la fase de llenado por cualquier vía
         pump_.off();
     }
 }

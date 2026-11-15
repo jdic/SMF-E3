@@ -59,6 +59,13 @@ void AlarmBuzzer::silence()
     writeOutput(false);
 }
 
+void AlarmBuzzer::setManualOverride(bool on)
+{
+    pattern_ = BuzzerPattern::Silent;
+    remainingPulses_ = 0;
+    writeOutput(on);
+}
+
 void AlarmBuzzer::update(uint32_t nowMs)
 {
     if (pattern_ == BuzzerPattern::Silent)
