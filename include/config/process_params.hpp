@@ -7,6 +7,7 @@
 
 #pragma once
 #include <Arduino.h>
+#include "types/station_types.hpp"
 
 /**
  * @namespace ProcessParams
@@ -152,6 +153,53 @@ namespace ProcessParams
     constexpr int16_t  TS_MAX_PRESSURE         = 1000;  ///< Umbral máximo de presión de contacto [cuentas ADC]
     constexpr bool     TOUCH_DEBUG_COORDS      = false; ///< Habilita visualización de coordenadas de depuración
     constexpr bool     TOUCH_DEBUG_MARKER      = false; ///< Habilita marcador gráfico de pulsación
+
+    // ==========================================
+    // HABILITACIÓN DE CÓDIGOS DE ERROR (true = activo, false = ignorar en pruebas)
+    // ==========================================
+    constexpr bool     ENABLE_ERR_101_FILL_BOTTLE_LOST     = true; ///< ERR-101: Botella perdida en llenado
+    constexpr bool     ENABLE_ERR_102_CAP_BOTTLE_LOST      = true; ///< ERR-102: Botella perdida en tapado
+    constexpr bool     ENABLE_ERR_201_FILL_Z_HOME_FAILED   = true; ///< ERR-201: Fallo de homing en eje Z de llenado
+    constexpr bool     ENABLE_ERR_202_FILL_Z_SOFT_LIMIT    = true; ///< ERR-202: Soft limit inferior en eje Z de llenado
+    constexpr bool     ENABLE_ERR_203_FILL_Z_LOWER_TIMEOUT = true; ///< ERR-203: Timeout al bajar boquilla de llenado
+    constexpr bool     ENABLE_ERR_204_FILL_Z_RAISE_TIMEOUT = true; ///< ERR-204: Timeout al subir boquilla de llenado
+    constexpr bool     ENABLE_ERR_211_CAP_Z_HOME_FAILED    = true; ///< ERR-211: Fallo de homing en eje Z de tapado
+    constexpr bool     ENABLE_ERR_212_CAP_Z_SOFT_LIMIT     = true; ///< ERR-212: Soft limit inferior en eje Z de tapado
+    constexpr bool     ENABLE_ERR_213_CAP_Z_LOWER_TIMEOUT  = true; ///< ERR-213: Timeout al bajar cabezal de tapado
+    constexpr bool     ENABLE_ERR_214_CAP_Z_RAISE_TIMEOUT  = true; ///< ERR-214: Timeout al subir cabezal de tapado
+    constexpr bool     ENABLE_ERR_301_CHUCK_OVERCURRENT    = true; ///< ERR-301: Sobrecorriente crítica en motor de roscado
+    constexpr bool     ENABLE_ERR_302_CHUCK_STALL          = true; ///< ERR-302: Atasco prematuro de rosca en tapado
+    constexpr bool     ENABLE_ERR_303_CONVEYOR_STALL       = true; ///< ERR-303: Sobrecorriente / atasco en banda
+    constexpr bool     ENABLE_ERR_901_EMERGENCY_STOP       = true; ///< ERR-901: Parada de emergencia por hardware
+    constexpr bool     ENABLE_ERR_902_NETWORK_LINK_LOST    = true; ///< ERR-902: Advertencia de pérdida de enlace SCADA
+
+    /**
+     * @brief Evalúa si un código de error específico se encuentra habilitado en la configuración.
+     * @param code Código de error a consultar.
+     * @return true si el error debe procesarse normalmente; false si está desactivado para pruebas.
+     */
+    inline bool isErrorEnabled(ErrorCode code)
+    {
+        switch (code)
+        {
+            case ErrorCode::FillBottleLost:       return ENABLE_ERR_101_FILL_BOTTLE_LOST;
+            case ErrorCode::CapBottleLost:        return ENABLE_ERR_102_CAP_BOTTLE_LOST;
+            case ErrorCode::FillZHomeFailed:      return ENABLE_ERR_201_FILL_Z_HOME_FAILED;
+            case ErrorCode::FillZSoftLimitHit:    return ENABLE_ERR_202_FILL_Z_SOFT_LIMIT;
+            case ErrorCode::FillZLoweringTimeout: return ENABLE_ERR_203_FILL_Z_LOWER_TIMEOUT;
+            case ErrorCode::FillZRaisingTimeout:  return ENABLE_ERR_204_FILL_Z_RAISE_TIMEOUT;
+            case ErrorCode::CapZHomeFailed:       return ENABLE_ERR_211_CAP_Z_HOME_FAILED;
+            case ErrorCode::CapZSoftLimitHit:     return ENABLE_ERR_212_CAP_Z_SOFT_LIMIT;
+            case ErrorCode::CapZLoweringTimeout:  return ENABLE_ERR_213_CAP_Z_LOWER_TIMEOUT;
+            case ErrorCode::CapZRaisingTimeout:   return ENABLE_ERR_214_CAP_Z_RAISE_TIMEOUT;
+            case ErrorCode::ChuckOvercurrent:     return ENABLE_ERR_301_CHUCK_OVERCURRENT;
+            case ErrorCode::ChuckStallPremature:  return ENABLE_ERR_302_CHUCK_STALL;
+            case ErrorCode::ConveyorStall:        return ENABLE_ERR_303_CONVEYOR_STALL;
+            case ErrorCode::EmergencyStopPressed: return ENABLE_ERR_901_EMERGENCY_STOP;
+            case ErrorCode::NetworkLinkLost:      return ENABLE_ERR_902_NETWORK_LINK_LOST;
+            default:                              return false;
+        }
+    }
 
     /**
      * @struct BottleProfileParams

@@ -61,8 +61,12 @@ void FillingAutomaton::update()
     // Vigilancia prioritaria de sobrecarrera reportada por la ISR del Timer3
     if (zAxis_.hasSoftLimitTripped())
     {
-        triggerFault(ErrorCode::FillZSoftLimitHit);
-        return;
+        if (ProcessParams::ENABLE_ERR_202_FILL_Z_SOFT_LIMIT)
+        {
+            triggerFault(ErrorCode::FillZSoftLimitHit);
+            return;
+        }
+        zAxis_.clearSoftLimitFault();
     }
 
     // Limpiar el bloqueo de re-disparo en cuanto la botella saliente libere ambos sensores ópticos
@@ -215,7 +219,7 @@ void FillingAutomaton::onDuring(FillState state)
             // esperando BOTTLE_LOST_GRACE_MS si se perdió momentáneamente la presencia.
             if (elapsedMs >= ProcessParams::ARM_MOVE_MS)
             {
-                if (positionSensor_.isTriggered())
+                if (positionSensor_.isTriggered() || !ProcessParams::ENABLE_ERR_101_FILL_BOTTLE_LOST)
                 {
                     nextState_ = FillState::LoweringNozzle;
                 }
@@ -298,6 +302,11 @@ void FillingAutomaton::onExit(FillState state)
 
 void FillingAutomaton::triggerFault(ErrorCode error)
 {
+    if (!ProcessParams::isErrorEnabled(error))
+    {
+        return;
+    }
+
     activeError_ = error;
     pump_.off();
     zAxis_.stop();

@@ -61,8 +61,12 @@ void CappingAutomaton::update()
     // Vigilancia prioritaria de sobrecarrera reportada por la ISR del Timer3
     if (zAxis_.hasSoftLimitTripped())
     {
-        triggerFault(ErrorCode::CapZSoftLimitHit);
-        return;
+        if (ProcessParams::ENABLE_ERR_212_CAP_Z_SOFT_LIMIT)
+        {
+            triggerFault(ErrorCode::CapZSoftLimitHit);
+            return;
+        }
+        zAxis_.clearSoftLimitFault();
     }
 
     // Limpiar el bloqueo de re-disparo en cuanto la botella saliente libere ambos sensores ópticos
@@ -207,7 +211,7 @@ void CappingAutomaton::onDuring(CappingState state)
             // esperando BOTTLE_LOST_GRACE_MS si se perdió momentáneamente la presencia.
             if (elapsedMs >= ProcessParams::ARM_MOVE_MS)
             {
-                if (positionSensor_.isTriggered())
+                if (positionSensor_.isTriggered() || !ProcessParams::ENABLE_ERR_102_CAP_BOTTLE_LOST)
                 {
                     nextState_ = CappingState::LoweringHead;
                 }
@@ -247,13 +251,15 @@ void CappingAutomaton::onDuring(CappingState state)
         case CappingState::TighteningCap:
         {
             const uint16_t currentAdc = chuckMotor_.sampleCurrentAdc();
-            if (currentAdc >= ProcessParams::CHUCK_CURRENT_LIMIT_ADC)
+            if (ProcessParams::ENABLE_ERR_301_CHUCK_OVERCURRENT &&
+                (currentAdc >= ProcessParams::CHUCK_CURRENT_LIMIT_ADC))
             {
                 triggerFault(ErrorCode::ChuckOvercurrent);
                 break;
             }
 
-            if ((elapsedMs < ProcessParams::CHUCK_MIN_TIGHTEN_MS) &&
+            if (ProcessParams::ENABLE_ERR_302_CHUCK_STALL &&
+                (elapsedMs < ProcessParams::CHUCK_MIN_TIGHTEN_MS) &&
                 (currentAdc >= ProcessParams::CHUCK_STALL_ADC))
             {
                 triggerFault(ErrorCode::ChuckStallPremature);
@@ -300,6 +306,11 @@ void CappingAutomaton::onExit(CappingState state)
 
 void CappingAutomaton::triggerFault(ErrorCode error)
 {
+    if (!ProcessParams::isErrorEnabled(error))
+    {
+        return;
+    }
+
     activeError_ = error;
     chuckMotor_.stop();
     zAxis_.stop();

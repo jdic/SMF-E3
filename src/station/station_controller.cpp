@@ -243,7 +243,7 @@ void StationController::init()
     fillingAutomaton_.setProfile(profile_);
     cappingAutomaton_.setProfile(profile_);
 
-    if (estopAux_.isTriggered())
+    if (ProcessParams::ENABLE_ERR_901_EMERGENCY_STOP && estopAux_.isTriggered())
     {
         enterErrorStop(ErrorCode::EmergencyStopPressed);
     }
@@ -274,7 +274,9 @@ void StationController::update()
     capGate_.update();
 
     // 2. Prioridad de seguridad: contacto de parada de emergencia (en TestMode permite operar en banco)
-    if (estopAux_.isTriggered() && mode_ != StationMode::TestMode)
+    if (ProcessParams::ENABLE_ERR_901_EMERGENCY_STOP &&
+        estopAux_.isTriggered() &&
+        mode_ != StationMode::TestMode)
     {
         if (mode_ != StationMode::ErrorStop || activeError_ != ErrorCode::EmergencyStopPressed)
         {
@@ -318,11 +320,25 @@ void StationController::update()
         case StationMode::Boot:
             if (fillZ_.hasSoftLimitTripped())
             {
-                enterErrorStop(ErrorCode::FillZSoftLimitHit);
+                if (ProcessParams::ENABLE_ERR_202_FILL_Z_SOFT_LIMIT)
+                {
+                    enterErrorStop(ErrorCode::FillZSoftLimitHit);
+                }
+                else
+                {
+                    fillZ_.clearSoftLimitFault();
+                }
             }
             else if (ProcessParams::ENABLE_CAPPING_STATION && capZ_.hasSoftLimitTripped())
             {
-                enterErrorStop(ErrorCode::CapZSoftLimitHit);
+                if (ProcessParams::ENABLE_ERR_212_CAP_Z_SOFT_LIMIT)
+                {
+                    enterErrorStop(ErrorCode::CapZSoftLimitHit);
+                }
+                else
+                {
+                    capZ_.clearSoftLimitFault();
+                }
             }
             else if (fillZ_.isHome() && (!ProcessParams::ENABLE_CAPPING_STATION || capZ_.isHome()))
             {
@@ -332,11 +348,25 @@ void StationController::update()
             {
                 if (!fillZ_.isHome())
                 {
-                    enterErrorStop(ErrorCode::FillZHomeFailed);
+                    if (ProcessParams::ENABLE_ERR_201_FILL_Z_HOME_FAILED)
+                    {
+                        enterErrorStop(ErrorCode::FillZHomeFailed);
+                    }
+                    else
+                    {
+                        enterRunningMode();
+                    }
                 }
                 else
                 {
-                    enterErrorStop(ErrorCode::CapZHomeFailed);
+                    if (ProcessParams::ENABLE_ERR_211_CAP_Z_HOME_FAILED)
+                    {
+                        enterErrorStop(ErrorCode::CapZHomeFailed);
+                    }
+                    else
+                    {
+                        enterRunningMode();
+                    }
                 }
             }
             break;
@@ -345,8 +375,12 @@ void StationController::update()
         {
             if (conveyor_.isStalled())
             {
-                enterErrorStop(ErrorCode::ConveyorStall);
-                break;
+                if (ProcessParams::ENABLE_ERR_303_CONVEYOR_STALL)
+                {
+                    enterErrorStop(ErrorCode::ConveyorStall);
+                    break;
+                }
+                conveyor_.clearStall();
             }
 
             // Control de flujo de la cola intermedia entre Llenado y Tapado
@@ -439,7 +473,9 @@ void StationController::update()
             if (buzzer_.getPattern() != BuzzerPattern::BootReady)
             {
                 const BuzzerPattern runPattern =
-                    networkWarningActive_ ? BuzzerPattern::Warning : BuzzerPattern::Silent;
+                    (ProcessParams::ENABLE_ERR_902_NETWORK_LINK_LOST && networkWarningActive_)
+                        ? BuzzerPattern::Warning
+                        : BuzzerPattern::Silent;
                 buzzer_.setPattern(runPattern, nowMs);
             }
             break;
@@ -560,7 +596,7 @@ void StationController::handleTouchCommand(TouchCommand cmd)
         case TouchCommand::ToggleTestMode:
             if (mode_ == StationMode::TestMode)
             {
-                if (estopAux_.isTriggered())
+                if (ProcessParams::ENABLE_ERR_901_EMERGENCY_STOP && estopAux_.isTriggered())
                 {
                     enterErrorStop(ErrorCode::EmergencyStopPressed);
                 }
@@ -851,6 +887,11 @@ void StationController::enterRunningMode()
 
 void StationController::enterErrorStop(ErrorCode error)
 {
+    if (!ProcessParams::isErrorEnabled(error))
+    {
+        return;
+    }
+
     mode_ = StationMode::ErrorStop;
     testFlags_ = 0U;
 
@@ -993,7 +1034,7 @@ ErrorCode StationController::computeEffectiveError() const
         return activeError_;
     }
 
-    if (networkWarningActive_)
+    if (ProcessParams::ENABLE_ERR_902_NETWORK_LINK_LOST && networkWarningActive_)
     {
         return ErrorCode::NetworkLinkLost;
     }
