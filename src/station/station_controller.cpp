@@ -54,6 +54,11 @@ StationController::StationController()
           ProcessParams::SENSOR_DEBOUNCE_MS,
           false,
           true),
+      visionSensor_(
+          HardwarePins::PIN_VISION_SENSOR,
+          ProcessParams::SENSOR_DEBOUNCE_MS,
+          ProcessParams::VISION_ALARM_ACTIVE_HIGH,
+          false), // usePullup = false (3.3V directo desde ESP32 sin inyectar 5V)
       fillGate_(StationHardwareFactory::makeFillGateConfig()),
       capGate_(StationHardwareFactory::makeCapGateConfig()),
       fillZ_(StationHardwareFactory::makeFillZConfig()),
@@ -80,6 +85,7 @@ StationController::StationController()
           presenceCap_,
           positionCap_,
           limitSwitchCap_,
+          visionSensor_,
           capGate_,
           capZ_,
           chuckMotor_),
@@ -129,6 +135,7 @@ void StationController::init()
     btnStop_.init();
     estopAux_.init();
     btnReset_.init();
+    visionSensor_.init();
 
     fillPump_.init();
     chuckMotor_.init();
@@ -168,6 +175,7 @@ void StationController::update()
     btnStop_.update();
     estopAux_.update();
     btnReset_.update();
+    visionSensor_.update();
 
     fillPump_.update();
     fillGate_.update();
@@ -203,7 +211,16 @@ void StationController::update()
 
     if (btnStart_.onRisingEdge())
     {
-        if (mode_ == StationMode::Running && linePaused_)
+        if (mode_ == StationMode::Running && cappingAutomaton_.acknowledgeVisionAlarm())
+        {
+            activeError_ = ErrorCode::None;
+            if (!linePaused_)
+            {
+                StationHardwareFactory::setTowerLights(true, false);
+            }
+            buzzer_.silence();
+        }
+        else if (mode_ == StationMode::Running && linePaused_)
         {
             linePaused_ = false;
             StationHardwareFactory::setTowerLights(true, false);
@@ -316,11 +333,16 @@ void StationController::updateRunningMode(uint32_t nowMs)
         conveyor_.clearStall();
     }
 
+    const bool visionFaultBefore =
+        ProcessParams::ENABLE_CAPPING_STATION &&
+        (cappingAutomaton_.getError() == ErrorCode::CapMissingVision);
+
     if (ProcessParams::ENABLE_FILLING_STATION)
     {
         const bool canReleaseFromFill =
-            !ProcessParams::ENABLE_INTERSTAGE_QUEUE ||
-            (interstageQueueCount_ < ProcessParams::MAX_INTERSTAGE_QUEUE);
+            !visionFaultBefore &&
+            (!ProcessParams::ENABLE_INTERSTAGE_QUEUE ||
+             (interstageQueueCount_ < ProcessParams::MAX_INTERSTAGE_QUEUE));
         fillingAutomaton_.setReleasePermitted(canReleaseFromFill);
         fillingAutomaton_.update();
     }
@@ -338,16 +360,24 @@ void StationController::updateRunningMode(uint32_t nowMs)
     }
 
     if (ProcessParams::ENABLE_CAPPING_STATION &&
-        cappingAutomaton_.getError() != ErrorCode::None)
+        (cappingAutomaton_.getError() != ErrorCode::None) &&
+        (cappingAutomaton_.getError() != ErrorCode::CapMissingVision))
     {
         enterErrorStop(cappingAutomaton_.getError());
         return;
     }
 
+    const bool visionFaultActive =
+        ProcessParams::ENABLE_CAPPING_STATION &&
+        (cappingAutomaton_.getError() == ErrorCode::CapMissingVision);
+
     // Coordinación de banda: se pausa por STOP o mientras algún autómata tenga botella retenida
     const bool fillHolding = ProcessParams::ENABLE_FILLING_STATION && fillingAutomaton_.isHoldingBottle();
     const bool capHolding  = ProcessParams::ENABLE_CAPPING_STATION && cappingAutomaton_.isHoldingBottle();
     const bool pauseBelt   = linePaused_ || fillHolding || capHolding;
+
+    fillingAutomaton_.setBeltPaused(pauseBelt);
+    cappingAutomaton_.setBeltPaused(pauseBelt);
 
     if (pauseBelt)
     {
@@ -390,13 +420,31 @@ void StationController::updateRunningMode(uint32_t nowMs)
         }
     }
 
-    if (buzzer_.getPattern() != BuzzerPattern::BootReady)
+    if (visionFaultActive)
     {
-        const BuzzerPattern runPattern =
-            (ProcessParams::ENABLE_ERR_902_NETWORK_LINK_LOST && networkWarningActive_)
-                ? BuzzerPattern::Warning
-                : BuzzerPattern::Silent;
-        buzzer_.setPattern(runPattern, nowMs);
+        if (activeError_ != ErrorCode::CapMissingVision)
+        {
+            activeError_ = ErrorCode::CapMissingVision;
+            StationHardwareFactory::setTowerLights(false, true);
+        }
+        buzzer_.setPattern(BuzzerPattern::Fault, nowMs);
+    }
+    else
+    {
+        if (activeError_ == ErrorCode::CapMissingVision)
+        {
+            activeError_ = ErrorCode::None;
+            StationHardwareFactory::setTowerLights(!linePaused_, linePaused_);
+        }
+
+        if (buzzer_.getPattern() != BuzzerPattern::BootReady)
+        {
+            const BuzzerPattern runPattern =
+                (ProcessParams::ENABLE_ERR_902_NETWORK_LINK_LOST && networkWarningActive_)
+                    ? BuzzerPattern::Warning
+                    : BuzzerPattern::Silent;
+            buzzer_.setPattern(runPattern, nowMs);
+        }
     }
 }
 
@@ -465,6 +513,12 @@ void StationController::handleTouchCommand(TouchCommand cmd)
             if (mode_ == StationMode::ErrorStop)
             {
                 mode_ = StationMode::ManualRecovery;
+                buzzer_.silence();
+            }
+            else if (mode_ == StationMode::Running && cappingAutomaton_.acknowledgeVisionAlarm())
+            {
+                activeError_ = ErrorCode::None;
+                StationHardwareFactory::setTowerLights(!linePaused_, linePaused_);
                 buzzer_.silence();
             }
             break;
@@ -824,6 +878,7 @@ void StationController::refreshDisplaySnapshot()
     if (btnStop_.isTriggered())         { inFlags |= InputFlags::BTN_STOP; }
     if (btnReset_.isTriggered())        { inFlags |= InputFlags::BTN_RESET; }
     if (estopAux_.isTriggered())        { inFlags |= InputFlags::ESTOP_ACTIVE; }
+    if (visionSensor_.isTriggered())    { inFlags |= InputFlags::VISION_ALARM; }
 
     const DisplaySnapshot current{
         computeEffectiveError(),

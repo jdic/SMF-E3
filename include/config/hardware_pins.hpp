@@ -55,6 +55,7 @@ namespace HardwarePins
     constexpr uint8_t PIN_POS_FILL          = 16; ///< Sensor óptico de posición exacta en módulo de llenado
     constexpr uint8_t PIN_PRESENCE_CAP      = 17; ///< Sensor óptico de aproximación en módulo de tapado
     constexpr uint8_t PIN_POS_CAP           = 18; ///< Sensor óptico de posición exacta en módulo de tapado
+    constexpr uint8_t PIN_VISION_SENSOR     = 22; ///< Entrada digital de alarma desde ESP32 de visión artificial (3.3V directo, sin pullup)
 
     // =========================================================================
     // BOTONERA DE CONTROL Y SEGURIDAD
@@ -167,6 +168,7 @@ namespace HardwarePins
             PIN_POS_FILL,
             PIN_PRESENCE_CAP,
             PIN_POS_CAP,
+            PIN_VISION_SENSOR,
             // Botonera de control y seguridad
             PIN_BTN_START,
             PIN_BTN_STOP,

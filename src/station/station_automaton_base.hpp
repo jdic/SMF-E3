@@ -41,9 +41,11 @@ public:
           profile_(BottleProfile::Small),
           activeError_(ErrorCode::None),
           stageTimerMs_(0UL),
+          lastUpdateMs_(0UL),
           isFirstRun_(true),
           needsClear_(false),
-          bottleEvent_(false)
+          bottleEvent_(false),
+          beltPaused_(false)
     {
     }
 
@@ -93,6 +95,14 @@ public:
         return activeError_;
     }
 
+    /**
+     * @brief Informa al autómata si la banda transportadora está pausada externamente.
+     */
+    void setBeltPaused(bool paused)
+    {
+        beltPaused_ = paused;
+    }
+
 protected:
     /**
      * @brief Restablece los campos comunes de la máquina de estados al estado Idle.
@@ -108,9 +118,11 @@ protected:
         previousState_ = StateEnum::Idle;
         activeError_   = ErrorCode::None;
         stageTimerMs_  = millis();
+        lastUpdateMs_  = stageTimerMs_;
         isFirstRun_    = true;
         needsClear_    = false;
         bottleEvent_   = false;
+        beltPaused_    = false;
     }
 
     /**
@@ -131,6 +143,25 @@ protected:
         if (needsClear_ && !presenceSensor_.isTriggered() && !positionSensor_.isTriggered())
         {
             needsClear_ = false;
+        }
+    }
+
+    /**
+     * @brief Congela el temporizador de fases dependientes de movimiento cuando la banda está pausada.
+     */
+    void updateBeltDependentTimer()
+    {
+        const uint32_t nowMs = millis();
+        const uint32_t dtMs  = nowMs - lastUpdateMs_;
+        lastUpdateMs_ = nowMs;
+
+        const bool dependsOnBelt =
+            (currentState_ == StateEnum::StopArmDown) ||
+            ((currentState_ == StateEnum::ReleasingBottle) && !gate_.isWaitingToClearStop());
+
+        if (beltPaused_ && dependsOnBelt && !isFirstRun_)
+        {
+            stageTimerMs_ += dtMs;
         }
     }
 
@@ -206,7 +237,9 @@ protected:
     BottleProfile  profile_;        ///< Perfil de botella activo (Small / Large)
     ErrorCode      activeError_;    ///< Código de fallo retenido (ErrorCode::None si opera normal)
     uint32_t       stageTimerMs_;   ///< Marca de tiempo millis() de inicio de la fase actual [ms]
+    uint32_t       lastUpdateMs_;   ///< Marca de tiempo del último ciclo update() [ms]
     bool           isFirstRun_;     ///< Bandera para disparar onEntry() en el primer ciclo del estado
     bool           needsClear_;     ///< Impide re-disparo en Idle hasta que la botella saliente despeje los sensores
     bool           bottleEvent_;    ///< Pulso de evento al iniciar ReleasingBottle
+    bool           beltPaused_;     ///< Indica si la banda transportadora se encuentra pausada externamente
 };

@@ -34,6 +34,7 @@ enum class ErrorCode : uint16_t
     ChuckOvercurrent        = 301, ///< ERR-301: Corriente excesiva en motor DC de apriete
     ChuckStallPremature     = 302, ///< ERR-302: Bloqueo prematuro del cabezal por corriente (rosca trasroscada)
     ConveyorStall           = 303, ///< ERR-303: Sobrecorriente sostenida / atasco en motor DC de la banda
+    CapMissingVision        = 304, ///< ERR-304: Botella sin tapa detectada por visión artificial al final de tapado
 
     // 900s: Seguridad y Red
     EmergencyStopPressed    = 901, ///< ERR-901: Parada de emergencia por hardware activada
@@ -92,6 +93,7 @@ enum class CappingState : uint8_t
     LoweringHead,    ///< Desciende el eje Z de tapado hasta la cota del perfil activo
     TighteningCap,   ///< Acciona el motor DC de apriete vigilando corriente en el puente H BTS7960
     RaisingHead,     ///< Frena el motor DC y asciende el eje Z hasta el fin de carrera superior
+    VisionInspect,   ///< Posiciona botella (opcional), aguarda asentamiento de cámara y verifica tapa
     ReleasingBottle  ///< Incrementa bottleCount y ejecuta la liberación escalonada de brazos
 };
 
@@ -163,6 +165,7 @@ namespace InputFlags
     constexpr uint16_t BTN_STOP      = (1U << 7); ///< Pulsador físico STOP (Pin 48)
     constexpr uint16_t BTN_RESET     = (1U << 8); ///< Pulsador físico RESET (Pin 52)
     constexpr uint16_t ESTOP_ACTIVE  = (1U << 9); ///< Contacto auxiliar de emergencia E-STOP (Pin 50)
+    constexpr uint16_t VISION_ALARM  = (1U << 10); ///< Señal de alarma de visión artificial ESP32 (Pin 22)
 }
 
 /**

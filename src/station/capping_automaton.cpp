@@ -5,12 +5,15 @@ CappingAutomaton::CappingAutomaton(
     DigitalSensor& presenceSensor,
     DigitalSensor& positionSensor,
     DigitalSensor& limitSwitch,
+    DigitalSensor& visionSensor,
     BottleGate& gate,
     StepperAxis& zAxis,
     DcMotorBts7960& chuckMotor)
     : StationAutomatonBase<CappingState>(presenceSensor, positionSensor, limitSwitch, gate, zAxis),
       chuckMotor_(chuckMotor),
-      engageStarted_(false)
+      visionSensor_(visionSensor),
+      engageStarted_(false),
+      visionStopArmRaised_(false)
 {
 }
 
@@ -18,7 +21,8 @@ void CappingAutomaton::reset()
 {
     chuckMotor_.stop();
     resetBaseState();
-    engageStarted_ = false;
+    engageStarted_       = false;
+    visionStopArmRaised_ = false;
 }
 
 void CappingAutomaton::stopImmediate()
@@ -45,6 +49,7 @@ void CappingAutomaton::update()
     }
 
     updateClearLock();
+    updateBeltDependentTimer();
 
     if (nextState_ != currentState_)
     {
@@ -61,6 +66,42 @@ void CappingAutomaton::update()
     }
 
     onDuring(currentState_);
+}
+
+bool CappingAutomaton::isHoldingBottle() const
+{
+    if (currentState_ == CappingState::VisionInspect)
+    {
+        if (activeError_ != ErrorCode::None)
+        {
+            return true;
+        }
+        if (ProcessParams::ENABLE_VISION_BELT_ADVANCE)
+        {
+            const uint32_t elapsedMs   = millis() - stageTimerMs_;
+            const uint32_t moveStartMs = ProcessParams::ARM_MOVE_MS;
+            const uint32_t moveEndMs   = moveStartMs + ProcessParams::VISION_ADVANCE_MS;
+            if ((elapsedMs >= moveStartMs) && (elapsedMs < moveEndMs))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    return StationAutomatonBase<CappingState>::isHoldingBottle();
+}
+
+bool CappingAutomaton::acknowledgeVisionAlarm()
+{
+    if (activeError_ != ErrorCode::CapMissingVision)
+    {
+        return false;
+    }
+
+    activeError_ = ErrorCode::None;
+    nextState_   = CappingState::ReleasingBottle;
+    return true;
 }
 
 bool CappingAutomaton::consumeBottleCompletedEvent()
@@ -116,11 +157,29 @@ void CappingAutomaton::onEntry(CappingState state)
             zAxis_.moveTowardHomeSwitch(ProcessParams::Z_CRUISE_SPEED);
             break;
 
+        case CappingState::VisionInspect:
+            chuckMotor_.stop();
+            visionStopArmRaised_ = false;
+            if (ProcessParams::ENABLE_VISION_BELT_ADVANCE)
+            {
+                gate_.raiseStopArm();
+                visionStopArmRaised_ = true;
+            }
+            break;
+
         case CappingState::ReleasingBottle:
             chuckMotor_.stop();
             bottleEvent_ = true;
             needsClear_  = true;
-            gate_.releaseBottle();
+            if (visionStopArmRaised_)
+            {
+                gate_.raiseArmsImmediate();
+                visionStopArmRaised_ = false;
+            }
+            else
+            {
+                gate_.releaseBottle();
+            }
             break;
     }
 }
@@ -208,13 +267,38 @@ void CappingAutomaton::onDuring(CappingState state)
             {
                 zAxis_.stop();
                 chuckMotor_.stop();
-                nextState_ = CappingState::ReleasingBottle;
+                nextState_ = ProcessParams::ENABLE_VISION_INSPECTION
+                                 ? CappingState::VisionInspect
+                                 : CappingState::ReleasingBottle;
             }
             else if (elapsedMs >= ProcessParams::Z_MOVE_TIMEOUT_MS)
             {
                 triggerFault(ErrorCode::CapZRaisingTimeout);
             }
             break;
+
+        case CappingState::VisionInspect:
+        {
+            const uint32_t advanceWindowMs = ProcessParams::ENABLE_VISION_BELT_ADVANCE
+                ? (static_cast<uint32_t>(ProcessParams::ARM_MOVE_MS) +
+                   static_cast<uint32_t>(ProcessParams::VISION_ADVANCE_MS))
+                : 0UL;
+            const uint32_t evalReadyMs =
+                advanceWindowMs + static_cast<uint32_t>(ProcessParams::VISION_SETTLE_MS);
+
+            if (elapsedMs >= evalReadyMs)
+            {
+                if (visionSensor_.isTriggered() && ProcessParams::ENABLE_ERR_304_CAP_VISION)
+                {
+                    triggerFault(ErrorCode::CapMissingVision);
+                }
+                else
+                {
+                    nextState_ = CappingState::ReleasingBottle;
+                }
+            }
+            break;
+        }
 
         case CappingState::ReleasingBottle:
             evalReleasingBottle(elapsedMs);

@@ -45,6 +45,7 @@ void FillingAutomaton::update()
     }
 
     updateClearLock();
+    updateBeltDependentTimer();
 
     if (nextState_ != currentState_)
     {

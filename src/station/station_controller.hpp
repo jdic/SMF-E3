@@ -129,6 +129,7 @@ private:
     DigitalSensor      btnStop_;              ///< Pulsador de parada de ciclo (STOP)
     DigitalSensor      estopAux_;             ///< Contacto auxiliar de parada de emergencia
     DigitalSensor      btnReset_;             ///< Pulsador de rearme de alarmas (RESET)
+    DigitalSensor      visionSensor_;         ///< Entrada digital de alarma de visión artificial (ESP32)
 
     // Actuadores y controladores de lazo local
     BottleGate         fillGate_;             ///< Compuerta de retención de llenado

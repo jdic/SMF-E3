@@ -413,7 +413,8 @@ TouchCommand DisplayManager::pollTouchCommand()
             else if (inRect(px, py, UiLayout::HOME_BTN_TEST_TOWER_RED))   { cmd = TouchCommand::TestToggleTowerRed; }
         }
         else if (hasRenderedSnapshot_ &&
-                 (renderedSnapshot_.mode == StationMode::ErrorStop) &&
+                 ((renderedSnapshot_.mode == StationMode::ErrorStop) ||
+                  (renderedSnapshot_.error == ErrorCode::CapMissingVision)) &&
                  inRect(px, py, UiLayout::HOME_BANNER_ALARM_ACK))
         {
             cmd = TouchCommand::AcknowledgeAlarm;

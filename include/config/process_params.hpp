@@ -129,6 +129,15 @@ namespace ProcessParams
     constexpr uint16_t CHUCK_MIN_TIGHTEN_MS    = 350;   ///< Tiempo mínimo de inicio antes de evaluar bloqueo de rosca [ms]
 
     // ==========================================
+    // VISIÓN ARTIFICIAL (ESP32 + MATLAB)
+    // ==========================================
+    constexpr bool     ENABLE_VISION_INSPECTION   = true;  ///< Habilita la inspección de tapa por visión artificial tras tapado
+    constexpr bool     ENABLE_VISION_BELT_ADVANCE = false; ///< true: levanta brazo de tope y avanza la banda antes de evaluar visión
+    constexpr bool     VISION_ALARM_ACTIVE_HIGH   = true;  ///< true: 3.3V (HIGH) del ESP32 = sin tapa (alarma); false: 0V (LOW) = alarma
+    constexpr uint16_t VISION_ADVANCE_MS          = 400;   ///< Tiempo que camina la banda para llevar la botella a la cámara [ms]
+    constexpr uint16_t VISION_SETTLE_MS           = 2000;  ///< Tiempo con banda detenida esperando el resultado de MATLAB/ESP32 [ms]
+
+    // ==========================================
     // SEÑALIZACIÓN (TORRETA Y ALARMA SONORA)
     // ==========================================
     constexpr bool     TOWER_RELAY_ACTIVE_LOW  = true;  ///< Nivel activo del módulo de relevadores (true = LOW)
@@ -171,6 +180,7 @@ namespace ProcessParams
     constexpr bool     ENABLE_ERR_301_CHUCK_OVERCURRENT    = true; ///< ERR-301: Sobrecorriente crítica en motor de roscado
     constexpr bool     ENABLE_ERR_302_CHUCK_STALL          = true; ///< ERR-302: Atasco prematuro de rosca en tapado
     constexpr bool     ENABLE_ERR_303_CONVEYOR_STALL       = true; ///< ERR-303: Sobrecorriente / atasco en banda
+    constexpr bool     ENABLE_ERR_304_CAP_VISION           = true; ///< ERR-304: Botella sin tapa detectada por visión artificial
     constexpr bool     ENABLE_ERR_901_EMERGENCY_STOP       = true; ///< ERR-901: Parada de emergencia por hardware
     constexpr bool     ENABLE_ERR_902_NETWORK_LINK_LOST    = true; ///< ERR-902: Advertencia de pérdida de enlace SCADA
 
@@ -196,6 +206,7 @@ namespace ProcessParams
             case ErrorCode::ChuckOvercurrent:     return ENABLE_ERR_301_CHUCK_OVERCURRENT;
             case ErrorCode::ChuckStallPremature:  return ENABLE_ERR_302_CHUCK_STALL;
             case ErrorCode::ConveyorStall:        return ENABLE_ERR_303_CONVEYOR_STALL;
+            case ErrorCode::CapMissingVision:     return ENABLE_ERR_304_CAP_VISION;
             case ErrorCode::EmergencyStopPressed: return ENABLE_ERR_901_EMERGENCY_STOP;
             case ErrorCode::NetworkLinkLost:      return ENABLE_ERR_902_NETWORK_LINK_LOST;
             default:                              return false;

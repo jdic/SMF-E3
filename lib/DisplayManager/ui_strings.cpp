@@ -36,6 +36,7 @@ namespace UiStrings
         const char STR_CAP_LOWER_Z[]   PROGMEM = "BAJANDO CABEZAL";
         const char STR_CAP_TIGHTEN[]   PROGMEM = "APRETANDO TAPA ";
         const char STR_CAP_RAISE_Z[]   PROGMEM = "SUBIENDO CABEZA";
+        const char STR_CAP_VISION[]    PROGMEM = "VERIFICANDO TAP";
         const char STR_CAP_RELEASE[]   PROGMEM = "LIBERANDO      ";
 
         // Perfiles de botella
@@ -57,6 +58,7 @@ namespace UiStrings
         const char STR_ERR_301[]       PROGMEM = "E301: SOBRECORRIENTE TAP  ";
         const char STR_ERR_302[]       PROGMEM = "E302: ROSCA TRASROSCADA   ";
         const char STR_ERR_303[]       PROGMEM = "E303: ATASCO EN BANDA 24V ";
+        const char STR_ERR_304[]       PROGMEM = "E304: BOTELLA SIN TAPA    ";
         const char STR_ERR_901[]       PROGMEM = "E901: PARO DE EMERGENCIA  ";
         const char STR_ERR_902[]       PROGMEM = "A902: SIN ENLACE SCADA    ";
     }
@@ -120,6 +122,7 @@ namespace UiStrings
             case CappingState::LoweringHead:    return reinterpret_cast<const __FlashStringHelper*>(STR_CAP_LOWER_Z);
             case CappingState::TighteningCap:   return reinterpret_cast<const __FlashStringHelper*>(STR_CAP_TIGHTEN);
             case CappingState::RaisingHead:     return reinterpret_cast<const __FlashStringHelper*>(STR_CAP_RAISE_Z);
+            case CappingState::VisionInspect:   return reinterpret_cast<const __FlashStringHelper*>(STR_CAP_VISION);
             case CappingState::ReleasingBottle:
             default:                            return reinterpret_cast<const __FlashStringHelper*>(STR_CAP_RELEASE);
         }
@@ -166,6 +169,7 @@ namespace UiStrings
             case ErrorCode::ChuckOvercurrent:     return reinterpret_cast<const __FlashStringHelper*>(STR_ERR_301);
             case ErrorCode::ChuckStallPremature:  return reinterpret_cast<const __FlashStringHelper*>(STR_ERR_302);
             case ErrorCode::ConveyorStall:        return reinterpret_cast<const __FlashStringHelper*>(STR_ERR_303);
+            case ErrorCode::CapMissingVision:     return reinterpret_cast<const __FlashStringHelper*>(STR_ERR_304);
             case ErrorCode::EmergencyStopPressed:
             default:                              return reinterpret_cast<const __FlashStringHelper*>(STR_ERR_901);
         }
