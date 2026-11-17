@@ -26,7 +26,8 @@ namespace ProcessParams
     // FLUJO ENTRE ETAPAS Y HABILITACIÓN DE MÓDULOS
     // ==========================================
     constexpr bool     ENABLE_INTERSTAGE_QUEUE = false; ///< Retiene botellas en llenado cuando la cola alcanza MAX_INTERSTAGE_QUEUE
-    constexpr bool     ENABLE_CAPPING_STATION  = true;  ///< Habilita el autómata de tapado (false opera únicamente llenado)
+    constexpr bool     ENABLE_FILLING_STATION  = true;  ///< Habilita el autómata de llenado (false opera únicamente tapado/banda)
+    constexpr bool     ENABLE_CAPPING_STATION  = true;  ///< Habilita el autómata de tapado (false opera únicamente llenado/banda)
     constexpr uint8_t  MAX_INTERSTAGE_QUEUE    = 2;     ///< Capacidad máxima de botellas entre etapas [unidades]
 
     // ==========================================

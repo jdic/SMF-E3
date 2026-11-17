@@ -246,7 +246,7 @@ void StationController::update()
 
 void StationController::updateBootMode(uint32_t nowMs)
 {
-    if (fillZ_.hasSoftLimitTripped())
+    if (ProcessParams::ENABLE_FILLING_STATION && fillZ_.hasSoftLimitTripped())
     {
         if (ProcessParams::ENABLE_ERR_202_FILL_Z_SOFT_LIMIT)
         {
@@ -268,13 +268,14 @@ void StationController::updateBootMode(uint32_t nowMs)
             capZ_.clearSoftLimitFault();
         }
     }
-    else if (fillZ_.isHome() && (!ProcessParams::ENABLE_CAPPING_STATION || capZ_.isHome()))
+    else if ((!ProcessParams::ENABLE_FILLING_STATION || fillZ_.isHome()) &&
+             (!ProcessParams::ENABLE_CAPPING_STATION || capZ_.isHome()))
     {
         enterRunningMode();
     }
     else if (nowMs - bootStartTimeMs_ >= ProcessParams::Z_HOMING_TIMEOUT_MS)
     {
-        if (!fillZ_.isHome())
+        if (ProcessParams::ENABLE_FILLING_STATION && !fillZ_.isHome())
         {
             if (ProcessParams::ENABLE_ERR_201_FILL_Z_HOME_FAILED)
             {
@@ -285,7 +286,7 @@ void StationController::updateBootMode(uint32_t nowMs)
                 enterRunningMode();
             }
         }
-        else
+        else if (ProcessParams::ENABLE_CAPPING_STATION && !capZ_.isHome())
         {
             if (ProcessParams::ENABLE_ERR_211_CAP_Z_HOME_FAILED)
             {
@@ -295,6 +296,10 @@ void StationController::updateBootMode(uint32_t nowMs)
             {
                 enterRunningMode();
             }
+        }
+        else
+        {
+            enterRunningMode();
         }
     }
 }
@@ -311,18 +316,22 @@ void StationController::updateRunningMode(uint32_t nowMs)
         conveyor_.clearStall();
     }
 
-    const bool canReleaseFromFill =
-        !ProcessParams::ENABLE_INTERSTAGE_QUEUE ||
-        (interstageQueueCount_ < ProcessParams::MAX_INTERSTAGE_QUEUE);
-    fillingAutomaton_.setReleasePermitted(canReleaseFromFill);
+    if (ProcessParams::ENABLE_FILLING_STATION)
+    {
+        const bool canReleaseFromFill =
+            !ProcessParams::ENABLE_INTERSTAGE_QUEUE ||
+            (interstageQueueCount_ < ProcessParams::MAX_INTERSTAGE_QUEUE);
+        fillingAutomaton_.setReleasePermitted(canReleaseFromFill);
+        fillingAutomaton_.update();
+    }
 
-    fillingAutomaton_.update();
     if (ProcessParams::ENABLE_CAPPING_STATION)
     {
         cappingAutomaton_.update();
     }
 
-    if (fillingAutomaton_.getError() != ErrorCode::None)
+    if (ProcessParams::ENABLE_FILLING_STATION &&
+        fillingAutomaton_.getError() != ErrorCode::None)
     {
         enterErrorStop(fillingAutomaton_.getError());
         return;
@@ -336,7 +345,7 @@ void StationController::updateRunningMode(uint32_t nowMs)
     }
 
     // Coordinación de banda: se pausa por STOP o mientras algún autómata tenga botella retenida
-    const bool fillHolding = fillingAutomaton_.isHoldingBottle();
+    const bool fillHolding = ProcessParams::ENABLE_FILLING_STATION && fillingAutomaton_.isHoldingBottle();
     const bool capHolding  = ProcessParams::ENABLE_CAPPING_STATION && cappingAutomaton_.isHoldingBottle();
     const bool pauseBelt   = linePaused_ || fillHolding || capHolding;
 
@@ -355,7 +364,8 @@ void StationController::updateRunningMode(uint32_t nowMs)
         }
     }
 
-    if (fillingAutomaton_.consumeBottleReleasedEvent())
+    if (ProcessParams::ENABLE_FILLING_STATION &&
+        fillingAutomaton_.consumeBottleReleasedEvent())
     {
         if (ProcessParams::ENABLE_INTERSTAGE_QUEUE)
         {
@@ -681,7 +691,16 @@ void StationController::enterBootMode()
 
     fillZ_.clearSoftLimitFault();
     capZ_.clearSoftLimitFault();
-    fillZ_.home(ProcessParams::Z_HOMING_SPEED);
+    if (ProcessParams::ENABLE_FILLING_STATION)
+    {
+        fillZ_.home(ProcessParams::Z_HOMING_SPEED);
+    }
+    else
+    {
+        fillZ_.stop();
+        fillZ_.setDriverEnabled(false);
+    }
+
     if (ProcessParams::ENABLE_CAPPING_STATION)
     {
         capZ_.home(ProcessParams::Z_HOMING_SPEED);
