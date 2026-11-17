@@ -185,30 +185,70 @@ namespace ProcessParams
     constexpr bool     ENABLE_ERR_902_NETWORK_LINK_LOST    = true; ///< ERR-902: Advertencia de pérdida de enlace SCADA
 
     /**
-     * @brief Evalúa si un código de error específico se encuentra habilitado en la configuración.
+     * @brief Construye la máscara inicial de ConfigFlags a partir de los valores constexpr por defecto.
+     */
+    constexpr uint16_t defaultConfigFlags()
+    {
+        return (ENABLE_FILLING_STATION          ? ConfigFlags::FILL_STATION     : 0U) |
+               (ENABLE_CAPPING_STATION          ? ConfigFlags::CAP_STATION      : 0U) |
+               (ENABLE_VISION_INSPECTION        ? ConfigFlags::VISION_INSPECT   : 0U) |
+               (ENABLE_VISION_BELT_ADVANCE      ? ConfigFlags::VISION_ADVANCE   : 0U) |
+               (ENABLE_INTERSTAGE_QUEUE         ? ConfigFlags::INTERSTAGE_QUEUE : 0U) |
+               (ENABLE_BUZZER                   ? ConfigFlags::BUZZER_ENABLED   : 0U) |
+               (ENABLE_BELT_IR_COMP             ? ConfigFlags::BELT_IR_COMP     : 0U) |
+               ((ENABLE_BELT_STALL_PROT && ENABLE_ERR_303_CONVEYOR_STALL) ? ConfigFlags::BELT_STALL_PROT : 0U) |
+               ((ENABLE_ERR_101_FILL_BOTTLE_LOST || ENABLE_ERR_102_CAP_BOTTLE_LOST) ? ConfigFlags::ERR_BOTTLE_LOST : 0U) |
+               ((ENABLE_ERR_201_FILL_Z_HOME_FAILED || ENABLE_ERR_202_FILL_Z_SOFT_LIMIT ||
+                 ENABLE_ERR_211_CAP_Z_HOME_FAILED  || ENABLE_ERR_212_CAP_Z_SOFT_LIMIT) ? ConfigFlags::ERR_Z_HOME_LIMIT : 0U) |
+               ((ENABLE_ERR_203_FILL_Z_LOWER_TIMEOUT || ENABLE_ERR_204_FILL_Z_RAISE_TIMEOUT ||
+                 ENABLE_ERR_213_CAP_Z_LOWER_TIMEOUT  || ENABLE_ERR_214_CAP_Z_RAISE_TIMEOUT) ? ConfigFlags::ERR_Z_TIMEOUT : 0U) |
+               ((ENABLE_ERR_301_CHUCK_OVERCURRENT || ENABLE_ERR_302_CHUCK_STALL) ? ConfigFlags::ERR_CHUCK_TORQUE : 0U) |
+               (ENABLE_ERR_901_EMERGENCY_STOP   ? ConfigFlags::ERR_ESTOP_HW     : 0U) |
+               (ENABLE_ERR_902_NETWORK_LINK_LOST ? ConfigFlags::ERR_SCADA_LINK  : 0U);
+    }
+
+    /**
+     * @brief Almacena en tiempo de ejecución las banderas ConfigFlags modificables desde Settings.
+     */
+    inline uint16_t& runtimeConfigFlags()
+    {
+        static uint16_t s_flags = defaultConfigFlags();
+        return s_flags;
+    }
+
+    /**
+     * @brief Consulta si una bandera ConfigFlags está activa actualmente.
+     */
+    inline bool hasConfigFlag(uint16_t mask)
+    {
+        return (runtimeConfigFlags() & mask) != 0U;
+    }
+
+    /**
+     * @brief Evalúa si un código de error específico se encuentra habilitado en tiempo de ejecución.
      * @param code Código de error a consultar.
-     * @return true si el error debe procesarse normalmente; false si está desactivado para pruebas.
+     * @return true si el error debe procesarse normalmente; false si está desactivado desde Settings.
      */
     inline bool isErrorEnabled(ErrorCode code)
     {
         switch (code)
         {
-            case ErrorCode::FillBottleLost:       return ENABLE_ERR_101_FILL_BOTTLE_LOST;
-            case ErrorCode::CapBottleLost:        return ENABLE_ERR_102_CAP_BOTTLE_LOST;
-            case ErrorCode::FillZHomeFailed:      return ENABLE_ERR_201_FILL_Z_HOME_FAILED;
-            case ErrorCode::FillZSoftLimitHit:    return ENABLE_ERR_202_FILL_Z_SOFT_LIMIT;
-            case ErrorCode::FillZLoweringTimeout: return ENABLE_ERR_203_FILL_Z_LOWER_TIMEOUT;
-            case ErrorCode::FillZRaisingTimeout:  return ENABLE_ERR_204_FILL_Z_RAISE_TIMEOUT;
-            case ErrorCode::CapZHomeFailed:       return ENABLE_ERR_211_CAP_Z_HOME_FAILED;
-            case ErrorCode::CapZSoftLimitHit:     return ENABLE_ERR_212_CAP_Z_SOFT_LIMIT;
-            case ErrorCode::CapZLoweringTimeout:  return ENABLE_ERR_213_CAP_Z_LOWER_TIMEOUT;
-            case ErrorCode::CapZRaisingTimeout:   return ENABLE_ERR_214_CAP_Z_RAISE_TIMEOUT;
-            case ErrorCode::ChuckOvercurrent:     return ENABLE_ERR_301_CHUCK_OVERCURRENT;
-            case ErrorCode::ChuckStallPremature:  return ENABLE_ERR_302_CHUCK_STALL;
-            case ErrorCode::ConveyorStall:        return ENABLE_ERR_303_CONVEYOR_STALL;
-            case ErrorCode::CapMissingVision:     return ENABLE_ERR_304_CAP_VISION;
-            case ErrorCode::EmergencyStopPressed: return ENABLE_ERR_901_EMERGENCY_STOP;
-            case ErrorCode::NetworkLinkLost:      return ENABLE_ERR_902_NETWORK_LINK_LOST;
+            case ErrorCode::FillBottleLost:
+            case ErrorCode::CapBottleLost:        return hasConfigFlag(ConfigFlags::ERR_BOTTLE_LOST);
+            case ErrorCode::FillZHomeFailed:
+            case ErrorCode::FillZSoftLimitHit:
+            case ErrorCode::CapZHomeFailed:
+            case ErrorCode::CapZSoftLimitHit:     return hasConfigFlag(ConfigFlags::ERR_Z_HOME_LIMIT);
+            case ErrorCode::FillZLoweringTimeout:
+            case ErrorCode::FillZRaisingTimeout:
+            case ErrorCode::CapZLoweringTimeout:
+            case ErrorCode::CapZRaisingTimeout:   return hasConfigFlag(ConfigFlags::ERR_Z_TIMEOUT);
+            case ErrorCode::ChuckOvercurrent:
+            case ErrorCode::ChuckStallPremature:  return hasConfigFlag(ConfigFlags::ERR_CHUCK_TORQUE);
+            case ErrorCode::ConveyorStall:        return hasConfigFlag(ConfigFlags::BELT_STALL_PROT);
+            case ErrorCode::CapMissingVision:     return hasConfigFlag(ConfigFlags::VISION_INSPECT);
+            case ErrorCode::EmergencyStopPressed: return hasConfigFlag(ConfigFlags::ERR_ESTOP_HW);
+            case ErrorCode::NetworkLinkLost:      return hasConfigFlag(ConfigFlags::ERR_SCADA_LINK);
             default:                              return false;
         }
     }

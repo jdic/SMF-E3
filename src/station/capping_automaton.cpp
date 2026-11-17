@@ -40,7 +40,7 @@ void CappingAutomaton::update()
 
     if (zAxis_.hasSoftLimitTripped())
     {
-        if (ProcessParams::ENABLE_ERR_212_CAP_Z_SOFT_LIMIT)
+        if (ProcessParams::isErrorEnabled(ErrorCode::CapZSoftLimitHit))
         {
             triggerFault(ErrorCode::CapZSoftLimitHit);
             return;
@@ -76,7 +76,7 @@ bool CappingAutomaton::isHoldingBottle() const
         {
             return true;
         }
-        if (ProcessParams::ENABLE_VISION_BELT_ADVANCE)
+        if (ProcessParams::hasConfigFlag(ConfigFlags::VISION_ADVANCE))
         {
             const uint32_t elapsedMs   = millis() - stageTimerMs_;
             const uint32_t moveStartMs = ProcessParams::ARM_MOVE_MS;
@@ -160,7 +160,7 @@ void CappingAutomaton::onEntry(CappingState state)
         case CappingState::VisionInspect:
             chuckMotor_.stop();
             visionStopArmRaised_ = false;
-            if (ProcessParams::ENABLE_VISION_BELT_ADVANCE)
+            if (ProcessParams::hasConfigFlag(ConfigFlags::VISION_ADVANCE))
             {
                 gate_.raiseStopArm();
                 visionStopArmRaised_ = true;
@@ -205,7 +205,7 @@ void CappingAutomaton::onDuring(CappingState state)
             if (!evalClampArmDown(
                     elapsedMs,
                     CappingState::LoweringHead,
-                    ProcessParams::ENABLE_ERR_102_CAP_BOTTLE_LOST))
+                    ProcessParams::isErrorEnabled(ErrorCode::CapBottleLost)))
             {
                 triggerFault(ErrorCode::CapBottleLost);
             }
@@ -240,14 +240,14 @@ void CappingAutomaton::onDuring(CappingState state)
         case CappingState::TighteningCap:
         {
             const uint16_t currentAdc = chuckMotor_.sampleCurrentAdc();
-            if (ProcessParams::ENABLE_ERR_301_CHUCK_OVERCURRENT &&
+            if (ProcessParams::isErrorEnabled(ErrorCode::ChuckOvercurrent) &&
                 (currentAdc >= ProcessParams::CHUCK_CURRENT_LIMIT_ADC))
             {
                 triggerFault(ErrorCode::ChuckOvercurrent);
                 break;
             }
 
-            if (ProcessParams::ENABLE_ERR_302_CHUCK_STALL &&
+            if (ProcessParams::isErrorEnabled(ErrorCode::ChuckStallPremature) &&
                 (elapsedMs < ProcessParams::CHUCK_MIN_TIGHTEN_MS) &&
                 (currentAdc >= ProcessParams::CHUCK_STALL_ADC))
             {
@@ -267,7 +267,7 @@ void CappingAutomaton::onDuring(CappingState state)
             {
                 zAxis_.stop();
                 chuckMotor_.stop();
-                nextState_ = ProcessParams::ENABLE_VISION_INSPECTION
+                nextState_ = ProcessParams::hasConfigFlag(ConfigFlags::VISION_INSPECT)
                                  ? CappingState::VisionInspect
                                  : CappingState::ReleasingBottle;
             }
@@ -279,7 +279,7 @@ void CappingAutomaton::onDuring(CappingState state)
 
         case CappingState::VisionInspect:
         {
-            const uint32_t advanceWindowMs = ProcessParams::ENABLE_VISION_BELT_ADVANCE
+            const uint32_t advanceWindowMs = ProcessParams::hasConfigFlag(ConfigFlags::VISION_ADVANCE)
                 ? (static_cast<uint32_t>(ProcessParams::ARM_MOVE_MS) +
                    static_cast<uint32_t>(ProcessParams::VISION_ADVANCE_MS))
                 : 0UL;
@@ -288,7 +288,7 @@ void CappingAutomaton::onDuring(CappingState state)
 
             if (elapsedMs >= evalReadyMs)
             {
-                if (visionSensor_.isTriggered() && ProcessParams::ENABLE_ERR_304_CAP_VISION)
+                if (visionSensor_.isTriggered() && ProcessParams::isErrorEnabled(ErrorCode::CapMissingVision))
                 {
                     triggerFault(ErrorCode::CapMissingVision);
                 }

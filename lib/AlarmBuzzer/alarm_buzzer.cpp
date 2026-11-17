@@ -149,7 +149,7 @@ bool AlarmBuzzer::isSounding() const
 
 void AlarmBuzzer::writeOutput(bool on)
 {
-    const bool effectiveOn = ProcessParams::ENABLE_BUZZER && on;
+    const bool effectiveOn = ProcessParams::hasConfigFlag(ConfigFlags::BUZZER_ENABLED) && on;
     outputOn_ = effectiveOn;
     const uint8_t level = (effectiveOn == activeHigh_) ? HIGH : LOW;
     digitalWrite(pin_, level);

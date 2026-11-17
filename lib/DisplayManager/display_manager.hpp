@@ -168,18 +168,21 @@ private:
     void drawAutoCapStaticFrame();
     void drawDebugStaticFrame();
     void drawSettingsStaticFrame();
+    void drawRecoveryStaticFrame();
     void renderHomeDynamic(const DisplaySnapshot& snapshot, bool fullRedraw);
     void renderAutoFillDynamic(const DisplaySnapshot& snapshot, bool fullRedraw);
     void renderAutoCapDynamic(const DisplaySnapshot& snapshot, bool fullRedraw);
     void renderAutomatonTestMode(const DisplaySnapshot& snapshot, bool fullRedraw, bool isFill);
     void renderDebugDynamic(const DisplaySnapshot& snapshot, bool fullRedraw);
     void renderSettingsDynamic(const DisplaySnapshot& snapshot, bool fullRedraw);
+    void renderRecoveryDynamic(const DisplaySnapshot& snapshot, bool fullRedraw);
     void renderPowerOverlay(const DisplaySnapshot& snapshot, bool fullRedraw);
 
     MCUFRIEND_kbv       tft_;                 ///< Instancia del controlador gráfico TFT paralelo de 8 bits
     DisplayTouchConfig  config_;              ///< Configuración de pines y calibración del panel táctil
     TouchScreen         ts_;                  ///< Instancia del lector resistivo de 4 hilos
     ScreenId            currentScreen_;       ///< Pantalla actualmente visible (Home, AutoFill, AutoCap, Debug, Settings)
+    uint8_t             settingsPage_;        ///< Subpágina activa en la vista Settings [0..2]
     bool                layoutDrawn_;         ///< Indica si la barra inferior fija ya fue pintada
     bool                contentFrameDrawn_;   ///< Indica si el marco estático de la pantalla activa ya fue pintado
     bool                hasRenderedSnapshot_; ///< Indica si ya existe una instantánea previa en caché

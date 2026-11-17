@@ -126,7 +126,23 @@ enum class TouchCommand : uint8_t
     TestToggleCapStopArm,   ///< En Auto 2 (TestMode): alterna brazo de tope de tapado (Arriba/Abajo)
     TestToggleCapClampArm,  ///< En Auto 2 (TestMode): alterna brazo de sujeción de tapado (Arriba/Abajo)
     TestToggleChuckMotor,   ///< En Auto 2 (TestMode): alterna motor DC de apriete de tapas
-    TestJogCapZDown         ///< En Auto 2 (TestMode): baja el eje Z de tapado en pasos seguros (Z_JOG_STEPS)
+    TestJogCapZDown,        ///< En Auto 2 (TestMode): baja el eje Z de tapado en pasos seguros (Z_JOG_STEPS)
+
+    // Comandos de CONFIGURACIÓN EN TIEMPO DE EJECUCIÓN (SETTINGS PÁG 1..3)
+    ToggleFillStation,      ///< En Settings Pág 1: habilita/deshabilita Autómata 1 (Llenado)
+    ToggleCapStation,       ///< En Settings Pág 1: habilita/deshabilita Autómata 2 (Tapado)
+    ToggleVisionInspect,    ///< En Settings Pág 2: habilita/deshabilita inspección por visión artificial
+    ToggleVisionAdvance,    ///< En Settings Pág 2: habilita/deshabilita avance de banda para visión
+    ToggleInterstageQueue,  ///< En Settings Pág 2: habilita/deshabilita cola intermedia WIP
+    ToggleBuzzerConfig,     ///< En Settings Pág 2: habilita/deshabilita alarma sonora global
+    ToggleBeltIrComp,       ///< En Settings Pág 2: habilita/deshabilita compensación I*R de banda
+    ToggleBeltStallProt,    ///< En Settings Pág 2: habilita/deshabilita protección de atasco de banda (E303)
+    ToggleErrBottleLost,    ///< En Settings Pág 3: habilita/deshabilita errores E101 / E102
+    ToggleErrZHomeLimit,    ///< En Settings Pág 3: habilita/deshabilita errores E201, E202, E211, E212
+    ToggleErrZTimeout,      ///< En Settings Pág 3: habilita/deshabilita errores E203, E204, E213, E214
+    ToggleErrChuckTorque,   ///< En Settings Pág 3: habilita/deshabilita errores E301 / E302
+    ToggleErrEstopHw,       ///< En Settings Pág 3: habilita/deshabilita error E901 (Paro de emergencia)
+    ToggleErrScadaLink      ///< En Settings Pág 3: habilita/deshabilita advertencia A902 (Enlace SCADA)
 };
 
 /**
@@ -169,6 +185,28 @@ namespace InputFlags
 }
 
 /**
+ * @namespace ConfigFlags
+ * @brief Banderas de bit modificables en caliente desde las 3 páginas de Settings.
+ */
+namespace ConfigFlags
+{
+    constexpr uint16_t FILL_STATION     = (1U << 0);  ///< Pág 1: Habilita estación de llenado (Autómata 1)
+    constexpr uint16_t CAP_STATION      = (1U << 1);  ///< Pág 1: Habilita estación de tapado (Autómata 2)
+    constexpr uint16_t VISION_INSPECT   = (1U << 2);  ///< Pág 2: Habilita inspección por visión ESP32 (ERR-304)
+    constexpr uint16_t VISION_ADVANCE   = (1U << 3);  ///< Pág 2: Avanza banda tras subir tope para visión
+    constexpr uint16_t INTERSTAGE_QUEUE = (1U << 4);  ///< Pág 2: Habilita cola intermedia WIP entre estaciones
+    constexpr uint16_t BUZZER_ENABLED   = (1U << 5);  ///< Pág 2: Habilita alarma sonora (buzzer)
+    constexpr uint16_t BELT_IR_COMP     = (1U << 6);  ///< Pág 2: Compensación I*R de voltaje bajo carga en banda
+    constexpr uint16_t BELT_STALL_PROT  = (1U << 7);  ///< Pág 2: Protección de sobrecorriente / atasco en banda (E303)
+    constexpr uint16_t ERR_BOTTLE_LOST  = (1U << 8);  ///< Pág 3: Alarmas de botella perdida (E101 / E102)
+    constexpr uint16_t ERR_Z_HOME_LIMIT = (1U << 9);  ///< Pág 3: Alarmas de Homing y Soft-Limit en ejes Z (E201/202/211/212)
+    constexpr uint16_t ERR_Z_TIMEOUT    = (1U << 10); ///< Pág 3: Alarmas de Timeout de recorrido en ejes Z (E203/204/213/214)
+    constexpr uint16_t ERR_CHUCK_TORQUE = (1U << 11); ///< Pág 3: Alarmas de sobrecorriente y atasco en tapado (E301 / E302)
+    constexpr uint16_t ERR_ESTOP_HW     = (1U << 12); ///< Pág 3: Alarma de parada de emergencia física (E901)
+    constexpr uint16_t ERR_SCADA_LINK   = (1U << 13); ///< Pág 3: Advertencia de enlace SCADA caído (A902)
+}
+
+/**
  * @enum BuzzerPattern
  * @brief Patrones acústicos no bloqueantes emitidos por el driver AlarmBuzzer según severidad.
  */
@@ -202,6 +240,7 @@ struct DisplaySnapshot
     uint8_t       chuckPwm;        ///< Ciclo PWM actual aplicado al motor de apriete de tapas [0..255]
     uint16_t      chuckCurrentAdc; ///< Corriente filtrada actual del motor de apriete en cuentas ADC [0..1023]
     uint16_t      inputFlags;      ///< Máscara de bits (InputFlags) con el estado de todos los sensores y botones
+    uint16_t      configFlags;     ///< Máscara de bits (ConfigFlags) con las opciones activas en Settings
 
     bool operator==(const DisplaySnapshot& other) const
     {
@@ -219,7 +258,8 @@ struct DisplaySnapshot
                (beltCurrentAdc == other.beltCurrentAdc) &&
                (chuckPwm == other.chuckPwm) &&
                (chuckCurrentAdc == other.chuckCurrentAdc) &&
-               (inputFlags == other.inputFlags);
+               (inputFlags == other.inputFlags) &&
+               (configFlags == other.configFlags);
     }
 
     bool operator!=(const DisplaySnapshot& other) const

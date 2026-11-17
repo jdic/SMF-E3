@@ -36,7 +36,7 @@ void FillingAutomaton::update()
 
     if (zAxis_.hasSoftLimitTripped())
     {
-        if (ProcessParams::ENABLE_ERR_202_FILL_Z_SOFT_LIMIT)
+        if (ProcessParams::isErrorEnabled(ErrorCode::FillZSoftLimitHit))
         {
             triggerFault(ErrorCode::FillZSoftLimitHit);
             return;
@@ -155,7 +155,7 @@ void FillingAutomaton::onDuring(FillState state)
             if (!evalClampArmDown(
                     elapsedMs,
                     FillState::LoweringNozzle,
-                    ProcessParams::ENABLE_ERR_101_FILL_BOTTLE_LOST))
+                    ProcessParams::isErrorEnabled(ErrorCode::FillBottleLost)))
             {
                 triggerFault(ErrorCode::FillBottleLost);
             }

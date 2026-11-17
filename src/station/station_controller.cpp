@@ -113,7 +113,8 @@ StationController::StationController()
           0U,
           0U,
           0U,
-          0U},
+          0U,
+          ProcessParams::defaultConfigFlags()},
       snapshotDirty_(true)
 {
 }
@@ -150,7 +151,7 @@ void StationController::init()
     fillingAutomaton_.setProfile(profile_);
     cappingAutomaton_.setProfile(profile_);
 
-    if (ProcessParams::ENABLE_ERR_901_EMERGENCY_STOP && estopAux_.isTriggered())
+    if (ProcessParams::isErrorEnabled(ErrorCode::EmergencyStopPressed) && estopAux_.isTriggered())
     {
         enterErrorStop(ErrorCode::EmergencyStopPressed);
     }
@@ -182,7 +183,7 @@ void StationController::update()
     capGate_.update();
 
     // 2. Prioridad de seguridad: contacto de parada de emergencia (en TestMode permite operar en banco)
-    if (ProcessParams::ENABLE_ERR_901_EMERGENCY_STOP &&
+    if (ProcessParams::isErrorEnabled(ErrorCode::EmergencyStopPressed) &&
         estopAux_.isTriggered() &&
         mode_ != StationMode::TestMode)
     {
@@ -263,9 +264,12 @@ void StationController::update()
 
 void StationController::updateBootMode(uint32_t nowMs)
 {
-    if (ProcessParams::ENABLE_FILLING_STATION && fillZ_.hasSoftLimitTripped())
+    const bool fillEnabled = ProcessParams::hasConfigFlag(ConfigFlags::FILL_STATION);
+    const bool capEnabled  = ProcessParams::hasConfigFlag(ConfigFlags::CAP_STATION);
+
+    if (fillEnabled && fillZ_.hasSoftLimitTripped())
     {
-        if (ProcessParams::ENABLE_ERR_202_FILL_Z_SOFT_LIMIT)
+        if (ProcessParams::isErrorEnabled(ErrorCode::FillZSoftLimitHit))
         {
             enterErrorStop(ErrorCode::FillZSoftLimitHit);
         }
@@ -274,9 +278,9 @@ void StationController::updateBootMode(uint32_t nowMs)
             fillZ_.clearSoftLimitFault();
         }
     }
-    else if (ProcessParams::ENABLE_CAPPING_STATION && capZ_.hasSoftLimitTripped())
+    else if (capEnabled && capZ_.hasSoftLimitTripped())
     {
-        if (ProcessParams::ENABLE_ERR_212_CAP_Z_SOFT_LIMIT)
+        if (ProcessParams::isErrorEnabled(ErrorCode::CapZSoftLimitHit))
         {
             enterErrorStop(ErrorCode::CapZSoftLimitHit);
         }
@@ -285,16 +289,16 @@ void StationController::updateBootMode(uint32_t nowMs)
             capZ_.clearSoftLimitFault();
         }
     }
-    else if ((!ProcessParams::ENABLE_FILLING_STATION || fillZ_.isHome()) &&
-             (!ProcessParams::ENABLE_CAPPING_STATION || capZ_.isHome()))
+    else if ((!fillEnabled || fillZ_.isHome()) &&
+             (!capEnabled || capZ_.isHome()))
     {
         enterRunningMode();
     }
     else if (nowMs - bootStartTimeMs_ >= ProcessParams::Z_HOMING_TIMEOUT_MS)
     {
-        if (ProcessParams::ENABLE_FILLING_STATION && !fillZ_.isHome())
+        if (fillEnabled && !fillZ_.isHome())
         {
-            if (ProcessParams::ENABLE_ERR_201_FILL_Z_HOME_FAILED)
+            if (ProcessParams::isErrorEnabled(ErrorCode::FillZHomeFailed))
             {
                 enterErrorStop(ErrorCode::FillZHomeFailed);
             }
@@ -303,9 +307,9 @@ void StationController::updateBootMode(uint32_t nowMs)
                 enterRunningMode();
             }
         }
-        else if (ProcessParams::ENABLE_CAPPING_STATION && !capZ_.isHome())
+        else if (capEnabled && !capZ_.isHome())
         {
-            if (ProcessParams::ENABLE_ERR_211_CAP_Z_HOME_FAILED)
+            if (ProcessParams::isErrorEnabled(ErrorCode::CapZHomeFailed))
             {
                 enterErrorStop(ErrorCode::CapZHomeFailed);
             }
@@ -323,9 +327,13 @@ void StationController::updateBootMode(uint32_t nowMs)
 
 void StationController::updateRunningMode(uint32_t nowMs)
 {
+    const bool fillEnabled = ProcessParams::hasConfigFlag(ConfigFlags::FILL_STATION);
+    const bool capEnabled  = ProcessParams::hasConfigFlag(ConfigFlags::CAP_STATION);
+    const bool queueEnabled = ProcessParams::hasConfigFlag(ConfigFlags::INTERSTAGE_QUEUE);
+
     if (conveyor_.isStalled())
     {
-        if (ProcessParams::ENABLE_ERR_303_CONVEYOR_STALL)
+        if (ProcessParams::isErrorEnabled(ErrorCode::ConveyorStall))
         {
             enterErrorStop(ErrorCode::ConveyorStall);
             return;
@@ -334,32 +342,32 @@ void StationController::updateRunningMode(uint32_t nowMs)
     }
 
     const bool visionFaultBefore =
-        ProcessParams::ENABLE_CAPPING_STATION &&
+        capEnabled &&
         (cappingAutomaton_.getError() == ErrorCode::CapMissingVision);
 
-    if (ProcessParams::ENABLE_FILLING_STATION)
+    if (fillEnabled)
     {
         const bool canReleaseFromFill =
             !visionFaultBefore &&
-            (!ProcessParams::ENABLE_INTERSTAGE_QUEUE ||
+            (!queueEnabled ||
              (interstageQueueCount_ < ProcessParams::MAX_INTERSTAGE_QUEUE));
         fillingAutomaton_.setReleasePermitted(canReleaseFromFill);
         fillingAutomaton_.update();
     }
 
-    if (ProcessParams::ENABLE_CAPPING_STATION)
+    if (capEnabled)
     {
         cappingAutomaton_.update();
     }
 
-    if (ProcessParams::ENABLE_FILLING_STATION &&
+    if (fillEnabled &&
         fillingAutomaton_.getError() != ErrorCode::None)
     {
         enterErrorStop(fillingAutomaton_.getError());
         return;
     }
 
-    if (ProcessParams::ENABLE_CAPPING_STATION &&
+    if (capEnabled &&
         (cappingAutomaton_.getError() != ErrorCode::None) &&
         (cappingAutomaton_.getError() != ErrorCode::CapMissingVision))
     {
@@ -368,12 +376,12 @@ void StationController::updateRunningMode(uint32_t nowMs)
     }
 
     const bool visionFaultActive =
-        ProcessParams::ENABLE_CAPPING_STATION &&
+        capEnabled &&
         (cappingAutomaton_.getError() == ErrorCode::CapMissingVision);
 
     // Coordinación de banda: se pausa por STOP o mientras algún autómata tenga botella retenida
-    const bool fillHolding = ProcessParams::ENABLE_FILLING_STATION && fillingAutomaton_.isHoldingBottle();
-    const bool capHolding  = ProcessParams::ENABLE_CAPPING_STATION && cappingAutomaton_.isHoldingBottle();
+    const bool fillHolding = fillEnabled && fillingAutomaton_.isHoldingBottle();
+    const bool capHolding  = capEnabled && cappingAutomaton_.isHoldingBottle();
     const bool pauseBelt   = linePaused_ || fillHolding || capHolding;
 
     fillingAutomaton_.setBeltPaused(pauseBelt);
@@ -394,27 +402,27 @@ void StationController::updateRunningMode(uint32_t nowMs)
         }
     }
 
-    if (ProcessParams::ENABLE_FILLING_STATION &&
+    if (fillEnabled &&
         fillingAutomaton_.consumeBottleReleasedEvent())
     {
-        if (ProcessParams::ENABLE_INTERSTAGE_QUEUE)
+        if (queueEnabled)
         {
             if (interstageQueueCount_ < 0xFFU)
             {
                 interstageQueueCount_++;
             }
         }
-        else if (!ProcessParams::ENABLE_CAPPING_STATION)
+        else if (!capEnabled)
         {
             bottleCount_++;
         }
     }
 
-    if (ProcessParams::ENABLE_CAPPING_STATION &&
+    if (capEnabled &&
         cappingAutomaton_.consumeBottleCompletedEvent())
     {
         bottleCount_++;
-        if (ProcessParams::ENABLE_INTERSTAGE_QUEUE && interstageQueueCount_ > 0U)
+        if (queueEnabled && interstageQueueCount_ > 0U)
         {
             interstageQueueCount_--;
         }
@@ -440,7 +448,7 @@ void StationController::updateRunningMode(uint32_t nowMs)
         if (buzzer_.getPattern() != BuzzerPattern::BootReady)
         {
             const BuzzerPattern runPattern =
-                (ProcessParams::ENABLE_ERR_902_NETWORK_LINK_LOST && networkWarningActive_)
+                (ProcessParams::isErrorEnabled(ErrorCode::NetworkLinkLost) && networkWarningActive_)
                     ? BuzzerPattern::Warning
                     : BuzzerPattern::Silent;
             buzzer_.setPattern(runPattern, nowMs);
@@ -486,10 +494,15 @@ void StationController::handleTouchCommand(TouchCommand cmd)
         return;
     }
 
+    const bool isRuntimeConfigCmd =
+        (cmd >= TouchCommand::ToggleFillStation) &&
+        (cmd <= TouchCommand::ToggleErrScadaLink);
+
     if (estopAux_.isTriggered() &&
         (mode_ != StationMode::TestMode) &&
         (cmd != TouchCommand::ToggleTestMode) &&
-        (cmd != TouchCommand::CycleBottleProfile))
+        (cmd != TouchCommand::CycleBottleProfile) &&
+        !isRuntimeConfigCmd)
     {
         return;
     }
@@ -557,7 +570,7 @@ void StationController::handleTouchCommand(TouchCommand cmd)
         case TouchCommand::ToggleTestMode:
             if (mode_ == StationMode::TestMode)
             {
-                if (ProcessParams::ENABLE_ERR_901_EMERGENCY_STOP && estopAux_.isTriggered())
+                if (ProcessParams::isErrorEnabled(ErrorCode::EmergencyStopPressed) && estopAux_.isTriggered())
                 {
                     enterErrorStop(ErrorCode::EmergencyStopPressed);
                 }
@@ -570,6 +583,106 @@ void StationController::handleTouchCommand(TouchCommand cmd)
             {
                 enterTestMode();
             }
+            break;
+
+        case TouchCommand::ToggleFillStation:
+            ProcessParams::runtimeConfigFlags() ^= ConfigFlags::FILL_STATION;
+            if (!ProcessParams::hasConfigFlag(ConfigFlags::FILL_STATION))
+            {
+                fillingAutomaton_.reset();
+                fillZ_.stop();
+                fillZ_.setDriverEnabled(false);
+            }
+            else if (mode_ == StationMode::Running && !fillZ_.isHome())
+            {
+                enterBootMode();
+            }
+            break;
+
+        case TouchCommand::ToggleCapStation:
+            ProcessParams::runtimeConfigFlags() ^= ConfigFlags::CAP_STATION;
+            if (!ProcessParams::hasConfigFlag(ConfigFlags::CAP_STATION))
+            {
+                cappingAutomaton_.reset();
+                capZ_.stop();
+                capZ_.setDriverEnabled(false);
+                if (activeError_ == ErrorCode::CapMissingVision)
+                {
+                    activeError_ = ErrorCode::None;
+                    StationHardwareFactory::setTowerLights(!linePaused_, linePaused_);
+                }
+            }
+            else if (mode_ == StationMode::Running && !capZ_.isHome())
+            {
+                enterBootMode();
+            }
+            break;
+
+        case TouchCommand::ToggleVisionInspect:
+            ProcessParams::runtimeConfigFlags() ^= ConfigFlags::VISION_INSPECT;
+            if (!ProcessParams::hasConfigFlag(ConfigFlags::VISION_INSPECT) &&
+                (cappingAutomaton_.getError() == ErrorCode::CapMissingVision))
+            {
+                cappingAutomaton_.acknowledgeVisionAlarm();
+                activeError_ = ErrorCode::None;
+                StationHardwareFactory::setTowerLights(!linePaused_, linePaused_);
+                buzzer_.silence();
+            }
+            break;
+
+        case TouchCommand::ToggleVisionAdvance:
+            ProcessParams::runtimeConfigFlags() ^= ConfigFlags::VISION_ADVANCE;
+            break;
+
+        case TouchCommand::ToggleInterstageQueue:
+            ProcessParams::runtimeConfigFlags() ^= ConfigFlags::INTERSTAGE_QUEUE;
+            if (!ProcessParams::hasConfigFlag(ConfigFlags::INTERSTAGE_QUEUE))
+            {
+                interstageQueueCount_ = 0U;
+            }
+            break;
+
+        case TouchCommand::ToggleBuzzerConfig:
+            ProcessParams::runtimeConfigFlags() ^= ConfigFlags::BUZZER_ENABLED;
+            if (!ProcessParams::hasConfigFlag(ConfigFlags::BUZZER_ENABLED))
+            {
+                testFlags_ &= static_cast<uint16_t>(~TestFlags::BUZZER_ON);
+                buzzer_.silence();
+            }
+            break;
+
+        case TouchCommand::ToggleBeltIrComp:
+            ProcessParams::runtimeConfigFlags() ^= ConfigFlags::BELT_IR_COMP;
+            conveyor_.setIrCompEnabled(ProcessParams::hasConfigFlag(ConfigFlags::BELT_IR_COMP));
+            break;
+
+        case TouchCommand::ToggleBeltStallProt:
+            ProcessParams::runtimeConfigFlags() ^= ConfigFlags::BELT_STALL_PROT;
+            conveyor_.setStallProtEnabled(ProcessParams::hasConfigFlag(ConfigFlags::BELT_STALL_PROT));
+            break;
+
+        case TouchCommand::ToggleErrBottleLost:
+            ProcessParams::runtimeConfigFlags() ^= ConfigFlags::ERR_BOTTLE_LOST;
+            break;
+
+        case TouchCommand::ToggleErrZHomeLimit:
+            ProcessParams::runtimeConfigFlags() ^= ConfigFlags::ERR_Z_HOME_LIMIT;
+            break;
+
+        case TouchCommand::ToggleErrZTimeout:
+            ProcessParams::runtimeConfigFlags() ^= ConfigFlags::ERR_Z_TIMEOUT;
+            break;
+
+        case TouchCommand::ToggleErrChuckTorque:
+            ProcessParams::runtimeConfigFlags() ^= ConfigFlags::ERR_CHUCK_TORQUE;
+            break;
+
+        case TouchCommand::ToggleErrEstopHw:
+            ProcessParams::runtimeConfigFlags() ^= ConfigFlags::ERR_ESTOP_HW;
+            break;
+
+        case TouchCommand::ToggleErrScadaLink:
+            ProcessParams::runtimeConfigFlags() ^= ConfigFlags::ERR_SCADA_LINK;
             break;
 
         default:
@@ -612,7 +725,7 @@ void StationController::handleTestModeCommand(TouchCommand cmd)
             break;
 
         case TouchCommand::TestToggleBuzzer:
-            if (!ProcessParams::ENABLE_BUZZER)
+            if (!ProcessParams::hasConfigFlag(ConfigFlags::BUZZER_ENABLED))
             {
                 testFlags_ &= static_cast<uint16_t>(~TestFlags::BUZZER_ON);
                 buzzer_.silence();
@@ -745,7 +858,7 @@ void StationController::enterBootMode()
 
     fillZ_.clearSoftLimitFault();
     capZ_.clearSoftLimitFault();
-    if (ProcessParams::ENABLE_FILLING_STATION)
+    if (ProcessParams::hasConfigFlag(ConfigFlags::FILL_STATION))
     {
         fillZ_.home(ProcessParams::Z_HOMING_SPEED);
     }
@@ -755,7 +868,7 @@ void StationController::enterBootMode()
         fillZ_.setDriverEnabled(false);
     }
 
-    if (ProcessParams::ENABLE_CAPPING_STATION)
+    if (ProcessParams::hasConfigFlag(ConfigFlags::CAP_STATION))
     {
         capZ_.home(ProcessParams::Z_HOMING_SPEED);
     }
@@ -895,7 +1008,8 @@ void StationController::refreshDisplaySnapshot()
         conveyor_.getFilteredCurrentAdc(),
         chuckMotor_.getCurrentPwm(),
         chuckMotor_.getFilteredCurrentAdc(),
-        inFlags};
+        inFlags,
+        ProcessParams::runtimeConfigFlags()};
 
     if (current != lastSnapshot_)
     {
@@ -911,7 +1025,7 @@ ErrorCode StationController::computeEffectiveError() const
         return activeError_;
     }
 
-    if (ProcessParams::ENABLE_ERR_902_NETWORK_LINK_LOST && networkWarningActive_)
+    if (ProcessParams::isErrorEnabled(ErrorCode::NetworkLinkLost) && networkWarningActive_)
     {
         return ErrorCode::NetworkLinkLost;
     }

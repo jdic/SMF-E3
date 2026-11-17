@@ -177,6 +177,21 @@ void ConveyorController::clearStall()
     inOvercurrent_ = false;
 }
 
+void ConveyorController::setIrCompEnabled(bool enabled)
+{
+    config_.enableIrComp = enabled;
+}
+
+void ConveyorController::setStallProtEnabled(bool enabled)
+{
+    config_.enableStallProt = enabled;
+    if (!enabled)
+    {
+        stalled_       = false;
+        inOvercurrent_ = false;
+    }
+}
+
 uint8_t ConveyorController::getCurrentPwm() const
 {
     return currentPwm_;

@@ -87,12 +87,12 @@ namespace StationHardwareFactory
         cfg.currentSensePin    = HardwarePins::PIN_ADC_CONV_CURRENT;
         cfg.targetPwm          = ProcessParams::BELT_PWM;
         cfg.maxBoostPwm        = ProcessParams::BELT_MAX_BOOST_PWM;
-        cfg.enableIrComp       = ProcessParams::ENABLE_BELT_IR_COMP;
+        cfg.enableIrComp       = ProcessParams::hasConfigFlag(ConfigFlags::BELT_IR_COMP);
         cfg.idleCurrentAdc     = ProcessParams::BELT_IDLE_CURRENT_ADC;
         cfg.fullLoadCurrentAdc = ProcessParams::BELT_FULL_LOAD_ADC;
         cfg.accelStepPwm       = ProcessParams::BELT_ACCEL_PWM_STEP;
         cfg.decelStepPwm       = ProcessParams::BELT_DECEL_PWM_STEP;
-        cfg.enableStallProt    = ProcessParams::ENABLE_BELT_STALL_PROT;
+        cfg.enableStallProt    = ProcessParams::hasConfigFlag(ConfigFlags::BELT_STALL_PROT);
         cfg.currentLimitAdc    = ProcessParams::BELT_CURRENT_LIMIT_ADC;
         cfg.stallTimeMs        = ProcessParams::BELT_STALL_MS;
         return cfg;

@@ -66,14 +66,21 @@ namespace UiLayout
     constexpr UiRect AUTO_BTN_TEST_JOG_UP      = {   8, 132, 148, 48 };
     constexpr UiRect AUTO_BTN_TEST_JOG_DOWN    = { 164, 132, 148, 48 };
 
-    // --- Pantalla SETTINGS ---
-    constexpr UiRect SETTINGS_CARD_TEST_MODE   = {   6,  32, 152, 52 };
-    constexpr UiRect SETTINGS_CARD_OVERLAY     = { 162,  32, 152, 52 };
-    constexpr UiRect SETTINGS_BTN_PROFILE      = { 190,  90, 122, 30 };
-    constexpr UiRect SETTINGS_BTN_JOG_FILL_UP  = {   8, 126, 148, 27 };
-    constexpr UiRect SETTINGS_BTN_JOG_CAP_UP   = { 164, 126, 148, 27 };
-    constexpr UiRect SETTINGS_BTN_RELEASE_ARMS = {   8, 157, 148, 27 };
-    constexpr UiRect SETTINGS_BTN_LINE_CLEAR   = { 164, 157, 148, 27 };
+    // --- Pantalla SETTINGS (Paginada 1..3) ---
+    constexpr UiRect SETTINGS_BTN_NEXT_PAGE    = { 222,   3,  92, 22 };
+    constexpr UiRect SETTINGS_SLOT_TL          = {   6,  32, 152, 48 };
+    constexpr UiRect SETTINGS_SLOT_TR          = { 162,  32, 152, 48 };
+    constexpr UiRect SETTINGS_SLOT_ML          = {   6,  84, 152, 48 };
+    constexpr UiRect SETTINGS_SLOT_MR          = { 162,  84, 152, 48 };
+    constexpr UiRect SETTINGS_SLOT_BL          = {   6, 136, 152, 48 };
+    constexpr UiRect SETTINGS_SLOT_BR          = { 162, 136, 152, 48 };
+    constexpr UiRect SETTINGS_BTN_PROFILE      = { 190, 136, 124, 48 };
+
+    // --- Pantalla MANUAL RECOVERY (Pantalla Completa 320x240 Bloqueada) ---
+    constexpr UiRect RECOVERY_BTN_JOG_FILL_UP  = {   8, 108, 148, 36 };
+    constexpr UiRect RECOVERY_BTN_JOG_CAP_UP   = { 164, 108, 148, 36 };
+    constexpr UiRect RECOVERY_BTN_RELEASE_ARMS = {   8, 150, 304, 34 };
+    constexpr UiRect RECOVERY_BTN_LINE_CLEAR   = {   8, 190, 304, 42 };
 }
 
 /**

@@ -98,6 +98,16 @@ public:
     void clearStall();
 
     /**
+     * @brief Habilita o deshabilita en tiempo de ejecución la compensación I*R de la banda.
+     */
+    void setIrCompEnabled(bool enabled);
+
+    /**
+     * @brief Habilita o deshabilita en tiempo de ejecución la protección de atasco (ERR-303).
+     */
+    void setStallProtEnabled(bool enabled);
+
+    /**
      * @brief Consulta el ciclo de trabajo PWM instantáneo aplicado en este momento al motor de la banda.
      * @return Valor PWM actual en el rango [0..255].
      */

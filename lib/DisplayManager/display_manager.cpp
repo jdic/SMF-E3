@@ -92,6 +92,7 @@ DisplayManager::DisplayManager(const DisplayTouchConfig& config)
       config_(config),
       ts_(config.xpPin, config.ypPin, config.xmPin, config.ymPin, TOUCH_RX_OHMS),
       currentScreen_(ScreenId::None),
+      settingsPage_(0U),
       layoutDrawn_(false),
       contentFrameDrawn_(false),
       hasRenderedSnapshot_(false),
@@ -110,7 +111,8 @@ DisplayManager::DisplayManager(const DisplayTouchConfig& config)
           0U,
           0U,
           0U,
-          0U},
+          0U,
+          ProcessParams::defaultConfigFlags()},
       hasLastMarker_(false),
       lastMarkerX_(0),
       lastMarkerY_(0),
@@ -252,31 +254,52 @@ void DisplayManager::showScreen(ScreenId screen, bool forceRedraw)
 
 void DisplayManager::render(const DisplaySnapshot& snapshot)
 {
+    if (snapshot.mode == StationMode::ManualRecovery)
+    {
+        const bool enteringRecovery =
+            !hasRenderedSnapshot_ || (renderedSnapshot_.mode != StationMode::ManualRecovery);
+        if (enteringRecovery)
+        {
+            hasLastMarker_     = false;
+            layoutDrawn_       = false;
+            contentFrameDrawn_ = false;
+            tft_.fillScreen(UiTheme::COLOR_BG);
+            drawRecoveryStaticFrame();
+            contentFrameDrawn_ = true;
+            renderRecoveryDynamic(snapshot, true);
+            if (config_.debugShowCoords)
+            {
+                drawCalibrationTargets();
+            }
+        }
+        else
+        {
+            renderRecoveryDynamic(snapshot, !contentFrameDrawn_);
+            contentFrameDrawn_ = true;
+        }
+
+        renderedSnapshot_    = snapshot;
+        hasRenderedSnapshot_ = true;
+        return;
+    }
+
+    if (hasRenderedSnapshot_ && (renderedSnapshot_.mode == StationMode::ManualRecovery))
+    {
+        layoutDrawn_         = false;
+        renderedSnapshot_    = snapshot;
+        hasRenderedSnapshot_ = true;
+        showScreen(ScreenId::Home, true);
+        return;
+    }
+
     if (currentScreen_ == ScreenId::None)
     {
         showScreen(ScreenId::Home);
     }
 
-    // Cambiar o redibujar el marco estático cuando entra/sale de TestMode o ManualRecovery
+    // Redibujar el marco estático cuando entra o sale de TestMode
     if (hasRenderedSnapshot_ && (renderedSnapshot_.mode != snapshot.mode))
     {
-        if (snapshot.mode == StationMode::ManualRecovery && currentScreen_ != ScreenId::Settings)
-        {
-            renderedSnapshot_    = snapshot;
-            hasRenderedSnapshot_ = true;
-            showScreen(ScreenId::Settings);
-            return;
-        }
-        if (snapshot.mode == StationMode::Boot &&
-            renderedSnapshot_.mode == StationMode::ManualRecovery &&
-            currentScreen_ != ScreenId::Home)
-        {
-            renderedSnapshot_    = snapshot;
-            hasRenderedSnapshot_ = true;
-            showScreen(ScreenId::Home);
-            return;
-        }
-
         if ((snapshot.mode == StationMode::TestMode || renderedSnapshot_.mode == StationMode::TestMode) &&
             (currentScreen_ == ScreenId::Home || currentScreen_ == ScreenId::AutoFill || currentScreen_ == ScreenId::AutoCap))
         {
@@ -358,6 +381,27 @@ TouchCommand DisplayManager::pollTouchCommand()
     const int16_t px = lastTouchPx_;
     const int16_t py = lastTouchPy_;
 
+    // 0. Modo ManualRecovery bloqueado a pantalla completa (320x240): no permite cambiar de pestaña
+    if (hasRenderedSnapshot_ && (renderedSnapshot_.mode == StationMode::ManualRecovery))
+    {
+        TouchCommand recCmd = TouchCommand::None;
+        if (inRect(px, py, UiLayout::RECOVERY_BTN_JOG_FILL_UP))       { recCmd = TouchCommand::JogFillZUp; }
+        else if (inRect(px, py, UiLayout::RECOVERY_BTN_JOG_CAP_UP))   { recCmd = TouchCommand::JogCapZUp; }
+        else if (inRect(px, py, UiLayout::RECOVERY_BTN_RELEASE_ARMS)) { recCmd = TouchCommand::ReleaseArms; }
+        else if (inRect(px, py, UiLayout::RECOVERY_BTN_LINE_CLEAR))   { recCmd = TouchCommand::ConfirmLineClear; }
+
+        if (recCmd != TouchCommand::None)
+        {
+            const uint32_t nowMs = millis();
+            if ((nowMs - lastCommandMs_) < TOUCH_COOLDOWN_MS)
+            {
+                return TouchCommand::None;
+            }
+            lastCommandMs_ = nowMs;
+        }
+        return recCmd;
+    }
+
     // 1. Pestañas de navegación fija en la barra inferior (Y = 190..239)
     if (py >= LAYOUT_BAR_Y)
     {
@@ -372,35 +416,67 @@ TouchCommand DisplayManager::pollTouchCommand()
     const bool isTestMode = hasRenderedSnapshot_ && (renderedSnapshot_.mode == StationMode::TestMode);
     TouchCommand cmd = TouchCommand::None;
 
-    // 2. Zonas táctiles de la pantalla Settings
+    // 2. Zonas táctiles de la pantalla Settings (Páginas 1..3)
     if (currentScreen_ == ScreenId::Settings)
     {
-        if (inRect(px, py, UiLayout::SETTINGS_CARD_OVERLAY))
+        if (inRect(px, py, UiLayout::SETTINGS_BTN_NEXT_PAGE))
         {
             const uint32_t nowMs = millis();
             if ((nowMs - lastCommandMs_) >= TOUCH_COOLDOWN_MS)
             {
-                lastCommandMs_    = nowMs;
-                showPowerOverlay_ = !showPowerOverlay_;
-                tft_.fillRect(166, 34, 48, 48, UiTheme::COLOR_BG);
-                if (showPowerOverlay_)
-                {
-                    tft_.drawBitmap(166, 34, UIIcons::ICON_CHECKBOX_ON_48x48, 48, 48, UiTheme::COLOR_YELLOW_WARN);
-                }
-                else
-                {
-                    tft_.drawBitmap(166, 34, UIIcons::ICON_CHECKBOX_OFF_48x48, 48, 48, UiTheme::COLOR_WHITE);
-                }
+                lastCommandMs_ = nowMs;
+                settingsPage_  = static_cast<uint8_t>((settingsPage_ + 1U) % 3U);
+                showScreen(ScreenId::Settings, true);
             }
             return TouchCommand::None;
         }
 
-        if (inRect(px, py, UiLayout::SETTINGS_CARD_TEST_MODE))        { cmd = TouchCommand::ToggleTestMode; }
-        else if (inRect(px, py, UiLayout::SETTINGS_BTN_PROFILE))      { cmd = TouchCommand::CycleBottleProfile; }
-        else if (inRect(px, py, UiLayout::SETTINGS_BTN_JOG_FILL_UP))  { cmd = TouchCommand::JogFillZUp; }
-        else if (inRect(px, py, UiLayout::SETTINGS_BTN_JOG_CAP_UP))   { cmd = TouchCommand::JogCapZUp; }
-        else if (inRect(px, py, UiLayout::SETTINGS_BTN_RELEASE_ARMS)) { cmd = TouchCommand::ReleaseArms; }
-        else if (inRect(px, py, UiLayout::SETTINGS_BTN_LINE_CLEAR))   { cmd = TouchCommand::ConfirmLineClear; }
+        if (settingsPage_ == 0U)
+        {
+            if (inRect(px, py, UiLayout::SETTINGS_SLOT_TR))
+            {
+                const uint32_t nowMs = millis();
+                if ((nowMs - lastCommandMs_) >= TOUCH_COOLDOWN_MS)
+                {
+                    lastCommandMs_    = nowMs;
+                    showPowerOverlay_ = !showPowerOverlay_;
+                    tft_.fillRect(
+                        UiLayout::SETTINGS_SLOT_TR.x + 6,
+                        UiLayout::SETTINGS_SLOT_TR.y + 4,
+                        40, 40, UiTheme::COLOR_BG);
+                    tft_.drawBitmap(
+                        UiLayout::SETTINGS_SLOT_TR.x + 2,
+                        UiLayout::SETTINGS_SLOT_TR.y,
+                        showPowerOverlay_ ? UIIcons::ICON_CHECKBOX_ON_48x48 : UIIcons::ICON_CHECKBOX_OFF_48x48,
+                        48, 48,
+                        showPowerOverlay_ ? UiTheme::COLOR_YELLOW_WARN : UiTheme::COLOR_WHITE);
+                }
+                return TouchCommand::None;
+            }
+
+            if (inRect(px, py, UiLayout::SETTINGS_SLOT_TL))       { cmd = TouchCommand::ToggleTestMode; }
+            else if (inRect(px, py, UiLayout::SETTINGS_SLOT_ML))  { cmd = TouchCommand::ToggleFillStation; }
+            else if (inRect(px, py, UiLayout::SETTINGS_SLOT_MR))  { cmd = TouchCommand::ToggleCapStation; }
+            else if (inRect(px, py, UiLayout::SETTINGS_BTN_PROFILE)) { cmd = TouchCommand::CycleBottleProfile; }
+        }
+        else if (settingsPage_ == 1U)
+        {
+            if (inRect(px, py, UiLayout::SETTINGS_SLOT_TL))       { cmd = TouchCommand::ToggleVisionInspect; }
+            else if (inRect(px, py, UiLayout::SETTINGS_SLOT_TR))  { cmd = TouchCommand::ToggleVisionAdvance; }
+            else if (inRect(px, py, UiLayout::SETTINGS_SLOT_ML))  { cmd = TouchCommand::ToggleInterstageQueue; }
+            else if (inRect(px, py, UiLayout::SETTINGS_SLOT_MR))  { cmd = TouchCommand::ToggleBuzzerConfig; }
+            else if (inRect(px, py, UiLayout::SETTINGS_SLOT_BL))  { cmd = TouchCommand::ToggleBeltIrComp; }
+            else if (inRect(px, py, UiLayout::SETTINGS_SLOT_BR))  { cmd = TouchCommand::ToggleBeltStallProt; }
+        }
+        else
+        {
+            if (inRect(px, py, UiLayout::SETTINGS_SLOT_TL))       { cmd = TouchCommand::ToggleErrBottleLost; }
+            else if (inRect(px, py, UiLayout::SETTINGS_SLOT_TR))  { cmd = TouchCommand::ToggleErrZHomeLimit; }
+            else if (inRect(px, py, UiLayout::SETTINGS_SLOT_ML))  { cmd = TouchCommand::ToggleErrZTimeout; }
+            else if (inRect(px, py, UiLayout::SETTINGS_SLOT_MR))  { cmd = TouchCommand::ToggleErrChuckTorque; }
+            else if (inRect(px, py, UiLayout::SETTINGS_SLOT_BL))  { cmd = TouchCommand::ToggleErrEstopHw; }
+            else if (inRect(px, py, UiLayout::SETTINGS_SLOT_BR))  { cmd = TouchCommand::ToggleErrScadaLink; }
+        }
     }
     // 3. Zonas táctiles de la pantalla Home
     else if (currentScreen_ == ScreenId::Home)
