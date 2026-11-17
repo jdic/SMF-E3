@@ -410,35 +410,35 @@
             <text x="56" y="51" fill="#FFFFFF" font-family="monospace" font-size="8">E101/102 BOT.</text>
             <text x="56" y="65" fill="#C6C3C6" font-family="monospace" font-size="8">Botella perdida</text>
           </g>
-          <g id="card_err_z_home_limit">
+          <g id="card_err_z_axes">
             <rect x="162.5" y="32.5" width="151" height="47" fill="#000000" stroke="#313031"/>
-            <path id="checkbox_card_err_z_home_limit" d="M8,4h32v4h-32zM4,8h4v32h-4zM40,8h4v32h-4zM20,16h8v4h-8zM16,20h4v8h-4zM28,20h4v8h-4zM20,28h8v4h-8zM8,40h32v4h-32z" transform="translate(164 32)" fill="#00BC00"/>
-            <text x="212" y="51" fill="#FFFFFF" font-family="monospace" font-size="8">E201/12 Z-LIM</text>
-            <text x="212" y="65" fill="#C6C3C6" font-family="monospace" font-size="8">Homing y soft-l</text>
-          </g>
-          <g id="card_err_z_timeout">
-            <rect x="6.5" y="84.5" width="151" height="47" fill="#000000" stroke="#313031"/>
-            <path id="checkbox_card_err_z_timeout" d="M8,4h32v4h-32zM4,8h4v32h-4zM40,8h4v32h-4zM20,16h8v4h-8zM16,20h4v8h-4zM28,20h4v8h-4zM20,28h8v4h-8zM8,40h32v4h-32z" transform="translate(8 84)" fill="#00BC00"/>
-            <text x="56" y="103" fill="#FFFFFF" font-family="monospace" font-size="8">E203/14 Z-TMO</text>
-            <text x="56" y="117" fill="#C6C3C6" font-family="monospace" font-size="8">Timeout ejes Z</text>
+            <path id="checkbox_card_err_z_axes" d="M8,4h32v4h-32zM4,8h4v32h-4zM40,8h4v32h-4zM20,16h8v4h-8zM16,20h4v8h-4zM28,20h4v8h-4zM20,28h8v4h-8zM8,40h32v4h-32z" transform="translate(164 32)" fill="#00BC00"/>
+            <text x="212" y="51" fill="#FFFFFF" font-family="monospace" font-size="8">E201..214 EJES</text>
+            <text x="212" y="65" fill="#C6C3C6" font-family="monospace" font-size="8">Homing/Lim/TMO</text>
           </g>
           <g id="card_err_chuck_torque">
-            <rect x="162.5" y="84.5" width="151" height="47" fill="#000000" stroke="#313031"/>
-            <path id="checkbox_card_err_chuck_torque" d="M8,4h32v4h-32zM4,8h4v32h-4zM40,8h4v32h-4zM20,16h8v4h-8zM16,20h4v8h-4zM28,20h4v8h-4zM20,28h8v4h-8zM8,40h32v4h-32z" transform="translate(164 84)" fill="#00BC00"/>
-            <text x="212" y="103" fill="#FFFFFF" font-family="monospace" font-size="8">E301/02 APR.</text>
-            <text x="212" y="117" fill="#C6C3C6" font-family="monospace" font-size="8">Torque/roscado</text>
+            <rect x="6.5" y="84.5" width="151" height="47" fill="#000000" stroke="#313031"/>
+            <path id="checkbox_card_err_chuck_torque" d="M8,4h32v4h-32zM4,8h4v32h-4zM40,8h4v32h-4zM20,16h8v4h-8zM16,20h4v8h-4zM28,20h4v8h-4zM20,28h8v4h-8zM8,40h32v4h-32z" transform="translate(8 84)" fill="#00BC00"/>
+            <text x="56" y="103" fill="#FFFFFF" font-family="monospace" font-size="8">E301/02 APR.</text>
+            <text x="56" y="117" fill="#C6C3C6" font-family="monospace" font-size="8">Torque/roscado</text>
           </g>
           <g id="card_err_estop_hw">
-            <rect x="6.5" y="136.5" width="151" height="47" fill="#000000" stroke="#313031"/>
-            <path id="checkbox_card_err_estop_hw" d="M8,4h32v4h-32zM4,8h4v32h-4zM40,8h4v32h-4zM20,16h8v4h-8zM16,20h4v8h-4zM28,20h4v8h-4zM20,28h8v4h-8zM8,40h32v4h-32z" transform="translate(8 136)" fill="#00BC00"/>
-            <text x="56" y="155" fill="#FFFFFF" font-family="monospace" font-size="8">E901 E-STOP</text>
-            <text x="56" y="169" fill="#C6C3C6" font-family="monospace" font-size="8">Seta fisica HW</text>
+            <rect x="162.5" y="84.5" width="151" height="47" fill="#000000" stroke="#313031"/>
+            <path id="checkbox_card_err_estop_hw" d="M8,4h32v4h-32zM4,8h4v32h-4zM40,8h4v32h-4zM20,16h8v4h-8zM16,20h4v8h-4zM28,20h4v8h-4zM20,28h8v4h-8zM8,40h32v4h-32z" transform="translate(164 84)" fill="#00BC00"/>
+            <text x="212" y="103" fill="#FFFFFF" font-family="monospace" font-size="8">E901 E-STOP</text>
+            <text x="212" y="117" fill="#C6C3C6" font-family="monospace" font-size="8">Seta fisica HW</text>
           </g>
-          <g id="card_err_scada_link">
+          <g id="card_fill_single_pos">
+            <rect x="6.5" y="136.5" width="151" height="47" fill="#000000" stroke="#313031"/>
+            <path id="checkbox_card_fill_single_pos" d="M8,4h32v4h-32zM4,8h4v32h-4zM40,8h4v32h-4zM8,40h32v4h-32z" transform="translate(8 136)" fill="#FFFFFF"/>
+            <text x="56" y="155" fill="#FFFFFF" font-family="monospace" font-size="8">SOLO POS1 LLEN</text>
+            <text x="56" y="169" fill="#C6C3C6" font-family="monospace" font-size="8">Ignorar PRE1</text>
+          </g>
+          <g id="card_cap_single_pos">
             <rect x="162.5" y="136.5" width="151" height="47" fill="#000000" stroke="#313031"/>
-            <path id="checkbox_card_err_scada_link" d="M8,4h32v4h-32zM4,8h4v32h-4zM40,8h4v32h-4zM20,16h8v4h-8zM16,20h4v8h-4zM28,20h4v8h-4zM20,28h8v4h-8zM8,40h32v4h-32z" transform="translate(164 136)" fill="#00BC00"/>
-            <text x="212" y="155" fill="#FFFFFF" font-family="monospace" font-size="8">A902 SCADA</text>
-            <text x="212" y="169" fill="#C6C3C6" font-family="monospace" font-size="8">Aviso enlace</text>
+            <path id="checkbox_card_cap_single_pos" d="M8,4h32v4h-32zM4,8h4v32h-4zM40,8h4v32h-4zM8,40h32v4h-32z" transform="translate(164 136)" fill="#FFFFFF"/>
+            <text x="212" y="155" fill="#FFFFFF" font-family="monospace" font-size="8">SOLO POS2 TAP.</text>
+            <text x="212" y="169" fill="#C6C3C6" font-family="monospace" font-size="8">Ignorar PRE2</text>
           </g>
         </g>
         <g id="bottom_nav_bar">

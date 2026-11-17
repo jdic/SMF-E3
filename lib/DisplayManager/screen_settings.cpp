@@ -116,11 +116,11 @@ void DisplayManager::drawSettingsStaticFrame()
     else
     {
         drawCheckboxCardFrame(tft_, UiLayout::SETTINGS_SLOT_TL, F("E101/102 BOT."), F("Botella perdida"));
-        drawCheckboxCardFrame(tft_, UiLayout::SETTINGS_SLOT_TR, F("E201/12 Z-LIM"), F("Homing y soft-l"));
-        drawCheckboxCardFrame(tft_, UiLayout::SETTINGS_SLOT_ML, F("E203/14 Z-TMO"), F("Timeout ejes Z"));
-        drawCheckboxCardFrame(tft_, UiLayout::SETTINGS_SLOT_MR, F("E301/02 APR."), F("Torque/roscado"));
-        drawCheckboxCardFrame(tft_, UiLayout::SETTINGS_SLOT_BL, F("E901 E-STOP"), F("Seta fisica HW"));
-        drawCheckboxCardFrame(tft_, UiLayout::SETTINGS_SLOT_BR, F("A902 SCADA"), F("Aviso enlace"));
+        drawCheckboxCardFrame(tft_, UiLayout::SETTINGS_SLOT_TR, F("E201..214 EJES"), F("Homing/Lim/TMO"));
+        drawCheckboxCardFrame(tft_, UiLayout::SETTINGS_SLOT_ML, F("E301/02 APR."), F("Torque/roscado"));
+        drawCheckboxCardFrame(tft_, UiLayout::SETTINGS_SLOT_MR, F("E901 E-STOP"), F("Seta fisica HW"));
+        drawCheckboxCardFrame(tft_, UiLayout::SETTINGS_SLOT_BL, F("SOLO POS1 LLEN"), F("Ignorar PRE1"));
+        drawCheckboxCardFrame(tft_, UiLayout::SETTINGS_SLOT_BR, F("SOLO POS2 TAP."), F("Ignorar PRE2"));
     }
 }
 
@@ -215,10 +215,10 @@ void DisplayManager::renderSettingsDynamic(const DisplaySnapshot& snapshot, bool
     const uint16_t page3Masks[6] = {
         ConfigFlags::ERR_BOTTLE_LOST,
         ConfigFlags::ERR_Z_HOME_LIMIT,
-        ConfigFlags::ERR_Z_TIMEOUT,
         ConfigFlags::ERR_CHUCK_TORQUE,
         ConfigFlags::ERR_ESTOP_HW,
-        ConfigFlags::ERR_SCADA_LINK
+        ConfigFlags::FILL_SINGLE_POS_SENSOR,
+        ConfigFlags::CAP_SINGLE_POS_SENSOR
     };
 
     const uint16_t* activeMasks = (settingsPage_ == 1U) ? page2Masks : page3Masks;

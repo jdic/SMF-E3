@@ -26,8 +26,10 @@ namespace ProcessParams
     // FLUJO ENTRE ETAPAS Y HABILITACIÓN DE MÓDULOS
     // ==========================================
     constexpr bool     ENABLE_INTERSTAGE_QUEUE = false; ///< Retiene botellas en llenado cuando la cola alcanza MAX_INTERSTAGE_QUEUE
-    constexpr bool     ENABLE_FILLING_STATION  = true;  ///< Habilita el autómata de llenado (false opera únicamente tapado/banda)
-    constexpr bool     ENABLE_CAPPING_STATION  = true;  ///< Habilita el autómata de tapado (false opera únicamente llenado/banda)
+    constexpr bool     ENABLE_FILLING_STATION        = true;  ///< Habilita el autómata de llenado (false opera únicamente tapado/banda)
+    constexpr bool     ENABLE_CAPPING_STATION        = true;  ///< Habilita el autómata de tapado (false opera únicamente llenado/banda)
+    constexpr bool     ENABLE_FILL_SINGLE_POS_SENSOR = false; ///< true: Llenado opera solo con POS1 (ignora PRE1); false: usa PRE1 + POS1
+    constexpr bool     ENABLE_CAP_SINGLE_POS_SENSOR  = false; ///< true: Tapado opera solo con POS2 (ignora PRE2); false: usa PRE2 + POS2
     constexpr uint8_t  MAX_INTERSTAGE_QUEUE    = 2;     ///< Capacidad máxima de botellas entre etapas [unidades]
 
     // ==========================================
@@ -204,7 +206,9 @@ namespace ProcessParams
                  ENABLE_ERR_213_CAP_Z_LOWER_TIMEOUT  || ENABLE_ERR_214_CAP_Z_RAISE_TIMEOUT) ? ConfigFlags::ERR_Z_TIMEOUT : 0U) |
                ((ENABLE_ERR_301_CHUCK_OVERCURRENT || ENABLE_ERR_302_CHUCK_STALL) ? ConfigFlags::ERR_CHUCK_TORQUE : 0U) |
                (ENABLE_ERR_901_EMERGENCY_STOP   ? ConfigFlags::ERR_ESTOP_HW     : 0U) |
-               (ENABLE_ERR_902_NETWORK_LINK_LOST ? ConfigFlags::ERR_SCADA_LINK  : 0U);
+               (ENABLE_ERR_902_NETWORK_LINK_LOST ? ConfigFlags::ERR_SCADA_LINK  : 0U) |
+               (ENABLE_FILL_SINGLE_POS_SENSOR   ? ConfigFlags::FILL_SINGLE_POS_SENSOR : 0U) |
+               (ENABLE_CAP_SINGLE_POS_SENSOR    ? ConfigFlags::CAP_SINGLE_POS_SENSOR  : 0U);
     }
 
     /**

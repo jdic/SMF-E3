@@ -472,10 +472,10 @@ TouchCommand DisplayManager::pollTouchCommand()
         {
             if (inRect(px, py, UiLayout::SETTINGS_SLOT_TL))       { cmd = TouchCommand::ToggleErrBottleLost; }
             else if (inRect(px, py, UiLayout::SETTINGS_SLOT_TR))  { cmd = TouchCommand::ToggleErrZHomeLimit; }
-            else if (inRect(px, py, UiLayout::SETTINGS_SLOT_ML))  { cmd = TouchCommand::ToggleErrZTimeout; }
-            else if (inRect(px, py, UiLayout::SETTINGS_SLOT_MR))  { cmd = TouchCommand::ToggleErrChuckTorque; }
-            else if (inRect(px, py, UiLayout::SETTINGS_SLOT_BL))  { cmd = TouchCommand::ToggleErrEstopHw; }
-            else if (inRect(px, py, UiLayout::SETTINGS_SLOT_BR))  { cmd = TouchCommand::ToggleErrScadaLink; }
+            else if (inRect(px, py, UiLayout::SETTINGS_SLOT_ML))  { cmd = TouchCommand::ToggleErrChuckTorque; }
+            else if (inRect(px, py, UiLayout::SETTINGS_SLOT_MR))  { cmd = TouchCommand::ToggleErrEstopHw; }
+            else if (inRect(px, py, UiLayout::SETTINGS_SLOT_BL))  { cmd = TouchCommand::ToggleFillSinglePosSensor; }
+            else if (inRect(px, py, UiLayout::SETTINGS_SLOT_BR))  { cmd = TouchCommand::ToggleCapSinglePosSensor; }
         }
     }
     // 3. Zonas táctiles de la pantalla Home

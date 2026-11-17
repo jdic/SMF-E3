@@ -142,7 +142,9 @@ enum class TouchCommand : uint8_t
     ToggleErrZTimeout,      ///< En Settings Pág 3: habilita/deshabilita errores E203, E204, E213, E214
     ToggleErrChuckTorque,   ///< En Settings Pág 3: habilita/deshabilita errores E301 / E302
     ToggleErrEstopHw,       ///< En Settings Pág 3: habilita/deshabilita error E901 (Paro de emergencia)
-    ToggleErrScadaLink      ///< En Settings Pág 3: habilita/deshabilita advertencia A902 (Enlace SCADA)
+    ToggleErrScadaLink,     ///< En Settings Pág 3: habilita/deshabilita advertencia A902 (Enlace SCADA)
+    ToggleFillSinglePosSensor, ///< En Settings Pág 3: fuerza Autómata 1 (Llenado) a usar solo POS1 (ignora PRE1)
+    ToggleCapSinglePosSensor   ///< En Settings Pág 3: fuerza Autómata 2 (Tapado) a usar solo POS2 (ignora PRE2)
 };
 
 /**
@@ -202,8 +204,10 @@ namespace ConfigFlags
     constexpr uint16_t ERR_Z_HOME_LIMIT = (1U << 9);  ///< Pág 3: Alarmas de Homing y Soft-Limit en ejes Z (E201/202/211/212)
     constexpr uint16_t ERR_Z_TIMEOUT    = (1U << 10); ///< Pág 3: Alarmas de Timeout de recorrido en ejes Z (E203/204/213/214)
     constexpr uint16_t ERR_CHUCK_TORQUE = (1U << 11); ///< Pág 3: Alarmas de sobrecorriente y atasco en tapado (E301 / E302)
-    constexpr uint16_t ERR_ESTOP_HW     = (1U << 12); ///< Pág 3: Alarma de parada de emergencia física (E901)
-    constexpr uint16_t ERR_SCADA_LINK   = (1U << 13); ///< Pág 3: Advertencia de enlace SCADA caído (A902)
+    constexpr uint16_t ERR_ESTOP_HW           = (1U << 12); ///< Pág 3: Alarma de parada de emergencia física (E901)
+    constexpr uint16_t ERR_SCADA_LINK         = (1U << 13); ///< Pág 3: Advertencia de enlace SCADA caído (A902)
+    constexpr uint16_t FILL_SINGLE_POS_SENSOR = (1U << 14); ///< Pág 3: Autómata 1 (Llenado) opera solo con POS1 (ignora PRE1)
+    constexpr uint16_t CAP_SINGLE_POS_SENSOR  = (1U << 15); ///< Pág 3: Autómata 2 (Tapado) opera solo con POS2 (ignora PRE2)
 }
 
 /**

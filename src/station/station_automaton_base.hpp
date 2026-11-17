@@ -29,12 +29,14 @@ public:
         DigitalSensor& positionSensor,
         DigitalSensor& limitSwitch,
         BottleGate& gate,
-        StepperAxis& zAxis)
+        StepperAxis& zAxis,
+        uint16_t singleSensorFlagMask)
         : presenceSensor_(presenceSensor),
           positionSensor_(positionSensor),
           limitSwitch_(limitSwitch),
           gate_(gate),
           zAxis_(zAxis),
+          singleSensorFlagMask_(singleSensorFlagMask),
           currentState_(StateEnum::Idle),
           nextState_(StateEnum::Idle),
           previousState_(StateEnum::Idle),
@@ -136,11 +138,15 @@ protected:
     }
 
     /**
-     * @brief Libera el candado de re-disparo cuando el sensor de aproximación queda despejado.
+     * @brief Libera el candado de re-disparo cuando el sensor de disparo queda despejado.
      */
     void updateClearLock()
     {
-        if (needsClear_ && !presenceSensor_.isTriggered())
+        const bool singleSensor  = ProcessParams::hasConfigFlag(singleSensorFlagMask_);
+        const bool triggerActive = singleSensor
+                                       ? positionSensor_.isTriggered()
+                                       : presenceSensor_.isTriggered();
+        if (needsClear_ && !triggerActive)
         {
             needsClear_ = false;
         }
@@ -171,7 +177,11 @@ protected:
      */
     void evalIdleTransition()
     {
-        if (presenceSensor_.isTriggered() && !needsClear_)
+        const bool singleSensor  = ProcessParams::hasConfigFlag(singleSensorFlagMask_);
+        const bool triggerActive = singleSensor
+                                       ? positionSensor_.isTriggered()
+                                       : presenceSensor_.isTriggered();
+        if (triggerActive && !needsClear_)
         {
             needsClear_ = true;
             nextState_  = StateEnum::StopArmDown;
@@ -230,8 +240,9 @@ protected:
     DigitalSensor& presenceSensor_; ///< 1er sensor IR (aproximación antes de los brazos)
     DigitalSensor& positionSensor_; ///< 2do sensor IR (posición exacta en medio de ambos brazos)
     DigitalSensor& limitSwitch_;    ///< Fin de carrera superior del eje Z
-    BottleGate&    gate_;           ///< Par de servomotores (tope y sujeción)
-    StepperAxis&   zAxis_;          ///< Actuador lineal paso a paso del eje Z
+    BottleGate&    gate_;                 ///< Par de servomotores (tope y sujeción)
+    StepperAxis&   zAxis_;                ///< Actuador lineal paso a paso del eje Z
+    const uint16_t singleSensorFlagMask_; ///< Máscara ConfigFlags para operar solo con positionSensor_ en esta estación
 
     StateEnum      currentState_;   ///< Estado activo en el ciclo actual
     StateEnum      nextState_;      ///< Próximo estado solicitado por una transición

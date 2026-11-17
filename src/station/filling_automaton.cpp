@@ -8,7 +8,13 @@ FillingAutomaton::FillingAutomaton(
     BottleGate& gate,
     StepperAxis& zAxis,
     FillPump& pump)
-    : StationAutomatonBase<FillState>(presenceSensor, positionSensor, limitSwitch, gate, zAxis),
+    : StationAutomatonBase<FillState>(
+          presenceSensor,
+          positionSensor,
+          limitSwitch,
+          gate,
+          zAxis,
+          ConfigFlags::FILL_SINGLE_POS_SENSOR),
       pump_(pump),
       canReleaseBottle_(true)
 {

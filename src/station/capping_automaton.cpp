@@ -9,7 +9,13 @@ CappingAutomaton::CappingAutomaton(
     BottleGate& gate,
     StepperAxis& zAxis,
     DcMotorBts7960& chuckMotor)
-    : StationAutomatonBase<CappingState>(presenceSensor, positionSensor, limitSwitch, gate, zAxis),
+    : StationAutomatonBase<CappingState>(
+          presenceSensor,
+          positionSensor,
+          limitSwitch,
+          gate,
+          zAxis,
+          ConfigFlags::CAP_SINGLE_POS_SENSOR),
       chuckMotor_(chuckMotor),
       visionSensor_(visionSensor),
       engageStarted_(false),

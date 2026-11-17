@@ -499,7 +499,7 @@ void StationController::handleTouchCommand(TouchCommand cmd)
 
     const bool isRuntimeConfigCmd =
         (cmd >= TouchCommand::ToggleFillStation) &&
-        (cmd <= TouchCommand::ToggleErrScadaLink);
+        (cmd <= TouchCommand::ToggleCapSinglePosSensor);
 
     if (estopAux_.isTriggered() &&
         (mode_ != StationMode::TestMode) &&
@@ -682,7 +682,8 @@ void StationController::handleTouchCommand(TouchCommand cmd)
             break;
 
         case TouchCommand::ToggleErrZHomeLimit:
-            ProcessParams::runtimeConfigFlags() ^= ConfigFlags::ERR_Z_HOME_LIMIT;
+            ProcessParams::runtimeConfigFlags() ^=
+                (ConfigFlags::ERR_Z_HOME_LIMIT | ConfigFlags::ERR_Z_TIMEOUT);
             break;
 
         case TouchCommand::ToggleErrZTimeout:
@@ -699,6 +700,14 @@ void StationController::handleTouchCommand(TouchCommand cmd)
 
         case TouchCommand::ToggleErrScadaLink:
             ProcessParams::runtimeConfigFlags() ^= ConfigFlags::ERR_SCADA_LINK;
+            break;
+
+        case TouchCommand::ToggleFillSinglePosSensor:
+            ProcessParams::runtimeConfigFlags() ^= ConfigFlags::FILL_SINGLE_POS_SENSOR;
+            break;
+
+        case TouchCommand::ToggleCapSinglePosSensor:
+            ProcessParams::runtimeConfigFlags() ^= ConfigFlags::CAP_SINGLE_POS_SENSOR;
             break;
 
         default:
