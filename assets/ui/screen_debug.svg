@@ -1,0 +1,72 @@
+<svg width="320" height="240" viewBox="0 0 320 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect id="background" x="0" y="0" width="320" height="240" fill="#000000"/>
+  <g id="top_bar">
+    <text id="header_title" x="8" y="13" fill="#00FFFF" font-family="monospace" font-size="8">DIAGNÓSTICO EN VIVO: ENTRADAS, EJES Y BANDA</text>
+  </g>
+  <g id="content_debug">
+    <g id="card_sensors">
+      <rect x="6.5" y="20.5" width="307" height="49" fill="#000000" stroke="#313031"/>
+      <text x="12" y="32" fill="#00FFFF" font-family="monospace" font-size="8">SENSORES ÓPTICOS Y LIMIT SWITCHES (HOME):</text>
+      <text x="12" y="46" fill="#C6C3C6" font-family="monospace" font-size="8">LLEN: PRE1:</text>
+      <text x="78" y="46" fill="#00BC00" font-family="monospace" font-size="8">[ON ]</text>
+      <text x="116" y="46" fill="#C6C3C6" font-family="monospace" font-size="8">POS1:</text>
+      <text x="146" y="46" fill="#00BC00" font-family="monospace" font-size="8">[ON ]</text>
+      <text x="184" y="46" fill="#C6C3C6" font-family="monospace" font-size="8">FC-Z1:</text>
+      <text x="220" y="46" fill="#313031" font-family="monospace" font-size="8">[OFF]</text>
+      <text x="12" y="60" fill="#C6C3C6" font-family="monospace" font-size="8">TAP : PRE2:</text>
+      <text x="78" y="60" fill="#313031" font-family="monospace" font-size="8">[OFF]</text>
+      <text x="116" y="60" fill="#C6C3C6" font-family="monospace" font-size="8">POS2:</text>
+      <text x="146" y="60" fill="#313031" font-family="monospace" font-size="8">[OFF]</text>
+      <text x="184" y="60" fill="#C6C3C6" font-family="monospace" font-size="8">FC-Z2:</text>
+      <text x="220" y="60" fill="#00BC00" font-family="monospace" font-size="8">[ON ]</text>
+    </g>
+    <g id="card_buttons_estop">
+      <rect x="6.5" y="74.5" width="307" height="23" fill="#000000" stroke="#313031"/>
+      <text x="12" y="89" fill="#C6C3C6" font-family="monospace" font-size="8">BTN : STRT:</text>
+      <text x="76" y="89" fill="#313031" font-family="monospace" font-size="8">[OFF]</text>
+      <text x="112" y="89" fill="#C6C3C6" font-family="monospace" font-size="8">STOP:</text>
+      <text x="142" y="89" fill="#313031" font-family="monospace" font-size="8">[OFF]</text>
+      <text x="178" y="89" fill="#C6C3C6" font-family="monospace" font-size="8">RST:</text>
+      <text x="202" y="89" fill="#313031" font-family="monospace" font-size="8">[OFF]</text>
+      <text x="238" y="89" fill="#C6C3C6" font-family="monospace" font-size="8">ESTOP:</text>
+      <text x="274" y="89" fill="#313031" font-family="monospace" font-size="8">[OFF]</text>
+    </g>
+    <g id="card_z_axes">
+      <rect x="6.5" y="102.5" width="307" height="39" fill="#000000" stroke="#313031"/>
+      <text x="12" y="116" fill="#C6C3C6" font-family="monospace" font-size="8">Z1 (LLENADO):</text>
+      <text x="96" y="116" fill="#00FFFF" font-family="monospace" font-size="8" xml:space="preserve">   420 stp         </text>
+      <text x="12" y="132" fill="#C6C3C6" font-family="monospace" font-size="8">Z2 (TAPADO) :</text>
+      <text x="96" y="132" fill="#00BC00" font-family="monospace" font-size="8" xml:space="preserve">     0 stp [HOME=0]</text>
+    </g>
+    <g id="card_belt_alarm">
+      <rect x="6.5" y="146.5" width="307" height="39" fill="#000000" stroke="#313031"/>
+      <text x="12" y="160" fill="#C6C3C6" font-family="monospace" font-size="8">BANDA:</text>
+      <text x="56" y="160" fill="#00FFFF" font-family="monospace" font-size="8">16.9V (PWM:180) IS: 120 ADC</text>
+      <text x="12" y="176" fill="#C6C3C6" font-family="monospace" font-size="8">ALRM :</text>
+      <text x="56" y="176" fill="#00BC00" font-family="monospace" font-size="8" xml:space="preserve">OK: SISTEMA SIN ALARMAS   </text>
+    </g>
+  </g>
+  <g id="bottom_nav_bar">
+    <rect id="nav_frame" x="0.5" y="190.5" width="319" height="49" fill="#000000" stroke="#FFFFFF"/>
+    <line x1="64.5" y1="190" x2="64.5" y2="240" stroke="#FFFFFF"/>
+    <line x1="128.5" y1="190" x2="128.5" y2="240" stroke="#FFFFFF"/>
+    <line x1="192.5" y1="190" x2="192.5" y2="240" stroke="#FFFFFF"/>
+    <line x1="254.5" y1="190" x2="254.5" y2="240" stroke="#FFFFFF"/>
+    <g id="nav_tab_home">
+      <path id="icon_home" d="M20,4h8v4h-8zM16,8h4v4h-4zM28,8h4v4h-4zM12,12h4v4h-4zM32,12h4v4h-4zM8,16h4v4h-4zM36,16h4v4h-4zM4,20h4v20h-4zM40,20h4v20h-4zM20,24h8v4h-8zM16,28h4v12h-4zM28,28h4v12h-4zM8,40h32v4h-32z" transform="translate(8 191)" fill="#FFFFFF"/>
+    </g>
+    <g id="nav_tab_auto_fill">
+      <path id="icon_auto_fill" d="M22,4h4v4h-4zM18,8h4v8h-4zM26,8h4v8h-4zM14,16h4v8h-4zM30,16h4v8h-4zM10,24h4v12h-4zM34,24h4v12h-4zM14,36h4v4h-4zM30,36h4v4h-4zM18,40h12v4h-12z" transform="translate(72 191)" fill="#FFFFFF"/>
+    </g>
+    <g id="nav_tab_auto_cap">
+      <path id="icon_auto_cap" d="M18,2h12v4h-12zM18,6h4v8h-4zM26,6h4v8h-4zM14,14h4v4h-4zM30,14h4v4h-4zM10,18h4v24h-4zM34,18h4v24h-4zM14,42h20v4h-20z" transform="translate(136 191)" fill="#FFFFFF"/>
+    </g>
+    <g id="nav_tab_debug">
+      <path id="icon_debug" d="M6,6h4v8h-4zM18,6h12v4h-12zM38,6h4v8h-4zM14,10h20v4h-20zM10,14h4v4h-4zM34,14h4v4h-4zM10,18h28v4h-28zM2,22h44v4h-44zM10,26h12v8h-12zM26,26h12v8h-12zM6,34h4v8h-4zM14,34h8v4h-8zM26,34h8v4h-8zM38,34h4v8h-4zM18,38h12v4h-12z" transform="translate(199 191)" fill="#00FFFF"/>
+      <rect id="active_tab_indicator" x="193" y="237" width="61" height="2" fill="#00FFFF"/>
+    </g>
+    <g id="nav_tab_settings">
+      <path id="icon_settings" d="M18,0h12v4h-12zM4,4h10v4h-10zM18,4h4v4h-4zM26,4h4v4h-4zM34,4h10v4h-10zM4,8h4v6h-4zM14,8h8v4h-8zM26,8h8v4h-8zM40,8h4v6h-4zM8,14h4v4h-4zM36,14h4v4h-4zM20,16h8v4h-8zM0,18h12v4h-12zM36,18h12v4h-12zM16,20h4v8h-4zM28,20h4v8h-4zM0,22h4v4h-4zM44,22h4v4h-4zM0,26h12v4h-12zM36,26h12v4h-12zM20,28h8v4h-8zM8,30h4v4h-4zM36,30h4v4h-4zM4,34h4v6h-4zM40,34h4v6h-4zM14,36h8v4h-8zM26,36h8v4h-8zM4,40h10v4h-10zM18,40h4v4h-4zM26,40h4v4h-4zM34,40h10v4h-10zM18,44h12v4h-12z" transform="translate(267 191)" fill="#FFFFFF"/>
+    </g>
+  </g>
+</svg>

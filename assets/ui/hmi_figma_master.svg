@@ -1,0 +1,704 @@
+<svg width="1400" height="920" viewBox="0 0 1400 920" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect id="artboard_bg" x="0" y="0" width="1400" height="920" fill="#1A1A1A"/>
+  <text id="artboard_title" x="24" y="26" fill="#FFFFFF" font-family="monospace" font-size="16" font-weight="bold">SMF-E3 HMI MASTER ARTBOARD (320x240 ILI9341)</text>
+  <g id="screens_grid">
+    <g id="frame_screen_home">
+      <text x="24" y="39" fill="#00FFFF" font-family="monospace" font-size="8">01. HOME (OPERANDO)</text>
+      <g id="screen_home" transform="translate(24 48)">
+        <rect id="background" x="0" y="0" width="320" height="240" fill="#000000"/>
+        <g id="top_bar">
+          <rect id="header_bg" x="0" y="0" width="320" height="28" fill="#00BC00"/>
+          <text id="header_mode_text" x="10" y="20" fill="#FFFFFF" font-family="monospace" font-size="16" font-weight="bold">MODO: OPERANDO EN LINEA</text>
+        </g>
+        <g id="content_home">
+          <g id="card_fill">
+            <rect x="6.5" y="34.5" width="307" height="33" fill="#000000" stroke="#313031"/>
+            <text x="14" y="54" fill="#C6C3C6" font-family="monospace" font-size="8">LLENADO:</text>
+            <text x="74" y="57" fill="#00FFFF" font-family="monospace" font-size="16" font-weight="bold">BOMBEANDO</text>
+          </g>
+          <g id="card_cap">
+            <rect x="6.5" y="72.5" width="307" height="33" fill="#000000" stroke="#313031"/>
+            <text x="14" y="92" fill="#C6C3C6" font-family="monospace" font-size="8">TAPADO :</text>
+            <text x="74" y="95" fill="#C6C3C6" font-family="monospace" font-size="16" font-weight="bold">ESPERA BOTELLA</text>
+          </g>
+          <g id="card_counters">
+            <rect x="6.5" y="110.5" width="307" height="29" fill="#000000" stroke="#313031"/>
+            <text x="14" y="128" fill="#C6C3C6" font-family="monospace" font-size="8">COLA:</text>
+            <text x="48" y="128" fill="#FFFFFF" font-family="monospace" font-size="8">1/5</text>
+            <text x="104" y="128" fill="#C6C3C6" font-family="monospace" font-size="8">PERFIL:</text>
+            <text x="150" y="128" fill="#00FFFF" font-family="monospace" font-size="8">GRANDE</text>
+            <text x="218" y="128" fill="#C6C3C6" font-family="monospace" font-size="8">PROD:</text>
+            <text x="252" y="128" fill="#00BC00" font-family="monospace" font-size="8" xml:space="preserve">   12</text>
+          </g>
+          <g id="card_alarm_banner">
+            <rect x="6.5" y="144.5" width="307" height="33" fill="#000000" stroke="#313031"/>
+            <text x="12" y="167" fill="#00BC00" font-family="monospace" font-size="16" font-weight="bold">OK: SISTEMA SIN ALARMAS</text>
+          </g>
+        </g>
+        <g id="overlay_vi_hud">
+          <rect x="184.5" y="29.5" width="129" height="25" fill="#000000" stroke="#FFFF00"/>
+          <text x="189" y="40" fill="#FFFF00" font-family="monospace" font-size="8" xml:space="preserve">CLAMP-  85 ADC| 0.4A</text>
+          <text x="189" y="51" fill="#FFFF00" font-family="monospace" font-size="8">FILL - 120 ADC| 0.5A</text>
+        </g>
+        <g id="bottom_nav_bar">
+          <rect id="nav_frame" x="0.5" y="190.5" width="319" height="49" fill="#000000" stroke="#FFFFFF"/>
+          <line x1="64.5" y1="190" x2="64.5" y2="240" stroke="#FFFFFF"/>
+          <line x1="128.5" y1="190" x2="128.5" y2="240" stroke="#FFFFFF"/>
+          <line x1="192.5" y1="190" x2="192.5" y2="240" stroke="#FFFFFF"/>
+          <line x1="254.5" y1="190" x2="254.5" y2="240" stroke="#FFFFFF"/>
+          <g id="nav_tab_home">
+            <path id="icon_home" d="M20,4h8v4h-8zM16,8h4v4h-4zM28,8h4v4h-4zM12,12h4v4h-4zM32,12h4v4h-4zM8,16h4v4h-4zM36,16h4v4h-4zM4,20h4v20h-4zM40,20h4v20h-4zM20,24h8v4h-8zM16,28h4v12h-4zM28,28h4v12h-4zM8,40h32v4h-32z" transform="translate(8 191)" fill="#00FFFF"/>
+            <rect id="active_tab_indicator" x="1" y="237" width="63" height="2" fill="#00FFFF"/>
+          </g>
+          <g id="nav_tab_auto_fill">
+            <path id="icon_auto_fill" d="M22,4h4v4h-4zM18,8h4v8h-4zM26,8h4v8h-4zM14,16h4v8h-4zM30,16h4v8h-4zM10,24h4v12h-4zM34,24h4v12h-4zM14,36h4v4h-4zM30,36h4v4h-4zM18,40h12v4h-12z" transform="translate(72 191)" fill="#FFFFFF"/>
+          </g>
+          <g id="nav_tab_auto_cap">
+            <path id="icon_auto_cap" d="M18,2h12v4h-12zM18,6h4v8h-4zM26,6h4v8h-4zM14,14h4v4h-4zM30,14h4v4h-4zM10,18h4v24h-4zM34,18h4v24h-4zM14,42h20v4h-20z" transform="translate(136 191)" fill="#FFFFFF"/>
+          </g>
+          <g id="nav_tab_debug">
+            <path id="icon_debug" d="M6,6h4v8h-4zM18,6h12v4h-12zM38,6h4v8h-4zM14,10h20v4h-20zM10,14h4v4h-4zM34,14h4v4h-4zM10,18h28v4h-28zM2,22h44v4h-44zM10,26h12v8h-12zM26,26h12v8h-12zM6,34h4v8h-4zM14,34h8v4h-8zM26,34h8v4h-8zM38,34h4v8h-4zM18,38h12v4h-12z" transform="translate(199 191)" fill="#FFFFFF"/>
+          </g>
+          <g id="nav_tab_settings">
+            <path id="icon_settings" d="M18,0h12v4h-12zM4,4h10v4h-10zM18,4h4v4h-4zM26,4h4v4h-4zM34,4h10v4h-10zM4,8h4v6h-4zM14,8h8v4h-8zM26,8h8v4h-8zM40,8h4v6h-4zM8,14h4v4h-4zM36,14h4v4h-4zM20,16h8v4h-8zM0,18h12v4h-12zM36,18h12v4h-12zM16,20h4v8h-4zM28,20h4v8h-4zM0,22h4v4h-4zM44,22h4v4h-4zM0,26h12v4h-12zM36,26h12v4h-12zM20,28h8v4h-8zM8,30h4v4h-4zM36,30h4v4h-4zM4,34h4v6h-4zM40,34h4v6h-4zM14,36h8v4h-8zM26,36h8v4h-8zM4,40h10v4h-10zM18,40h4v4h-4zM26,40h4v4h-4zM34,40h10v4h-10zM18,44h12v4h-12z" transform="translate(267 191)" fill="#FFFFFF"/>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g id="frame_screen_auto_fill">
+      <text x="372" y="39" fill="#00FFFF" font-family="monospace" font-size="8">02. AUTO 1: LLENADO</text>
+      <g id="screen_auto_fill" transform="translate(372 48)">
+        <rect id="background" x="0" y="0" width="320" height="240" fill="#000000"/>
+        <g id="top_bar">
+          <text id="header_title" x="8" y="17" fill="#00FFFF" font-family="monospace" font-size="8">AUTÓMATA 1: LLENADO Y DOSIFICACIÓN</text>
+        </g>
+        <g id="content_auto_fill">
+          <g id="card_phase">
+            <rect x="6.5" y="30.5" width="307" height="37" fill="#000000" stroke="#313031"/>
+            <text x="14" y="49" fill="#C6C3C6" font-family="monospace" font-size="8">FASE:</text>
+            <text x="60" y="54" fill="#FFFFFF" font-family="monospace" font-size="16" font-weight="bold">BOMBEANDO</text>
+          </g>
+          <g id="card_sensors">
+            <rect x="6.5" y="74.5" width="307" height="37" fill="#000000" stroke="#313031"/>
+            <text x="14" y="93" fill="#C6C3C6" font-family="monospace" font-size="8">APROX / RETENC:</text>
+            <text x="116" y="93" fill="#C6C3C6" font-family="monospace" font-size="8">PRE1:</text>
+            <text x="148" y="93" fill="#00BC00" font-family="monospace" font-size="8">[ON ]</text>
+            <text x="190" y="93" fill="#C6C3C6" font-family="monospace" font-size="8">POS1:</text>
+            <text x="222" y="93" fill="#00BC00" font-family="monospace" font-size="8">[ON ]</text>
+          </g>
+          <g id="card_actuator_z1">
+            <rect x="6.5" y="118.5" width="307" height="37" fill="#000000" stroke="#313031"/>
+            <text x="14" y="137" fill="#C6C3C6" font-family="monospace" font-size="8">BOMBA / EJE Z1:</text>
+            <text x="116" y="137" fill="#00BC00" font-family="monospace" font-size="8" xml:space="preserve">ON  | Z1:  420 stp    </text>
+          </g>
+        </g>
+        <g id="bottom_nav_bar">
+          <rect id="nav_frame" x="0.5" y="190.5" width="319" height="49" fill="#000000" stroke="#FFFFFF"/>
+          <line x1="64.5" y1="190" x2="64.5" y2="240" stroke="#FFFFFF"/>
+          <line x1="128.5" y1="190" x2="128.5" y2="240" stroke="#FFFFFF"/>
+          <line x1="192.5" y1="190" x2="192.5" y2="240" stroke="#FFFFFF"/>
+          <line x1="254.5" y1="190" x2="254.5" y2="240" stroke="#FFFFFF"/>
+          <g id="nav_tab_home">
+            <path id="icon_home" d="M20,4h8v4h-8zM16,8h4v4h-4zM28,8h4v4h-4zM12,12h4v4h-4zM32,12h4v4h-4zM8,16h4v4h-4zM36,16h4v4h-4zM4,20h4v20h-4zM40,20h4v20h-4zM20,24h8v4h-8zM16,28h4v12h-4zM28,28h4v12h-4zM8,40h32v4h-32z" transform="translate(8 191)" fill="#FFFFFF"/>
+          </g>
+          <g id="nav_tab_auto_fill">
+            <path id="icon_auto_fill" d="M22,4h4v4h-4zM18,8h4v8h-4zM26,8h4v8h-4zM14,16h4v8h-4zM30,16h4v8h-4zM10,24h4v12h-4zM34,24h4v12h-4zM14,36h4v4h-4zM30,36h4v4h-4zM18,40h12v4h-12z" transform="translate(72 191)" fill="#00FFFF"/>
+            <rect id="active_tab_indicator" x="65" y="237" width="63" height="2" fill="#00FFFF"/>
+          </g>
+          <g id="nav_tab_auto_cap">
+            <path id="icon_auto_cap" d="M18,2h12v4h-12zM18,6h4v8h-4zM26,6h4v8h-4zM14,14h4v4h-4zM30,14h4v4h-4zM10,18h4v24h-4zM34,18h4v24h-4zM14,42h20v4h-20z" transform="translate(136 191)" fill="#FFFFFF"/>
+          </g>
+          <g id="nav_tab_debug">
+            <path id="icon_debug" d="M6,6h4v8h-4zM18,6h12v4h-12zM38,6h4v8h-4zM14,10h20v4h-20zM10,14h4v4h-4zM34,14h4v4h-4zM10,18h28v4h-28zM2,22h44v4h-44zM10,26h12v8h-12zM26,26h12v8h-12zM6,34h4v8h-4zM14,34h8v4h-8zM26,34h8v4h-8zM38,34h4v8h-4zM18,38h12v4h-12z" transform="translate(199 191)" fill="#FFFFFF"/>
+          </g>
+          <g id="nav_tab_settings">
+            <path id="icon_settings" d="M18,0h12v4h-12zM4,4h10v4h-10zM18,4h4v4h-4zM26,4h4v4h-4zM34,4h10v4h-10zM4,8h4v6h-4zM14,8h8v4h-8zM26,8h8v4h-8zM40,8h4v6h-4zM8,14h4v4h-4zM36,14h4v4h-4zM20,16h8v4h-8zM0,18h12v4h-12zM36,18h12v4h-12zM16,20h4v8h-4zM28,20h4v8h-4zM0,22h4v4h-4zM44,22h4v4h-4zM0,26h12v4h-12zM36,26h12v4h-12zM20,28h8v4h-8zM8,30h4v4h-4zM36,30h4v4h-4zM4,34h4v6h-4zM40,34h4v6h-4zM14,36h8v4h-8zM26,36h8v4h-8zM4,40h10v4h-10zM18,40h4v4h-4zM26,40h4v4h-4zM34,40h10v4h-10zM18,44h12v4h-12z" transform="translate(267 191)" fill="#FFFFFF"/>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g id="frame_screen_auto_cap">
+      <text x="720" y="39" fill="#00FFFF" font-family="monospace" font-size="8">03. AUTO 2: TAPADO</text>
+      <g id="screen_auto_cap" transform="translate(720 48)">
+        <rect id="background" x="0" y="0" width="320" height="240" fill="#000000"/>
+        <g id="top_bar">
+          <text id="header_title" x="8" y="17" fill="#00FFFF" font-family="monospace" font-size="8">AUTÓMATA 2: TAPADO Y APRIETE</text>
+        </g>
+        <g id="content_auto_cap">
+          <g id="card_phase">
+            <rect x="6.5" y="30.5" width="307" height="37" fill="#000000" stroke="#313031"/>
+            <text x="14" y="49" fill="#C6C3C6" font-family="monospace" font-size="8">FASE:</text>
+            <text x="60" y="54" fill="#FFFFFF" font-family="monospace" font-size="16" font-weight="bold">APRETANDO TAPA</text>
+          </g>
+          <g id="card_sensors">
+            <rect x="6.5" y="74.5" width="307" height="37" fill="#000000" stroke="#313031"/>
+            <text x="14" y="93" fill="#C6C3C6" font-family="monospace" font-size="8">PRESENCIA TAPADO:</text>
+            <text x="124" y="93" fill="#C6C3C6" font-family="monospace" font-size="8">PRE2:</text>
+            <text x="156" y="93" fill="#313031" font-family="monospace" font-size="8">[OFF]</text>
+            <text x="196" y="93" fill="#C6C3C6" font-family="monospace" font-size="8">POS2:</text>
+            <text x="228" y="93" fill="#00BC00" font-family="monospace" font-size="8">[ON ]</text>
+          </g>
+          <g id="card_actuator_z2">
+            <rect x="6.5" y="118.5" width="307" height="37" fill="#000000" stroke="#313031"/>
+            <text x="14" y="137" fill="#C6C3C6" font-family="monospace" font-size="8">MOTOR APRIETE (IBT-2):</text>
+            <text x="150" y="137" fill="#00BC00" font-family="monospace" font-size="8">PWM:200 IS: 185 Z2: 310</text>
+          </g>
+        </g>
+        <g id="bottom_nav_bar">
+          <rect id="nav_frame" x="0.5" y="190.5" width="319" height="49" fill="#000000" stroke="#FFFFFF"/>
+          <line x1="64.5" y1="190" x2="64.5" y2="240" stroke="#FFFFFF"/>
+          <line x1="128.5" y1="190" x2="128.5" y2="240" stroke="#FFFFFF"/>
+          <line x1="192.5" y1="190" x2="192.5" y2="240" stroke="#FFFFFF"/>
+          <line x1="254.5" y1="190" x2="254.5" y2="240" stroke="#FFFFFF"/>
+          <g id="nav_tab_home">
+            <path id="icon_home" d="M20,4h8v4h-8zM16,8h4v4h-4zM28,8h4v4h-4zM12,12h4v4h-4zM32,12h4v4h-4zM8,16h4v4h-4zM36,16h4v4h-4zM4,20h4v20h-4zM40,20h4v20h-4zM20,24h8v4h-8zM16,28h4v12h-4zM28,28h4v12h-4zM8,40h32v4h-32z" transform="translate(8 191)" fill="#FFFFFF"/>
+          </g>
+          <g id="nav_tab_auto_fill">
+            <path id="icon_auto_fill" d="M22,4h4v4h-4zM18,8h4v8h-4zM26,8h4v8h-4zM14,16h4v8h-4zM30,16h4v8h-4zM10,24h4v12h-4zM34,24h4v12h-4zM14,36h4v4h-4zM30,36h4v4h-4zM18,40h12v4h-12z" transform="translate(72 191)" fill="#FFFFFF"/>
+          </g>
+          <g id="nav_tab_auto_cap">
+            <path id="icon_auto_cap" d="M18,2h12v4h-12zM18,6h4v8h-4zM26,6h4v8h-4zM14,14h4v4h-4zM30,14h4v4h-4zM10,18h4v24h-4zM34,18h4v24h-4zM14,42h20v4h-20z" transform="translate(136 191)" fill="#00FFFF"/>
+            <rect id="active_tab_indicator" x="129" y="237" width="63" height="2" fill="#00FFFF"/>
+          </g>
+          <g id="nav_tab_debug">
+            <path id="icon_debug" d="M6,6h4v8h-4zM18,6h12v4h-12zM38,6h4v8h-4zM14,10h20v4h-20zM10,14h4v4h-4zM34,14h4v4h-4zM10,18h28v4h-28zM2,22h44v4h-44zM10,26h12v8h-12zM26,26h12v8h-12zM6,34h4v8h-4zM14,34h8v4h-8zM26,34h8v4h-8zM38,34h4v8h-4zM18,38h12v4h-12z" transform="translate(199 191)" fill="#FFFFFF"/>
+          </g>
+          <g id="nav_tab_settings">
+            <path id="icon_settings" d="M18,0h12v4h-12zM4,4h10v4h-10zM18,4h4v4h-4zM26,4h4v4h-4zM34,4h10v4h-10zM4,8h4v6h-4zM14,8h8v4h-8zM26,8h8v4h-8zM40,8h4v6h-4zM8,14h4v4h-4zM36,14h4v4h-4zM20,16h8v4h-8zM0,18h12v4h-12zM36,18h12v4h-12zM16,20h4v8h-4zM28,20h4v8h-4zM0,22h4v4h-4zM44,22h4v4h-4zM0,26h12v4h-12zM36,26h12v4h-12zM20,28h8v4h-8zM8,30h4v4h-4zM36,30h4v4h-4zM4,34h4v6h-4zM40,34h4v6h-4zM14,36h8v4h-8zM26,36h8v4h-8zM4,40h10v4h-10zM18,40h4v4h-4zM26,40h4v4h-4zM34,40h10v4h-10zM18,44h12v4h-12z" transform="translate(267 191)" fill="#FFFFFF"/>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g id="frame_screen_debug">
+      <text x="24" y="323" fill="#00FFFF" font-family="monospace" font-size="8">04. DEBUG I/O</text>
+      <g id="screen_debug" transform="translate(24 332)">
+        <rect id="background" x="0" y="0" width="320" height="240" fill="#000000"/>
+        <g id="top_bar">
+          <text id="header_title" x="8" y="13" fill="#00FFFF" font-family="monospace" font-size="8">DIAGNÓSTICO EN VIVO: ENTRADAS, EJES Y BANDA</text>
+        </g>
+        <g id="content_debug">
+          <g id="card_sensors">
+            <rect x="6.5" y="20.5" width="307" height="49" fill="#000000" stroke="#313031"/>
+            <text x="12" y="32" fill="#00FFFF" font-family="monospace" font-size="8">SENSORES ÓPTICOS Y LIMIT SWITCHES (HOME):</text>
+            <text x="12" y="46" fill="#C6C3C6" font-family="monospace" font-size="8">LLEN: PRE1:</text>
+            <text x="78" y="46" fill="#00BC00" font-family="monospace" font-size="8">[ON ]</text>
+            <text x="116" y="46" fill="#C6C3C6" font-family="monospace" font-size="8">POS1:</text>
+            <text x="146" y="46" fill="#00BC00" font-family="monospace" font-size="8">[ON ]</text>
+            <text x="184" y="46" fill="#C6C3C6" font-family="monospace" font-size="8">FC-Z1:</text>
+            <text x="220" y="46" fill="#313031" font-family="monospace" font-size="8">[OFF]</text>
+            <text x="12" y="60" fill="#C6C3C6" font-family="monospace" font-size="8">TAP : PRE2:</text>
+            <text x="78" y="60" fill="#313031" font-family="monospace" font-size="8">[OFF]</text>
+            <text x="116" y="60" fill="#C6C3C6" font-family="monospace" font-size="8">POS2:</text>
+            <text x="146" y="60" fill="#313031" font-family="monospace" font-size="8">[OFF]</text>
+            <text x="184" y="60" fill="#C6C3C6" font-family="monospace" font-size="8">FC-Z2:</text>
+            <text x="220" y="60" fill="#00BC00" font-family="monospace" font-size="8">[ON ]</text>
+          </g>
+          <g id="card_buttons_estop">
+            <rect x="6.5" y="74.5" width="307" height="23" fill="#000000" stroke="#313031"/>
+            <text x="12" y="89" fill="#C6C3C6" font-family="monospace" font-size="8">BTN : STRT:</text>
+            <text x="76" y="89" fill="#313031" font-family="monospace" font-size="8">[OFF]</text>
+            <text x="112" y="89" fill="#C6C3C6" font-family="monospace" font-size="8">STOP:</text>
+            <text x="142" y="89" fill="#313031" font-family="monospace" font-size="8">[OFF]</text>
+            <text x="178" y="89" fill="#C6C3C6" font-family="monospace" font-size="8">RST:</text>
+            <text x="202" y="89" fill="#313031" font-family="monospace" font-size="8">[OFF]</text>
+            <text x="238" y="89" fill="#C6C3C6" font-family="monospace" font-size="8">ESTOP:</text>
+            <text x="274" y="89" fill="#313031" font-family="monospace" font-size="8">[OFF]</text>
+          </g>
+          <g id="card_z_axes">
+            <rect x="6.5" y="102.5" width="307" height="39" fill="#000000" stroke="#313031"/>
+            <text x="12" y="116" fill="#C6C3C6" font-family="monospace" font-size="8">Z1 (LLENADO):</text>
+            <text x="96" y="116" fill="#00FFFF" font-family="monospace" font-size="8" xml:space="preserve">   420 stp         </text>
+            <text x="12" y="132" fill="#C6C3C6" font-family="monospace" font-size="8">Z2 (TAPADO) :</text>
+            <text x="96" y="132" fill="#00BC00" font-family="monospace" font-size="8" xml:space="preserve">     0 stp [HOME=0]</text>
+          </g>
+          <g id="card_belt_alarm">
+            <rect x="6.5" y="146.5" width="307" height="39" fill="#000000" stroke="#313031"/>
+            <text x="12" y="160" fill="#C6C3C6" font-family="monospace" font-size="8">BANDA:</text>
+            <text x="56" y="160" fill="#00FFFF" font-family="monospace" font-size="8">16.9V (PWM:180) IS: 120 ADC</text>
+            <text x="12" y="176" fill="#C6C3C6" font-family="monospace" font-size="8">ALRM :</text>
+            <text x="56" y="176" fill="#00BC00" font-family="monospace" font-size="8" xml:space="preserve">OK: SISTEMA SIN ALARMAS   </text>
+          </g>
+        </g>
+        <g id="bottom_nav_bar">
+          <rect id="nav_frame" x="0.5" y="190.5" width="319" height="49" fill="#000000" stroke="#FFFFFF"/>
+          <line x1="64.5" y1="190" x2="64.5" y2="240" stroke="#FFFFFF"/>
+          <line x1="128.5" y1="190" x2="128.5" y2="240" stroke="#FFFFFF"/>
+          <line x1="192.5" y1="190" x2="192.5" y2="240" stroke="#FFFFFF"/>
+          <line x1="254.5" y1="190" x2="254.5" y2="240" stroke="#FFFFFF"/>
+          <g id="nav_tab_home">
+            <path id="icon_home" d="M20,4h8v4h-8zM16,8h4v4h-4zM28,8h4v4h-4zM12,12h4v4h-4zM32,12h4v4h-4zM8,16h4v4h-4zM36,16h4v4h-4zM4,20h4v20h-4zM40,20h4v20h-4zM20,24h8v4h-8zM16,28h4v12h-4zM28,28h4v12h-4zM8,40h32v4h-32z" transform="translate(8 191)" fill="#FFFFFF"/>
+          </g>
+          <g id="nav_tab_auto_fill">
+            <path id="icon_auto_fill" d="M22,4h4v4h-4zM18,8h4v8h-4zM26,8h4v8h-4zM14,16h4v8h-4zM30,16h4v8h-4zM10,24h4v12h-4zM34,24h4v12h-4zM14,36h4v4h-4zM30,36h4v4h-4zM18,40h12v4h-12z" transform="translate(72 191)" fill="#FFFFFF"/>
+          </g>
+          <g id="nav_tab_auto_cap">
+            <path id="icon_auto_cap" d="M18,2h12v4h-12zM18,6h4v8h-4zM26,6h4v8h-4zM14,14h4v4h-4zM30,14h4v4h-4zM10,18h4v24h-4zM34,18h4v24h-4zM14,42h20v4h-20z" transform="translate(136 191)" fill="#FFFFFF"/>
+          </g>
+          <g id="nav_tab_debug">
+            <path id="icon_debug" d="M6,6h4v8h-4zM18,6h12v4h-12zM38,6h4v8h-4zM14,10h20v4h-20zM10,14h4v4h-4zM34,14h4v4h-4zM10,18h28v4h-28zM2,22h44v4h-44zM10,26h12v8h-12zM26,26h12v8h-12zM6,34h4v8h-4zM14,34h8v4h-8zM26,34h8v4h-8zM38,34h4v8h-4zM18,38h12v4h-12z" transform="translate(199 191)" fill="#00FFFF"/>
+            <rect id="active_tab_indicator" x="193" y="237" width="61" height="2" fill="#00FFFF"/>
+          </g>
+          <g id="nav_tab_settings">
+            <path id="icon_settings" d="M18,0h12v4h-12zM4,4h10v4h-10zM18,4h4v4h-4zM26,4h4v4h-4zM34,4h10v4h-10zM4,8h4v6h-4zM14,8h8v4h-8zM26,8h8v4h-8zM40,8h4v6h-4zM8,14h4v4h-4zM36,14h4v4h-4zM20,16h8v4h-8zM0,18h12v4h-12zM36,18h12v4h-12zM16,20h4v8h-4zM28,20h4v8h-4zM0,22h4v4h-4zM44,22h4v4h-4zM0,26h12v4h-12zM36,26h12v4h-12zM20,28h8v4h-8zM8,30h4v4h-4zM36,30h4v4h-4zM4,34h4v6h-4zM40,34h4v6h-4zM14,36h8v4h-8zM26,36h8v4h-8zM4,40h10v4h-10zM18,40h4v4h-4zM26,40h4v4h-4zM34,40h10v4h-10zM18,44h12v4h-12z" transform="translate(267 191)" fill="#FFFFFF"/>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g id="frame_screen_settings">
+      <text x="372" y="323" fill="#00FFFF" font-family="monospace" font-size="8">05. SETTINGS (NORMAL)</text>
+      <g id="screen_settings" transform="translate(372 332)">
+        <rect id="background" x="0" y="0" width="320" height="240" fill="#000000"/>
+        <g id="top_bar">
+          <rect id="header_bg" x="0" y="0" width="320" height="28" fill="#0049AD"/>
+          <text id="header_title" x="10" y="20" fill="#FFFFFF" font-family="monospace" font-size="16" font-weight="bold">AJUSTES Y TEST MODE</text>
+        </g>
+        <g id="content_settings">
+          <g id="card_test_mode">
+            <rect x="6.5" y="32.5" width="151" height="51" fill="#000000" stroke="#313031"/>
+            <path id="checkbox_test_mode" d="M8,4h32v4h-32zM4,8h4v32h-4zM40,8h4v32h-4zM8,40h32v4h-32z" transform="translate(10 34)" fill="#FFFFFF"/>
+            <text x="62" y="51" fill="#FFFFFF" font-family="monospace" font-size="8">TEST MODE</text>
+            <text x="62" y="65" fill="#C6C3C6" font-family="monospace" font-size="8">Actuadores man.</text>
+          </g>
+          <g id="card_overlay_vi">
+            <rect x="162.5" y="32.5" width="151" height="51" fill="#000000" stroke="#313031"/>
+            <path id="checkbox_overlay_vi" d="M8,4h32v4h-32zM4,8h4v32h-4zM40,8h4v32h-4zM8,40h32v4h-32z" transform="translate(166 34)" fill="#FFFFFF"/>
+            <text x="218" y="51" fill="#FFFF00" font-family="monospace" font-size="8">OVERLAY V/I</text>
+            <text x="218" y="65" fill="#C6C3C6" font-family="monospace" font-size="8">HUD ADC | Amp</text>
+          </g>
+          <g id="card_bottle_profile">
+            <rect x="6.5" y="90.5" width="177" height="29" fill="#000000" stroke="#313031"/>
+            <text x="12" y="108" fill="#C6C3C6" font-family="monospace" font-size="8">FORMATO:</text>
+            <text x="66" y="111" fill="#00FFFF" font-family="monospace" font-size="16" font-weight="bold" xml:space="preserve">GRANDE </text>
+          </g>
+          <g id="btn_profile">
+            <rect x="190.5" y="90.5" width="121" height="29" fill="#0049AD" stroke="#00FFFF"/>
+            <text x="209" y="108" fill="#FFFFFF" font-family="monospace" font-size="8">CAMBIAR PERFIL</text>
+          </g>
+          <g id="recovery_buttons">
+            <g id="btn_jog_fill_up">
+              <rect x="8.5" y="126.5" width="147" height="26" fill="#000000" stroke="#313031"/>
+              <text x="37" y="142" fill="#313031" font-family="monospace" font-size="8">SUBIR Z LLENADO</text>
+            </g>
+            <g id="btn_jog_cap_up">
+              <rect x="164.5" y="126.5" width="147" height="26" fill="#000000" stroke="#313031"/>
+              <text x="196" y="142" fill="#313031" font-family="monospace" font-size="8">SUBIR Z TAPADO</text>
+            </g>
+            <g id="btn_release_arms">
+              <rect x="8.5" y="157.5" width="147" height="26" fill="#000000" stroke="#313031"/>
+              <text x="43" y="173" fill="#313031" font-family="monospace" font-size="8">SOLTAR BRAZOS</text>
+            </g>
+            <g id="btn_line_clear">
+              <rect x="164.5" y="157.5" width="147" height="26" fill="#000000" stroke="#313031"/>
+              <text x="193" y="173" fill="#313031" font-family="monospace" font-size="8">LINEA DESPEJADA</text>
+            </g>
+          </g>
+        </g>
+        <g id="bottom_nav_bar">
+          <rect id="nav_frame" x="0.5" y="190.5" width="319" height="49" fill="#000000" stroke="#FFFFFF"/>
+          <line x1="64.5" y1="190" x2="64.5" y2="240" stroke="#FFFFFF"/>
+          <line x1="128.5" y1="190" x2="128.5" y2="240" stroke="#FFFFFF"/>
+          <line x1="192.5" y1="190" x2="192.5" y2="240" stroke="#FFFFFF"/>
+          <line x1="254.5" y1="190" x2="254.5" y2="240" stroke="#FFFFFF"/>
+          <g id="nav_tab_home">
+            <path id="icon_home" d="M20,4h8v4h-8zM16,8h4v4h-4zM28,8h4v4h-4zM12,12h4v4h-4zM32,12h4v4h-4zM8,16h4v4h-4zM36,16h4v4h-4zM4,20h4v20h-4zM40,20h4v20h-4zM20,24h8v4h-8zM16,28h4v12h-4zM28,28h4v12h-4zM8,40h32v4h-32z" transform="translate(8 191)" fill="#FFFFFF"/>
+          </g>
+          <g id="nav_tab_auto_fill">
+            <path id="icon_auto_fill" d="M22,4h4v4h-4zM18,8h4v8h-4zM26,8h4v8h-4zM14,16h4v8h-4zM30,16h4v8h-4zM10,24h4v12h-4zM34,24h4v12h-4zM14,36h4v4h-4zM30,36h4v4h-4zM18,40h12v4h-12z" transform="translate(72 191)" fill="#FFFFFF"/>
+          </g>
+          <g id="nav_tab_auto_cap">
+            <path id="icon_auto_cap" d="M18,2h12v4h-12zM18,6h4v8h-4zM26,6h4v8h-4zM14,14h4v4h-4zM30,14h4v4h-4zM10,18h4v24h-4zM34,18h4v24h-4zM14,42h20v4h-20z" transform="translate(136 191)" fill="#FFFFFF"/>
+          </g>
+          <g id="nav_tab_debug">
+            <path id="icon_debug" d="M6,6h4v8h-4zM18,6h12v4h-12zM38,6h4v8h-4zM14,10h20v4h-20zM10,14h4v4h-4zM34,14h4v4h-4zM10,18h28v4h-28zM2,22h44v4h-44zM10,26h12v8h-12zM26,26h12v8h-12zM6,34h4v8h-4zM14,34h8v4h-8zM26,34h8v4h-8zM38,34h4v8h-4zM18,38h12v4h-12z" transform="translate(199 191)" fill="#FFFFFF"/>
+          </g>
+          <g id="nav_tab_settings">
+            <path id="icon_settings" d="M18,0h12v4h-12zM4,4h10v4h-10zM18,4h4v4h-4zM26,4h4v4h-4zM34,4h10v4h-10zM4,8h4v6h-4zM14,8h8v4h-8zM26,8h8v4h-8zM40,8h4v6h-4zM8,14h4v4h-4zM36,14h4v4h-4zM20,16h8v4h-8zM0,18h12v4h-12zM36,18h12v4h-12zM16,20h4v8h-4zM28,20h4v8h-4zM0,22h4v4h-4zM44,22h4v4h-4zM0,26h12v4h-12zM36,26h12v4h-12zM20,28h8v4h-8zM8,30h4v4h-4zM36,30h4v4h-4zM4,34h4v6h-4zM40,34h4v6h-4zM14,36h8v4h-8zM26,36h8v4h-8zM4,40h10v4h-10zM18,40h4v4h-4zM26,40h4v4h-4zM34,40h10v4h-10zM18,44h12v4h-12z" transform="translate(267 191)" fill="#00FFFF"/>
+            <rect id="active_tab_indicator" x="255" y="237" width="64" height="2" fill="#00FFFF"/>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g id="frame_screen_settings_recovery">
+      <text x="720" y="323" fill="#00FFFF" font-family="monospace" font-size="8">06. SETTINGS (RECUPERACION)</text>
+      <g id="screen_settings_recovery" transform="translate(720 332)">
+        <rect id="background" x="0" y="0" width="320" height="240" fill="#000000"/>
+        <g id="top_bar">
+          <rect id="header_bg" x="0" y="0" width="320" height="28" fill="#0049AD"/>
+          <text id="header_title" x="10" y="20" fill="#FFFFFF" font-family="monospace" font-size="16" font-weight="bold">AJUSTES Y TEST MODE</text>
+        </g>
+        <g id="content_settings">
+          <g id="card_test_mode">
+            <rect x="6.5" y="32.5" width="151" height="51" fill="#000000" stroke="#313031"/>
+            <path id="checkbox_test_mode" d="M8,4h32v4h-32zM4,8h4v32h-4zM40,8h4v32h-4zM8,40h32v4h-32z" transform="translate(10 34)" fill="#FFFFFF"/>
+            <text x="62" y="51" fill="#FFFFFF" font-family="monospace" font-size="8">TEST MODE</text>
+            <text x="62" y="65" fill="#C6C3C6" font-family="monospace" font-size="8">Actuadores man.</text>
+          </g>
+          <g id="card_overlay_vi">
+            <rect x="162.5" y="32.5" width="151" height="51" fill="#000000" stroke="#313031"/>
+            <path id="checkbox_overlay_vi" d="M8,4h32v4h-32zM4,8h4v32h-4zM40,8h4v32h-4zM20,16h8v4h-8zM16,20h4v8h-4zM28,20h4v8h-4zM20,28h8v4h-8zM8,40h32v4h-32z" transform="translate(166 34)" fill="#FFFF00"/>
+            <text x="218" y="51" fill="#FFFF00" font-family="monospace" font-size="8">OVERLAY V/I</text>
+            <text x="218" y="65" fill="#C6C3C6" font-family="monospace" font-size="8">HUD ADC | Amp</text>
+          </g>
+          <g id="card_bottle_profile">
+            <rect x="6.5" y="90.5" width="177" height="29" fill="#000000" stroke="#313031"/>
+            <text x="12" y="108" fill="#C6C3C6" font-family="monospace" font-size="8">FORMATO:</text>
+            <text x="66" y="111" fill="#00FFFF" font-family="monospace" font-size="16" font-weight="bold" xml:space="preserve">GRANDE </text>
+          </g>
+          <g id="btn_profile">
+            <rect x="190.5" y="90.5" width="121" height="29" fill="#0049AD" stroke="#00FFFF"/>
+            <text x="209" y="108" fill="#FFFFFF" font-family="monospace" font-size="8">CAMBIAR PERFIL</text>
+          </g>
+          <g id="recovery_buttons">
+            <g id="btn_jog_fill_up">
+              <rect x="8.5" y="126.5" width="147" height="26" fill="#0049AD" stroke="#00FFFF"/>
+              <text x="37" y="142" fill="#FFFFFF" font-family="monospace" font-size="8">SUBIR Z LLENADO</text>
+            </g>
+            <g id="btn_jog_cap_up">
+              <rect x="164.5" y="126.5" width="147" height="26" fill="#0049AD" stroke="#00FFFF"/>
+              <text x="196" y="142" fill="#FFFFFF" font-family="monospace" font-size="8">SUBIR Z TAPADO</text>
+            </g>
+            <g id="btn_release_arms">
+              <rect x="8.5" y="157.5" width="147" height="26" fill="#0049AD" stroke="#00FFFF"/>
+              <text x="43" y="173" fill="#FFFFFF" font-family="monospace" font-size="8">SOLTAR BRAZOS</text>
+            </g>
+            <g id="btn_line_clear">
+              <rect x="164.5" y="157.5" width="147" height="26" fill="#00BC00" stroke="#FFFFFF"/>
+              <text x="193" y="173" fill="#FFFFFF" font-family="monospace" font-size="8">LINEA DESPEJADA</text>
+            </g>
+          </g>
+        </g>
+        <g id="bottom_nav_bar">
+          <rect id="nav_frame" x="0.5" y="190.5" width="319" height="49" fill="#000000" stroke="#FFFFFF"/>
+          <line x1="64.5" y1="190" x2="64.5" y2="240" stroke="#FFFFFF"/>
+          <line x1="128.5" y1="190" x2="128.5" y2="240" stroke="#FFFFFF"/>
+          <line x1="192.5" y1="190" x2="192.5" y2="240" stroke="#FFFFFF"/>
+          <line x1="254.5" y1="190" x2="254.5" y2="240" stroke="#FFFFFF"/>
+          <g id="nav_tab_home">
+            <path id="icon_home" d="M20,4h8v4h-8zM16,8h4v4h-4zM28,8h4v4h-4zM12,12h4v4h-4zM32,12h4v4h-4zM8,16h4v4h-4zM36,16h4v4h-4zM4,20h4v20h-4zM40,20h4v20h-4zM20,24h8v4h-8zM16,28h4v12h-4zM28,28h4v12h-4zM8,40h32v4h-32z" transform="translate(8 191)" fill="#FFFFFF"/>
+          </g>
+          <g id="nav_tab_auto_fill">
+            <path id="icon_auto_fill" d="M22,4h4v4h-4zM18,8h4v8h-4zM26,8h4v8h-4zM14,16h4v8h-4zM30,16h4v8h-4zM10,24h4v12h-4zM34,24h4v12h-4zM14,36h4v4h-4zM30,36h4v4h-4zM18,40h12v4h-12z" transform="translate(72 191)" fill="#FFFFFF"/>
+          </g>
+          <g id="nav_tab_auto_cap">
+            <path id="icon_auto_cap" d="M18,2h12v4h-12zM18,6h4v8h-4zM26,6h4v8h-4zM14,14h4v4h-4zM30,14h4v4h-4zM10,18h4v24h-4zM34,18h4v24h-4zM14,42h20v4h-20z" transform="translate(136 191)" fill="#FFFFFF"/>
+          </g>
+          <g id="nav_tab_debug">
+            <path id="icon_debug" d="M6,6h4v8h-4zM18,6h12v4h-12zM38,6h4v8h-4zM14,10h20v4h-20zM10,14h4v4h-4zM34,14h4v4h-4zM10,18h28v4h-28zM2,22h44v4h-44zM10,26h12v8h-12zM26,26h12v8h-12zM6,34h4v8h-4zM14,34h8v4h-8zM26,34h8v4h-8zM38,34h4v8h-4zM18,38h12v4h-12z" transform="translate(199 191)" fill="#FFFFFF"/>
+          </g>
+          <g id="nav_tab_settings">
+            <path id="icon_settings" d="M18,0h12v4h-12zM4,4h10v4h-10zM18,4h4v4h-4zM26,4h4v4h-4zM34,4h10v4h-10zM4,8h4v6h-4zM14,8h8v4h-8zM26,8h8v4h-8zM40,8h4v6h-4zM8,14h4v4h-4zM36,14h4v4h-4zM20,16h8v4h-8zM0,18h12v4h-12zM36,18h12v4h-12zM16,20h4v8h-4zM28,20h4v8h-4zM0,22h4v4h-4zM44,22h4v4h-4zM0,26h12v4h-12zM36,26h12v4h-12zM20,28h8v4h-8zM8,30h4v4h-4zM36,30h4v4h-4zM4,34h4v6h-4zM40,34h4v6h-4zM14,36h8v4h-8zM26,36h8v4h-8zM4,40h10v4h-10zM18,40h4v4h-4zM26,40h4v4h-4zM34,40h10v4h-10zM18,44h12v4h-12z" transform="translate(267 191)" fill="#00FFFF"/>
+            <rect id="active_tab_indicator" x="255" y="237" width="64" height="2" fill="#00FFFF"/>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g id="frame_screen_home_test">
+      <text x="24" y="607" fill="#00FFFF" font-family="monospace" font-size="8">07. HOME (TEST MODE)</text>
+      <g id="screen_home_test" transform="translate(24 616)">
+        <rect id="background" x="0" y="0" width="320" height="240" fill="#000000"/>
+        <g id="top_bar">
+          <rect id="header_bg" x="0" y="0" width="320" height="28" fill="#FF8200"/>
+          <text id="header_mode_text" x="10" y="20" fill="#000000" font-family="monospace" font-size="16" font-weight="bold" xml:space="preserve">MODO: TEST MANUAL ACT. </text>
+        </g>
+        <g id="content_home_test">
+          <text id="subtitle" x="8" y="41" fill="#00FFFF" font-family="monospace" font-size="8">CONTROL MANUAL GENERAL (HOME - TEST MODE):</text>
+          <g id="btn_test_belt">
+            <rect x="8.5" y="48.5" width="147" height="55" fill="#00BC00" stroke="#FFFFFF"/>
+            <text x="55" y="79" fill="#FFFFFF" font-family="monospace" font-size="8">BANDA: ON</text>
+          </g>
+          <g id="btn_test_buzzer">
+            <rect x="164.5" y="48.5" width="147" height="55" fill="#000000" stroke="#00FFFF"/>
+            <text x="205" y="79" fill="#FFFFFF" font-family="monospace" font-size="8">BUZZER: OFF</text>
+          </g>
+          <g id="btn_test_tower_green">
+            <rect x="8.5" y="114.5" width="147" height="55" fill="#00BC00" stroke="#FFFFFF"/>
+            <text x="37" y="145" fill="#FFFFFF" font-family="monospace" font-size="8">TORRE VERDE: ON</text>
+          </g>
+          <g id="btn_test_tower_red">
+            <rect x="164.5" y="114.5" width="147" height="55" fill="#000000" stroke="#00FFFF"/>
+            <text x="193" y="145" fill="#FFFFFF" font-family="monospace" font-size="8">TORRE ROJA: OFF</text>
+          </g>
+        </g>
+        <g id="bottom_nav_bar">
+          <rect id="nav_frame" x="0.5" y="190.5" width="319" height="49" fill="#000000" stroke="#FFFFFF"/>
+          <line x1="64.5" y1="190" x2="64.5" y2="240" stroke="#FFFFFF"/>
+          <line x1="128.5" y1="190" x2="128.5" y2="240" stroke="#FFFFFF"/>
+          <line x1="192.5" y1="190" x2="192.5" y2="240" stroke="#FFFFFF"/>
+          <line x1="254.5" y1="190" x2="254.5" y2="240" stroke="#FFFFFF"/>
+          <g id="nav_tab_home">
+            <path id="icon_home" d="M20,4h8v4h-8zM16,8h4v4h-4zM28,8h4v4h-4zM12,12h4v4h-4zM32,12h4v4h-4zM8,16h4v4h-4zM36,16h4v4h-4zM4,20h4v20h-4zM40,20h4v20h-4zM20,24h8v4h-8zM16,28h4v12h-4zM28,28h4v12h-4zM8,40h32v4h-32z" transform="translate(8 191)" fill="#00FFFF"/>
+            <rect id="active_tab_indicator" x="1" y="237" width="63" height="2" fill="#00FFFF"/>
+          </g>
+          <g id="nav_tab_auto_fill">
+            <path id="icon_auto_fill" d="M22,4h4v4h-4zM18,8h4v8h-4zM26,8h4v8h-4zM14,16h4v8h-4zM30,16h4v8h-4zM10,24h4v12h-4zM34,24h4v12h-4zM14,36h4v4h-4zM30,36h4v4h-4zM18,40h12v4h-12z" transform="translate(72 191)" fill="#FFFFFF"/>
+          </g>
+          <g id="nav_tab_auto_cap">
+            <path id="icon_auto_cap" d="M18,2h12v4h-12zM18,6h4v8h-4zM26,6h4v8h-4zM14,14h4v4h-4zM30,14h4v4h-4zM10,18h4v24h-4zM34,18h4v24h-4zM14,42h20v4h-20z" transform="translate(136 191)" fill="#FFFFFF"/>
+          </g>
+          <g id="nav_tab_debug">
+            <path id="icon_debug" d="M6,6h4v8h-4zM18,6h12v4h-12zM38,6h4v8h-4zM14,10h20v4h-20zM10,14h4v4h-4zM34,14h4v4h-4zM10,18h28v4h-28zM2,22h44v4h-44zM10,26h12v8h-12zM26,26h12v8h-12zM6,34h4v8h-4zM14,34h8v4h-8zM26,34h8v4h-8zM38,34h4v8h-4zM18,38h12v4h-12z" transform="translate(199 191)" fill="#FFFFFF"/>
+          </g>
+          <g id="nav_tab_settings">
+            <path id="icon_settings" d="M18,0h12v4h-12zM4,4h10v4h-10zM18,4h4v4h-4zM26,4h4v4h-4zM34,4h10v4h-10zM4,8h4v6h-4zM14,8h8v4h-8zM26,8h8v4h-8zM40,8h4v6h-4zM8,14h4v4h-4zM36,14h4v4h-4zM20,16h8v4h-8zM0,18h12v4h-12zM36,18h12v4h-12zM16,20h4v8h-4zM28,20h4v8h-4zM0,22h4v4h-4zM44,22h4v4h-4zM0,26h12v4h-12zM36,26h12v4h-12zM20,28h8v4h-8zM8,30h4v4h-4zM36,30h4v4h-4zM4,34h4v6h-4zM40,34h4v6h-4zM14,36h8v4h-8zM26,36h8v4h-8zM4,40h10v4h-10zM18,40h4v4h-4zM26,40h4v4h-4zM34,40h10v4h-10zM18,44h12v4h-12z" transform="translate(267 191)" fill="#FFFFFF"/>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g id="frame_screen_auto_fill_test">
+      <text x="372" y="607" fill="#00FFFF" font-family="monospace" font-size="8">08. AUTO 1 (TEST MODE)</text>
+      <g id="screen_auto_fill_test" transform="translate(372 616)">
+        <rect id="background" x="0" y="0" width="320" height="240" fill="#000000"/>
+        <g id="top_bar">
+          <rect id="header_bg" x="0" y="0" width="320" height="28" fill="#FF8200"/>
+          <text id="header_title" x="8" y="20" fill="#000000" font-family="monospace" font-size="16" font-weight="bold">TEST AUTO 1: LLENADO</text>
+          <text id="header_z1_pos" x="254" y="17" fill="#000000" font-family="monospace" font-size="8" xml:space="preserve">Z1:    0H</text>
+        </g>
+        <g id="content_auto_fill_test">
+          <g id="btn_test_stop_arm">
+            <rect x="8.5" y="34.5" width="147" height="43" fill="#FF8200" stroke="#FFFFFF"/>
+            <text x="43" y="59" fill="#000000" font-family="monospace" font-size="8">TOPE 1: ABAJO</text>
+          </g>
+          <g id="btn_test_clamp_arm">
+            <rect x="164.5" y="34.5" width="147" height="43" fill="#000000" stroke="#00FFFF"/>
+            <text x="193" y="59" fill="#FFFFFF" font-family="monospace" font-size="8">SUJEC 1: ARRIBA</text>
+          </g>
+          <g id="btn_test_actuator">
+            <rect x="8.5" y="84.5" width="303" height="41" fill="#000000" stroke="#00FFFF"/>
+            <text x="94" y="108" fill="#FFFFFF" font-family="monospace" font-size="8">BOMBA LLENADO: APAGADA</text>
+          </g>
+          <g id="btn_test_jog_up">
+            <rect x="8.5" y="132.5" width="147" height="47" fill="#000000" stroke="#00FFFF"/>
+            <text x="37" y="159" fill="#FFFFFF" font-family="monospace" font-size="8">SUBIR Z1 (+JOG)</text>
+          </g>
+          <g id="btn_test_jog_down">
+            <rect x="164.5" y="132.5" width="147" height="47" fill="#000000" stroke="#00FFFF"/>
+            <text x="193" y="159" fill="#FFFFFF" font-family="monospace" font-size="8">BAJAR Z1 (-JOG)</text>
+          </g>
+        </g>
+        <g id="bottom_nav_bar">
+          <rect id="nav_frame" x="0.5" y="190.5" width="319" height="49" fill="#000000" stroke="#FFFFFF"/>
+          <line x1="64.5" y1="190" x2="64.5" y2="240" stroke="#FFFFFF"/>
+          <line x1="128.5" y1="190" x2="128.5" y2="240" stroke="#FFFFFF"/>
+          <line x1="192.5" y1="190" x2="192.5" y2="240" stroke="#FFFFFF"/>
+          <line x1="254.5" y1="190" x2="254.5" y2="240" stroke="#FFFFFF"/>
+          <g id="nav_tab_home">
+            <path id="icon_home" d="M20,4h8v4h-8zM16,8h4v4h-4zM28,8h4v4h-4zM12,12h4v4h-4zM32,12h4v4h-4zM8,16h4v4h-4zM36,16h4v4h-4zM4,20h4v20h-4zM40,20h4v20h-4zM20,24h8v4h-8zM16,28h4v12h-4zM28,28h4v12h-4zM8,40h32v4h-32z" transform="translate(8 191)" fill="#FFFFFF"/>
+          </g>
+          <g id="nav_tab_auto_fill">
+            <path id="icon_auto_fill" d="M22,4h4v4h-4zM18,8h4v8h-4zM26,8h4v8h-4zM14,16h4v8h-4zM30,16h4v8h-4zM10,24h4v12h-4zM34,24h4v12h-4zM14,36h4v4h-4zM30,36h4v4h-4zM18,40h12v4h-12z" transform="translate(72 191)" fill="#00FFFF"/>
+            <rect id="active_tab_indicator" x="65" y="237" width="63" height="2" fill="#00FFFF"/>
+          </g>
+          <g id="nav_tab_auto_cap">
+            <path id="icon_auto_cap" d="M18,2h12v4h-12zM18,6h4v8h-4zM26,6h4v8h-4zM14,14h4v4h-4zM30,14h4v4h-4zM10,18h4v24h-4zM34,18h4v24h-4zM14,42h20v4h-20z" transform="translate(136 191)" fill="#FFFFFF"/>
+          </g>
+          <g id="nav_tab_debug">
+            <path id="icon_debug" d="M6,6h4v8h-4zM18,6h12v4h-12zM38,6h4v8h-4zM14,10h20v4h-20zM10,14h4v4h-4zM34,14h4v4h-4zM10,18h28v4h-28zM2,22h44v4h-44zM10,26h12v8h-12zM26,26h12v8h-12zM6,34h4v8h-4zM14,34h8v4h-8zM26,34h8v4h-8zM38,34h4v8h-4zM18,38h12v4h-12z" transform="translate(199 191)" fill="#FFFFFF"/>
+          </g>
+          <g id="nav_tab_settings">
+            <path id="icon_settings" d="M18,0h12v4h-12zM4,4h10v4h-10zM18,4h4v4h-4zM26,4h4v4h-4zM34,4h10v4h-10zM4,8h4v6h-4zM14,8h8v4h-8zM26,8h8v4h-8zM40,8h4v6h-4zM8,14h4v4h-4zM36,14h4v4h-4zM20,16h8v4h-8zM0,18h12v4h-12zM36,18h12v4h-12zM16,20h4v8h-4zM28,20h4v8h-4zM0,22h4v4h-4zM44,22h4v4h-4zM0,26h12v4h-12zM36,26h12v4h-12zM20,28h8v4h-8zM8,30h4v4h-4zM36,30h4v4h-4zM4,34h4v6h-4zM40,34h4v6h-4zM14,36h8v4h-8zM26,36h8v4h-8zM4,40h10v4h-10zM18,40h4v4h-4zM26,40h4v4h-4zM34,40h10v4h-10zM18,44h12v4h-12z" transform="translate(267 191)" fill="#FFFFFF"/>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g id="frame_screen_auto_cap_test">
+      <text x="720" y="607" fill="#00FFFF" font-family="monospace" font-size="8">09. AUTO 2 (TEST MODE)</text>
+      <g id="screen_auto_cap_test" transform="translate(720 616)">
+        <rect id="background" x="0" y="0" width="320" height="240" fill="#000000"/>
+        <g id="top_bar">
+          <rect id="header_bg" x="0" y="0" width="320" height="28" fill="#FF8200"/>
+          <text id="header_title" x="8" y="20" fill="#000000" font-family="monospace" font-size="16" font-weight="bold">TEST AUTO 2: TAPADO</text>
+          <text id="header_z2_pos" x="254" y="17" fill="#000000" font-family="monospace" font-size="8" xml:space="preserve">Z2:    0H</text>
+        </g>
+        <g id="content_auto_cap_test">
+          <g id="btn_test_stop_arm">
+            <rect x="8.5" y="34.5" width="147" height="43" fill="#000000" stroke="#00FFFF"/>
+            <text x="40" y="59" fill="#FFFFFF" font-family="monospace" font-size="8">TOPE 2: ARRIBA</text>
+          </g>
+          <g id="btn_test_clamp_arm">
+            <rect x="164.5" y="34.5" width="147" height="43" fill="#FF8200" stroke="#FFFFFF"/>
+            <text x="196" y="59" fill="#000000" font-family="monospace" font-size="8">SUJEC 2: ABAJO</text>
+          </g>
+          <g id="btn_test_actuator">
+            <rect x="8.5" y="84.5" width="303" height="41" fill="#00BC00" stroke="#FFFFFF"/>
+            <text x="88" y="108" fill="#FFFFFF" font-family="monospace" font-size="8">MOTOR APRIETE: ENCENDIDO</text>
+          </g>
+          <g id="btn_test_jog_up">
+            <rect x="8.5" y="132.5" width="147" height="47" fill="#000000" stroke="#00FFFF"/>
+            <text x="37" y="159" fill="#FFFFFF" font-family="monospace" font-size="8">SUBIR Z2 (+JOG)</text>
+          </g>
+          <g id="btn_test_jog_down">
+            <rect x="164.5" y="132.5" width="147" height="47" fill="#000000" stroke="#00FFFF"/>
+            <text x="193" y="159" fill="#FFFFFF" font-family="monospace" font-size="8">BAJAR Z2 (-JOG)</text>
+          </g>
+        </g>
+        <g id="bottom_nav_bar">
+          <rect id="nav_frame" x="0.5" y="190.5" width="319" height="49" fill="#000000" stroke="#FFFFFF"/>
+          <line x1="64.5" y1="190" x2="64.5" y2="240" stroke="#FFFFFF"/>
+          <line x1="128.5" y1="190" x2="128.5" y2="240" stroke="#FFFFFF"/>
+          <line x1="192.5" y1="190" x2="192.5" y2="240" stroke="#FFFFFF"/>
+          <line x1="254.5" y1="190" x2="254.5" y2="240" stroke="#FFFFFF"/>
+          <g id="nav_tab_home">
+            <path id="icon_home" d="M20,4h8v4h-8zM16,8h4v4h-4zM28,8h4v4h-4zM12,12h4v4h-4zM32,12h4v4h-4zM8,16h4v4h-4zM36,16h4v4h-4zM4,20h4v20h-4zM40,20h4v20h-4zM20,24h8v4h-8zM16,28h4v12h-4zM28,28h4v12h-4zM8,40h32v4h-32z" transform="translate(8 191)" fill="#FFFFFF"/>
+          </g>
+          <g id="nav_tab_auto_fill">
+            <path id="icon_auto_fill" d="M22,4h4v4h-4zM18,8h4v8h-4zM26,8h4v8h-4zM14,16h4v8h-4zM30,16h4v8h-4zM10,24h4v12h-4zM34,24h4v12h-4zM14,36h4v4h-4zM30,36h4v4h-4zM18,40h12v4h-12z" transform="translate(72 191)" fill="#FFFFFF"/>
+          </g>
+          <g id="nav_tab_auto_cap">
+            <path id="icon_auto_cap" d="M18,2h12v4h-12zM18,6h4v8h-4zM26,6h4v8h-4zM14,14h4v4h-4zM30,14h4v4h-4zM10,18h4v24h-4zM34,18h4v24h-4zM14,42h20v4h-20z" transform="translate(136 191)" fill="#00FFFF"/>
+            <rect id="active_tab_indicator" x="129" y="237" width="63" height="2" fill="#00FFFF"/>
+          </g>
+          <g id="nav_tab_debug">
+            <path id="icon_debug" d="M6,6h4v8h-4zM18,6h12v4h-12zM38,6h4v8h-4zM14,10h20v4h-20zM10,14h4v4h-4zM34,14h4v4h-4zM10,18h28v4h-28zM2,22h44v4h-44zM10,26h12v8h-12zM26,26h12v8h-12zM6,34h4v8h-4zM14,34h8v4h-8zM26,34h8v4h-8zM38,34h4v8h-4zM18,38h12v4h-12z" transform="translate(199 191)" fill="#FFFFFF"/>
+          </g>
+          <g id="nav_tab_settings">
+            <path id="icon_settings" d="M18,0h12v4h-12zM4,4h10v4h-10zM18,4h4v4h-4zM26,4h4v4h-4zM34,4h10v4h-10zM4,8h4v6h-4zM14,8h8v4h-8zM26,8h8v4h-8zM40,8h4v6h-4zM8,14h4v4h-4zM36,14h4v4h-4zM20,16h8v4h-8zM0,18h12v4h-12zM36,18h12v4h-12zM16,20h4v8h-4zM28,20h4v8h-4zM0,22h4v4h-4zM44,22h4v4h-4zM0,26h12v4h-12zM36,26h12v4h-12zM20,28h8v4h-8zM8,30h4v4h-4zM36,30h4v4h-4zM4,34h4v6h-4zM40,34h4v6h-4zM14,36h8v4h-8zM26,36h8v4h-8zM4,40h10v4h-10zM18,40h4v4h-4zM26,40h4v4h-4zM34,40h10v4h-10zM18,44h12v4h-12z" transform="translate(267 191)" fill="#FFFFFF"/>
+          </g>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g id="component_library">
+    <text x="1056" y="39" fill="#00FFFF" font-family="monospace" font-size="8">COMPONENT LIBRARY (BANNERS, HUDS, ICONS, PALETTE)</text>
+    <g id="lib_mode_headers">
+      <g id="mode_boot" transform="translate(1056 48)">
+        <rect x="0" y="0" width="320" height="28" fill="#0049AD"/>
+        <text x="10" y="20" fill="#00FFFF" font-family="monospace" font-size="16" font-weight="bold">MODO: ARRANQUE (HOMING)</text>
+      </g>
+      <g id="mode_running" transform="translate(1056 82)">
+        <rect x="0" y="0" width="320" height="28" fill="#00BC00"/>
+        <text x="10" y="20" fill="#FFFFFF" font-family="monospace" font-size="16" font-weight="bold">MODO: OPERANDO EN LINEA</text>
+      </g>
+      <g id="mode_error_stop" transform="translate(1056 116)">
+        <rect x="0" y="0" width="320" height="28" fill="#DE0000"/>
+        <text x="10" y="20" fill="#FFFFFF" font-family="monospace" font-size="16" font-weight="bold" xml:space="preserve">! PARO DE SEGURIDAD !  </text>
+      </g>
+      <g id="mode_recovery" transform="translate(1056 150)">
+        <rect x="0" y="0" width="320" height="28" fill="#FF8200"/>
+        <text x="10" y="20" fill="#000000" font-family="monospace" font-size="16" font-weight="bold">MODO: RECUPERACION MAN.</text>
+      </g>
+      <g id="mode_test" transform="translate(1056 184)">
+        <rect x="0" y="0" width="320" height="28" fill="#FF8200"/>
+        <text x="10" y="20" fill="#000000" font-family="monospace" font-size="16" font-weight="bold" xml:space="preserve">MODO: TEST MANUAL ACT. </text>
+      </g>
+    </g>
+    <g id="lib_alarm_banners">
+      <g id="banner_ok" transform="translate(1056 236)">
+        <rect x="0.5" y="0.5" width="307" height="33" fill="#000000" stroke="#313031"/>
+        <text x="6" y="23" fill="#00BC00" font-family="monospace" font-size="16" font-weight="bold" xml:space="preserve">OK: SISTEMA SIN ALARMAS   </text>
+      </g>
+      <g id="banner_warn_902" transform="translate(1056 276)">
+        <rect x="0.5" y="0.5" width="307" height="33" fill="#000000" stroke="#FFFFFF"/>
+        <text x="6" y="23" fill="#FFFF00" font-family="monospace" font-size="16" font-weight="bold" xml:space="preserve">A902: SIN ENLACE SCADA    </text>
+      </g>
+      <g id="banner_err_901" transform="translate(1056 316)">
+        <rect x="0.5" y="0.5" width="307" height="33" fill="#DE0000" stroke="#FFFFFF"/>
+        <text x="6" y="23" fill="#FFFFFF" font-family="monospace" font-size="16" font-weight="bold" xml:space="preserve">E901: PARO DE EMERGENCIA  </text>
+      </g>
+    </g>
+    <g id="lib_overlays">
+      <g id="lib_vi_hud" transform="translate(1056 374)">
+        <rect x="0.5" y="0.5" width="129" height="25" fill="#000000" stroke="#FFFF00"/>
+        <text x="5" y="11" fill="#FFFF00" font-family="monospace" font-size="8" xml:space="preserve">CLAMP-  85 ADC| 0.4A</text>
+        <text x="5" y="22" fill="#FFFF00" font-family="monospace" font-size="8">FILL - 120 ADC| 0.5A</text>
+      </g>
+      <g id="lib_touch_debug" transform="translate(1200 374)">
+        <rect x="0.5" y="0.5" width="175" height="43" fill="#000000" stroke="#313031"/>
+        <circle cx="14" cy="14" r="4" stroke="#FF0000"/>
+        <line x1="10" y1="14" x2="19" y2="14" stroke="#FF0000"/>
+        <line x1="14" y1="10" x2="14" y2="19" stroke="#FF0000"/>
+        <line x1="28" y1="14" x2="41" y2="14" stroke="#FFFF00"/>
+        <line x1="34" y1="8" x2="34" y2="21" stroke="#FFFF00"/>
+        <text x="6" y="29" fill="#00FF00" font-family="monospace" font-size="8">RAW X: 512 Y: 480 Z: 320</text>
+        <text x="6" y="40" fill="#00FF00" font-family="monospace" font-size="8" xml:space="preserve">PX  X: 160 Y: 120</text>
+      </g>
+    </g>
+    <g id="lib_icons_48x48">
+      <text x="1056" y="441" fill="#C6C3C6" font-family="monospace" font-size="8">VECTOR ICONS (48x48)</text>
+      <g id="lib_icon_home_48x48_0" transform="translate(1056 450)">
+        <rect x="0.5" y="0.5" width="51" height="51" fill="#000000" stroke="#313031"/>
+        <path d="M20,4h8v4h-8zM16,8h4v4h-4zM28,8h4v4h-4zM12,12h4v4h-4zM32,12h4v4h-4zM8,16h4v4h-4zM36,16h4v4h-4zM4,20h4v20h-4zM40,20h4v20h-4zM20,24h8v4h-8zM16,28h4v12h-4zM28,28h4v12h-4zM8,40h32v4h-32z" transform="translate(2 2)" fill="#00FFFF"/>
+      </g>
+      <g id="lib_icon_fill_48x48_1" transform="translate(1134 450)">
+        <rect x="0.5" y="0.5" width="51" height="51" fill="#000000" stroke="#313031"/>
+        <path d="M22,4h4v4h-4zM18,8h4v8h-4zM26,8h4v8h-4zM14,16h4v8h-4zM30,16h4v8h-4zM10,24h4v12h-4zM34,24h4v12h-4zM14,36h4v4h-4zM30,36h4v4h-4zM18,40h12v4h-12z" transform="translate(2 2)" fill="#FFFFFF"/>
+      </g>
+      <g id="lib_icon_cap_48x48_2" transform="translate(1212 450)">
+        <rect x="0.5" y="0.5" width="51" height="51" fill="#000000" stroke="#313031"/>
+        <path d="M18,2h12v4h-12zM18,6h4v8h-4zM26,6h4v8h-4zM14,14h4v4h-4zM30,14h4v4h-4zM10,18h4v24h-4zM34,18h4v24h-4zM14,42h20v4h-20z" transform="translate(2 2)" fill="#FFFFFF"/>
+      </g>
+      <g id="lib_icon_debug_48x48_3" transform="translate(1290 450)">
+        <rect x="0.5" y="0.5" width="51" height="51" fill="#000000" stroke="#313031"/>
+        <path d="M6,6h4v8h-4zM18,6h12v4h-12zM38,6h4v8h-4zM14,10h20v4h-20zM10,14h4v4h-4zM34,14h4v4h-4zM10,18h28v4h-28zM2,22h44v4h-44zM10,26h12v8h-12zM26,26h12v8h-12zM6,34h4v8h-4zM14,34h8v4h-8zM26,34h8v4h-8zM38,34h4v8h-4zM18,38h12v4h-12z" transform="translate(2 2)" fill="#FFFFFF"/>
+      </g>
+      <g id="lib_icon_settings_48x48_4" transform="translate(1056 510)">
+        <rect x="0.5" y="0.5" width="51" height="51" fill="#000000" stroke="#313031"/>
+        <path d="M18,0h12v4h-12zM4,4h10v4h-10zM18,4h4v4h-4zM26,4h4v4h-4zM34,4h10v4h-10zM4,8h4v6h-4zM14,8h8v4h-8zM26,8h8v4h-8zM40,8h4v6h-4zM8,14h4v4h-4zM36,14h4v4h-4zM20,16h8v4h-8zM0,18h12v4h-12zM36,18h12v4h-12zM16,20h4v8h-4zM28,20h4v8h-4zM0,22h4v4h-4zM44,22h4v4h-4zM0,26h12v4h-12zM36,26h12v4h-12zM20,28h8v4h-8zM8,30h4v4h-4zM36,30h4v4h-4zM4,34h4v6h-4zM40,34h4v6h-4zM14,36h8v4h-8zM26,36h8v4h-8zM4,40h10v4h-10zM18,40h4v4h-4zM26,40h4v4h-4zM34,40h10v4h-10zM18,44h12v4h-12z" transform="translate(2 2)" fill="#FFFFFF"/>
+      </g>
+      <g id="lib_icon_checkbox_off_48x48_5" transform="translate(1134 510)">
+        <rect x="0.5" y="0.5" width="51" height="51" fill="#000000" stroke="#313031"/>
+        <path d="M8,4h32v4h-32zM4,8h4v32h-4zM40,8h4v32h-4zM8,40h32v4h-32z" transform="translate(2 2)" fill="#FFFFFF"/>
+      </g>
+      <g id="lib_icon_checkbox_on_48x48_6" transform="translate(1212 510)">
+        <rect x="0.5" y="0.5" width="51" height="51" fill="#000000" stroke="#313031"/>
+        <path d="M8,4h32v4h-32zM4,8h4v32h-4zM40,8h4v32h-4zM20,16h8v4h-8zM16,20h4v8h-4zM28,20h4v8h-4zM20,28h8v4h-8zM8,40h32v4h-32z" transform="translate(2 2)" fill="#00BC00"/>
+      </g>
+      <g id="lib_icon_checkbox_on_48x48_7" transform="translate(1290 510)">
+        <rect x="0.5" y="0.5" width="51" height="51" fill="#000000" stroke="#313031"/>
+        <path d="M8,4h32v4h-32zM4,8h4v32h-4zM40,8h4v32h-4zM20,16h8v4h-8zM16,20h4v8h-4zM28,20h4v8h-4zM20,28h8v4h-8zM8,40h32v4h-32z" transform="translate(2 2)" fill="#FFFF00"/>
+      </g>
+    </g>
+    <g id="lib_color_theme">
+      <text x="1056" y="593" fill="#C6C3C6" font-family="monospace" font-size="8">PALETA RGB565 (UiTheme)</text>
+      <g id="swatch_color_bg" transform="translate(1056 602)">
+        <rect x="0.5" y="0.5" width="25" height="25" fill="#000000" stroke="#FFFFFF"/>
+        <text x="34" y="11" fill="#FFFFFF" font-family="monospace" font-size="8">COLOR_BG</text>
+        <text x="34" y="22" fill="#C6C3C6" font-family="monospace" font-size="8">#000000</text>
+      </g>
+      <g id="swatch_color_white" transform="translate(1220 602)">
+        <rect x="0.5" y="0.5" width="25" height="25" fill="#FFFFFF" stroke="#FFFFFF"/>
+        <text x="34" y="11" fill="#FFFFFF" font-family="monospace" font-size="8">COLOR_WHITE</text>
+        <text x="34" y="22" fill="#C6C3C6" font-family="monospace" font-size="8">#FFFFFF</text>
+      </g>
+      <g id="swatch_color_light_gray" transform="translate(1056 636)">
+        <rect x="0.5" y="0.5" width="25" height="25" fill="#C6C3C6" stroke="#FFFFFF"/>
+        <text x="34" y="11" fill="#FFFFFF" font-family="monospace" font-size="8">COLOR_LIGHT_GRAY</text>
+        <text x="34" y="22" fill="#C6C3C6" font-family="monospace" font-size="8">#C6C3C6</text>
+      </g>
+      <g id="swatch_color_dark_gray" transform="translate(1220 636)">
+        <rect x="0.5" y="0.5" width="25" height="25" fill="#313031" stroke="#FFFFFF"/>
+        <text x="34" y="11" fill="#FFFFFF" font-family="monospace" font-size="8">COLOR_DARK_GRAY</text>
+        <text x="34" y="22" fill="#C6C3C6" font-family="monospace" font-size="8">#313031</text>
+      </g>
+      <g id="swatch_color_cyan" transform="translate(1056 670)">
+        <rect x="0.5" y="0.5" width="25" height="25" fill="#00FFFF" stroke="#FFFFFF"/>
+        <text x="34" y="11" fill="#FFFFFF" font-family="monospace" font-size="8">COLOR_CYAN</text>
+        <text x="34" y="22" fill="#C6C3C6" font-family="monospace" font-size="8">#00FFFF</text>
+      </g>
+      <g id="swatch_color_blue_header" transform="translate(1220 670)">
+        <rect x="0.5" y="0.5" width="25" height="25" fill="#0049AD" stroke="#FFFFFF"/>
+        <text x="34" y="11" fill="#FFFFFF" font-family="monospace" font-size="8">COLOR_BLUE_HEADER</text>
+        <text x="34" y="22" fill="#C6C3C6" font-family="monospace" font-size="8">#0049AD</text>
+      </g>
+      <g id="swatch_color_green_ok" transform="translate(1056 704)">
+        <rect x="0.5" y="0.5" width="25" height="25" fill="#00BC00" stroke="#FFFFFF"/>
+        <text x="34" y="11" fill="#FFFFFF" font-family="monospace" font-size="8">COLOR_GREEN_OK</text>
+        <text x="34" y="22" fill="#C6C3C6" font-family="monospace" font-size="8">#00BC00</text>
+      </g>
+      <g id="swatch_color_red_alarm" transform="translate(1220 704)">
+        <rect x="0.5" y="0.5" width="25" height="25" fill="#DE0000" stroke="#FFFFFF"/>
+        <text x="34" y="11" fill="#FFFFFF" font-family="monospace" font-size="8">COLOR_RED_ALARM</text>
+        <text x="34" y="22" fill="#C6C3C6" font-family="monospace" font-size="8">#DE0000</text>
+      </g>
+      <g id="swatch_color_orange_rec" transform="translate(1056 738)">
+        <rect x="0.5" y="0.5" width="25" height="25" fill="#FF8200" stroke="#FFFFFF"/>
+        <text x="34" y="11" fill="#FFFFFF" font-family="monospace" font-size="8">COLOR_ORANGE_REC</text>
+        <text x="34" y="22" fill="#C6C3C6" font-family="monospace" font-size="8">#FF8200</text>
+      </g>
+      <g id="swatch_color_yellow_warn" transform="translate(1220 738)">
+        <rect x="0.5" y="0.5" width="25" height="25" fill="#FFFF00" stroke="#FFFFFF"/>
+        <text x="34" y="11" fill="#FFFFFF" font-family="monospace" font-size="8">COLOR_YELLOW_WARN</text>
+        <text x="34" y="22" fill="#C6C3C6" font-family="monospace" font-size="8">#FFFF00</text>
+      </g>
+    </g>
+  </g>
+</svg>
