@@ -1,6 +1,6 @@
 # SMF-E3 — Estación 3 (Llenado y Tapado)
 
-Este documento describe la arquitectura técnica real e implementada de la **Estación 3 (Llenado y Tapado)** para una línea de Sistemas de Manufactura Flexible (FMS), incluyendo sus estándares de codificación, patrones de diseño embebido, máquinas de estados (FSM), interfaz HMI táctil de 5 pestañas, modo de prueba manual (`TestMode`), compensación de carga $I \times R$, modelo de concurrencia cooperativa + ISR y mapeo físico de pines.
+Este documento describe la arquitectura técnica real e implementada de la **Estación 3 (Llenado y Tapado)** para una línea de Sistemas de Manufactura Flexible (FMS), incluyendo sus estándares de codificación, patrones de diseño embebido, máquinas de estados (FSM), inspección por visión artificial (`ESP32 + MATLAB`), interfaz HMI táctil de 5 pestañas con ajustes paginados en tiempo real (`AJUSTES 1/3..3/3`), pantalla de recuperación bloqueada (`ManualRecovery`), modo de prueba manual (`TestMode`), compensación de carga $I \times R$, modelo de concurrencia cooperativa + ISR, mapeo físico de pines y activos SVG para Figma.
 
 El controlador principal de la estación es un **Arduino Mega 2560 (ATmega2560, 8 bits AVR @ 16 MHz, 256 KB Flash, 8 KB SRAM, 4 KB EEPROM, lógica de 5 V)**.
 
@@ -21,23 +21,28 @@ pio device monitor -b 115200
 
 ## 0. Descripción Física y Operativa de la Estación
 
-La estación es **lineal**: una banda transportadora unidireccional traslada las botellas a través de dos estaciones de proceso dispuestas en serie (**Autómata 1: Llenado** y **Autómata 2: Tapado**).
+La estación es **lineal**: una banda transportadora unidireccional traslada las botellas a través de dos estaciones de proceso dispuestas en serie (**Autómata 1: Llenado** y **Autómata 2: Tapado**) con verificación final opcional por **visión artificial**.
 
 | Subsistema | Descripción y Componentes Reales |
 | :---- | :---- |
 | **Banda transportadora** | Motor DC controlado por puente H **BTS7960 (IBT-2)** unidireccional (`RPWM` en Pin 10, `EN` en Pin 12) con rampa trapezoidal suave, **sensado analógico de corriente `IS` (`A8`)**, compensación opcional de caída de tensión bajo carga ($I \times R$) y protección contra atasco (`ERR-303`). |
-| **Autómata 1: Llenado** | **2 sensores ópticos IR** (sensor de *aproximación/presencia* en Pin 15 y sensor de *posición exacta* en Pin 16, ubicados antes y en medio de los brazos); **2 servomotores** con sentido `CW`/`CCW` configurable (*brazo de tope* en Pin 47 y *brazo de sujeción* en Pin 49); **bomba de agua ON/OFF** (Pin 30, con polaridad de relé configurable `PUMP_RELAY_ACTIVE_LOW`) y temporizador de seguridad; **eje vertical a pasos Z1** (`STEP` Pin 37, `DIR` Pin 35, `EN` Pin 33) con fin de carrera superior de origen (`HOME = 0` en Pin 23). |
-| **Autómata 2: Tapado** | **2 sensores ópticos IR** (*aproximación/presencia* en Pin 17 y *posición exacta* en Pin 18); **2 servomotores** (*brazo de tope* en Pin 53 y *brazo de sujeción* en Pin 51); **motor DC de apriete** con puente H **BTS7960** (`RPWM` Pin 11, `EN` Pin 32) y **sensado de corriente `IS` (`A9`)** para detección de sobrecorriente (`ERR-301`) y rosca trasroscada (`ERR-302`); **eje vertical a pasos Z2** (`STEP` Pin 31, `DIR` Pin 29, `EN` Pin 27) con fin de carrera superior (`HOME = 0` en Pin 25) y descenso en dos etapas (aproximación rápida a `capEngageSteps` y acople lento con giro a `CAP_Z_ENGAGE_SPEED` hasta `capZSteps`). |
-| **Botonera y Señalización** | Pulsadores físicos de **START** (Pin 46), **STOP** (Pin 48), **RESET** (Pin 52) y contacto auxiliar de **E-STOP** (Pin 50). Torreta luminosa **Verde** (Pin 26) y **Roja** (Pin 24) más alarma acústica no bloqueante **Buzzer** (Pin 28, habilitable mediante `ENABLE_BUZZER`). |
-| **HMI Táctil Local** | Pantalla **TFT 2.4" ILI9341 (320×240 px, bus paralelo de 8 bits)** con panel táctil resistivo de 4 hilos y navegación inferior de **5 pestañas** (`Home`, `AutoFill`, `AutoCap`, `Debug`, `Settings`). |
-| **Flexibilidad** | Admite **dos perfiles de botella (`Small` y `Large`)** seleccionables desde la pantalla táctil, ajustando las cotas verticales `fillZSteps`, `capEngageSteps`, `capZSteps` y el tiempo de dosificación `fillMs`. Además permite habilitar o deshabilitar el módulo de tapado (`ENABLE_CAPPING_STATION`), la cola intermedia (`ENABLE_INTERSTAGE_QUEUE`) y cada código de error individualmente (`ENABLE_ERR_101_*` .. `ENABLE_ERR_902_*`). |
+| **Autómata 1: Llenado** | **2 sensores ópticos IR** (sensor de *aproximación/presencia* `PRE1` en Pin 15 y sensor de *posición exacta* `POS1` en Pin 16; modo opcional de 1 solo sensor mediante `ENABLE_FILL_SINGLE_POS_SENSOR`); **2 servomotores** con sentido `CW`/`CCW` configurable (*brazo de tope* en Pin 47 y *brazo de sujeción* en Pin 49); **bomba de agua ON/OFF** (Pin 30, polaridad configurable `PUMP_RELAY_ACTIVE_LOW` y watchdog `MAX_PUMP_ON_MS = 12500 ms`); **eje vertical a pasos Z1** (`STEP` Pin 37, `DIR` Pin 35, `EN` Pin 33) con fin de carrera superior (`HOME = 0` en Pin 23). |
+| **Autómata 2: Tapado** | **2 sensores ópticos IR** (`PRE2` en Pin 17 y `POS2` en Pin 18; modo opcional de 1 solo sensor mediante `ENABLE_CAP_SINGLE_POS_SENSOR`); **2 servomotores** (*brazo de tope* en Pin 53 y *brazo de sujeción* en Pin 51); **motor DC de apriete** con puente H **BTS7960** (`RPWM` Pin 11, `EN` Pin 32) y **sensado de corriente `IS` (`A9`)** para detección de sobrecorriente (`ERR-301`) y rosca trasroscada (`ERR-302`); **eje vertical a pasos Z2** (`STEP` Pin 31, `DIR` Pin 29, `EN` Pin 27) con fin de carrera superior (`HOME = 0` en Pin 25) y descenso en dos etapas (`capEngageSteps` rápido + `CAP_Z_ENGAGE_SPEED` lento hasta `capZSteps`). |
+| **Visión Artificial (`ESP32 + MATLAB`)** | Entrada digital directa de 3.3 V en **Pin 22** (`PIN_VISION_SENSOR`, configurada como `INPUT` sin `INPUT_PULLUP` para proteger el ESP32, requiere GND común) con polaridad configurable (`VISION_ALARM_ACTIVE_HIGH`). Al finalizar `RaisingHead`, `CappingAutomaton::VisionInspect` opcionalmente levanta solo el brazo de tope y avanza la banda `VISION_ADVANCE_MS` (`ENABLE_VISION_BELT_ADVANCE`), aguarda `VISION_SETTLE_MS` con la banda detenida y evalúa la presencia de tapa (`ERR-304`). |
+| **Botonera y Señalización** | Pulsadores físicos de **START** (Pin 46), **STOP** (Pin 48), **RESET** (Pin 52) y contacto auxiliar de **E-STOP** (Pin 50). Torreta luminosa **Verde** (Pin 26) y **Roja** (Pin 24) más alarma acústica no bloqueante **Buzzer** (Pin 28, configurable desde `Settings` o `ENABLE_BUZZER`). |
+| **HMI Táctil Local** | Pantalla **TFT 2.4" ILI9341 (320×240 px, bus paralelo de 8 bits)** con panel táctil resistivo de 4 hilos, barra inferior de **5 pestañas** (`Home`, `AutoFill`, `AutoCap`, `Debug`, `Settings`), subpáginas **`AJUSTES 1/3..3/3`** editables en caliente, HUD opcional `OVERLAY V/I` y vista **`ManualRecovery` a pantalla completa bloqueada**. |
+| **Flexibilidad** | Admite **dos perfiles de botella (`Small` y `Large`)** seleccionables desde el HMI. Permite activar/desactivar en compilación y en tiempo de ejecución cada estación (`FILL_STATION`, `CAP_STATION`), modo de 1 sensor por estación (`FILL_SINGLE_POS_SENSOR`, `CAP_SINGLE_POS_SENSOR`), visión artificial, cola WIP (`INTERSTAGE_QUEUE`), buzzer, protecciones de banda y máscaras de error. |
 
-### Secuencia Coordinada de Sensores, Brazos y Banda (Idéntica en Ambos Autómatas)
+### Secuencia Coordinada de Sensores, Brazos, Banda y Visión
 
-1. **Detección de aproximación (`Idle` $\rightarrow$ `StopArmDown`):** Al activarse el **1er sensor óptico (`presenceSensor_`)**, el autómata baja inmediatamente el **brazo de tope** (el del extremo de salida de la zona) mientras la banda sigue avanzando para llevar la botella hasta el tope.
-2. **Confirmación en posición y sujeción con pausa suave de banda (`StopArmDown` $\rightarrow$ `ClampArmDown`):** Cuando la botella llega al tope y activa el **2do sensor óptico (`positionSensor_`, situado entre ambos brazos)** antes de `CLAMP_SENSOR_TIMEOUT_MS`, baja el **brazo de sujeción**. Durante los `ARM_MOVE_MS` que tarda en cerrarse el brazo de sujeción, `StationController` **pausa suavemente la banda (`pauseSmooth()`)** para centrar y sujetar el envase con firmeza, aplicando una ventana de tolerancia (`BOTTLE_LOST_GRACE_MS`) frente a parpadeos ópticos.
-3. **Reanudación de banda y ejecución del proceso (`Lowering` $\rightarrow$ Proceso $\rightarrow$ `Raising`):** Una vez cerrados ambos brazos y revalidado `positionSensor_`, la banda vuelve a girar (permitiendo que botellas en el otro autómata sigan avanzando) mientras el eje Z baja a la cota del perfil, ejecuta el llenado o el apriete de tapa, y regresa hasta accionar su fin de carrera superior (`HOME = 0`).
-4. **Liberación escalonada (`ReleasingBottle`):** Se levanta primero el brazo de sujeción y, tras `RELEASE_GAP_MS` (500 ms), se levanta el brazo de tope. La bandera `needsClear_` impide re-disparar un nuevo ciclo hasta que la botella saliente libere por completo ambos sensores ópticos (`!presenceSensor_ && !positionSensor_`).
+1. **Detección de entrada (`Idle` $\rightarrow$ `StopArmDown`):** Por defecto se dispara al activarse el 1er sensor óptico (`presenceSensor_`); si está activo `ENABLE_FILL_SINGLE_POS_SENSOR` o `ENABLE_CAP_SINGLE_POS_SENSOR` (para acoples donde la estación previa entrega sobre el sensor de entrada), el autómata correspondiente ignora `PRE` y dispara directamente con `positionSensor_`. Baja el **brazo de tope** manteniendo la banda activa (`updateBeltDependentTimer()` congela el timeout si la banda está pausada o en rampa de aceleración por debajo de `BELT_PWM`).
+2. **Confirmación en posición y sujeción (`StopArmDown` $\rightarrow$ `ClampArmDown`):** Cuando el envase activa `positionSensor_` antes de `CLAMP_SENSOR_TIMEOUT_MS`, baja el **brazo de sujeción** mientras `StationController` pausa suavemente la banda (`pauseSmooth()`), validando permanencia tras `ARM_MOVE_MS` con ventana de tolerancia (`BOTTLE_LOST_GRACE_MS`).
+3. **Ejecución del proceso (`Lowering` $\rightarrow$ Proceso $\rightarrow$ `Raising`):** La banda vuelve a girar para permitir flujo paralelo mientras el eje Z desciende, dosifica (`fillMs`) o aprieta tapa (`TIGHTEN_MS` vigilando `getFilteredCurrentAdc()`), y sube hasta su fin de carrera superior (`HOME = 0`).
+4. **Inspección por visión (`VisionInspect`, solo en Tapado cuando `ENABLE_VISION_INSPECTION = true`):**
+   * Si `ENABLE_VISION_BELT_ADVANCE = true`, levanta **únicamente el brazo de tope** (manteniendo abajo el brazo de sujeción para bloquear nuevas botellas), espera `ARM_MOVE_MS`, avanza la banda durante `VISION_ADVANCE_MS` hacia la cámara y vuelve a detenerla.
+   * Mantiene la banda detenida durante `VISION_SETTLE_MS` (por defecto `2000 ms`) para que `ESP32 + MATLAB` evalúen la imagen sin falsos errores.
+   * Si el pin de visión indica falta de tapa (`ERR-304`), activa torreta roja, buzzer y pausa la banda **sin abortar `FillingAutomaton`**: Llenado concluye su ciclo normal hasta estacionarse en `WaitingQueueSlot` y congela los timers dependientes de banda. Al colocar la tapa y confirmar con `START`, `RESET` o tocando el banner rojo de `Home`, Tapado pasa directo a `ReleasingBottle` y la línea reanuda sin reiniciar `Boot`.
+5. **Liberación escalonada (`ReleasingBottle`):** Sube el brazo de sujeción y tras `RELEASE_GAP_MS` el de tope (o ambos simultáneamente si el tope ya había subido en `VisionInspect`). Solo vuelve a `Idle` cuando se cumple `RELEASE_MS` **y** la botella saliente despejó `positionSensor_` (`!positionSensor_.isTriggered()`). `needsClear_` se libera apenas despeja el sensor de disparo (`PRE`, o `POS` en modo 1 sensor), evitando bloqueos en botellas consecutivas.
 
 ---
 
@@ -67,16 +72,16 @@ else if (elapsedMs >= ProcessParams::CLAMP_SENSOR_TIMEOUT_MS)
 | :---- | :---- | :---- |
 | **Clases / Structs** | `PascalCase` | `StepperAxis`, `DisplayManager`, `StationController` |
 | **Métodos y Funciones** | `camelCase` | `moveToTarget()`, `sampleCurrentAdc()`, `update()` |
-| **Variables locales y parámetros** | `camelCase` | `targetSteps`, `elapsedMs` |
+| **Variables locales y parámetros** | `camelCase` | `targetSteps`, `elapsedMs`, `singleSensorFlagMask_` |
 | **Miembros privados de clase** | `camelCase` con sufijo `_` | `currentState_`, `filteredAdc_`, `testFlags_` |
-| **Constantes de configuración** | `UPPER_SNAKE_CASE` | `BELT_TARGET_MV`, `Z_CRUISE_SPEED`, `OPTICAL_ACTIVE_HIGH` |
-| **Valores de `enum class`** | `PascalCase` | `StationMode::TestMode`, `ServoDir::CCW` |
+| **Constantes de configuración** | `UPPER_SNAKE_CASE` | `BELT_TARGET_MV`, `Z_CRUISE_SPEED`, `VISION_SETTLE_MS` |
+| **Valores de `enum class`** | `PascalCase` | `StationMode::TestMode`, `CappingState::VisionInspect` |
 | **Nombres de Archivos** | `snake_case` | `conveyor_controller.hpp`, `display_manager.cpp` |
 
 ### 1.4 Separación Estricta de Configuración (`include/config/`)
 Toda constante física o de calibración reside exclusivamente en uno de dos archivos:
-* **[`include/config/hardware_pins.hpp`](file:///home/think/@ut/SMF-E3/include/config/hardware_pins.hpp):** Define **únicamente el mapeo eléctrico de pines GPIO y canales ADC** del Arduino Mega 2560, incluyendo validaciones en tiempo de compilación (`static_assert` con `Detail::arePinsUnique` y `Detail::isReservedTimerPwmPin`) que impiden colisiones de pines o conflictos de Timers.
-* **[`include/config/process_params.hpp`](file:///home/think/@ut/SMF-E3/include/config/process_params.hpp):** Centraliza **todos los parámetros de proceso y calibración**: polaridad de sensores ópticos y relé de bomba, habilitación de módulos y buzzer, banderas individuales de activación por código de error (`isErrorEnabled(ErrorCode)`), velocidades y cotas de ejes Z (incluyendo aproximación en dos etapas para tapado), tensiones y compensación $I \times R$ de la banda, sentidos `CW`/`CCW` y ángulos de cada servomotor, tiempos de bombeo y apriete, umbrales ADC de corriente, calibración táctil y tabla `BOTTLE_PROFILES`.
+* **[`include/config/hardware_pins.hpp`](file:///home/think/@ut/SMF-E3/include/config/hardware_pins.hpp):** Define **únicamente el mapeo eléctrico de pines GPIO y canales ADC** del Arduino Mega 2560, incluyendo validaciones en tiempo de compilación (`static_assert` con `Detail::arePinsUnique` y `Detail::isReservedTimerPwmPin`).
+* **[`include/config/process_params.hpp`](file:///home/think/@ut/SMF-E3/include/config/process_params.hpp):** Centraliza **todos los parámetros de proceso y calibración** (`constexpr` por defecto) más el estado en tiempo de ejecución `runtimeConfigFlags()` / `hasConfigFlag()` / `isErrorEnabled()` editable desde `Settings`. Incluye un `static_assert` en compilación que garantiza `MAX_PUMP_ON_MS > fillMs` para todos los perfiles de `BOTTLE_PROFILES[]`.
 
 ---
 
@@ -84,7 +89,7 @@ Toda constante física o de calibración reside exclusivamente en uno de dos arc
 
 ### 2.1 Super-Loop Cooperativo de Tres Tareas + ISR en Tiempo Real Duro
 
-El firmware evita el uso de RTOS para preservar los 8 KB de SRAM (~16.1 % de uso estático actual) y divide el procesamiento en dos niveles:
+El firmware evita el uso de RTOS para preservar los 8 KB de SRAM (`~18.3 %` de uso estático actual) y divide el procesamiento en dos niveles:
 
 ```text
                 ┌──────────────────────────────────────────┐
@@ -99,13 +104,13 @@ El firmware evita el uso de RTOS para preservar los 8 KB de SRAM (~16.1 % de uso
    └────────┬─────────┘                               └─────────┬─────────┘
             │                                                   │
             ├─ Timer3 COMPB @ 20 kHz: Emisión de pulsos STEP    ├─ cada 1 ms  : StationController::update()
-            │   por puntero directo a puerto (Z1 + Z2), lectura │   (Sensores, E-STOP, Botonera, Autómatas
-            │   de fines de carrera y vigilancia Soft Limits.   │    FSM, Torreta y Buzzer)
+            │   por puntero directo a puerto (Z1 + Z2), lectura │   (Sensores, Visión, E-STOP, Botonera,
+            │   de fines de carrera y vigilancia Soft Limits.   │    Autómatas FSM, Torreta y Buzzer)
             │                                                   │
             ├─ Timer1 / Timer2 @ 490 Hz: PWM nativo por HW      ├─ cada 20 ms : StationController::updateMotionProfiles()
             │   para motores DC (cabezal de apriete y banda).   │   (Rampas trapezoidales Z1/Z2, rampa de
-            │                                                   │    banda, lectura ADC IS y boost I*R)
-            └─ Timer0: Base de tiempo millis() / micros()       │
+            └─ Timer0: Base de tiempo millis() / micros()       │    banda, lectura ADC IS y boost I*R)
+                                                                │
                                                                 └─ cada 50 ms : DisplayManager::pollTouchCommand()
                                                                     y DisplayManager::render() incremental
 ```
@@ -126,43 +131,33 @@ El firmware evita el uso de RTOS para preservar los 8 KB de SRAM (~16.1 % de uso
 ## 3. Módulos de Abstracción de Hardware (HAL) en `lib/`
 
 1. **[`DigitalSensor`](file:///home/think/@ut/SMF-E3/lib/DigitalSensor/digital_sensor.hpp):**
-   * Filtro antirrebote no bloqueante basado en `millis()` (`SENSOR_DEBOUNCE_MS = 25 ms`), con polaridad (`activeHigh`) y resistencia `INPUT_PULLUP` configurables.
+   * Filtro antirrebote no bloqueante basado en `millis()` (`SENSOR_DEBOUNCE_MS = 25 ms`), con polaridad (`activeHigh`) y resistencia `INPUT_PULLUP` configurables (`usePullup = false` en `visionSensor_` para compatibilidad segura con salidas 3.3 V de ESP32).
    * Detecta nivel estable (`isTriggered()`) y flancos de subida/bajada (`onRisingEdge()`, `onFallingEdge()`).
 
 2. **[`DcMotorBts7960`](file:///home/think/@ut/SMF-E3/lib/DcMotorBts7960/dc_motor_bts7960.hpp):**
    * Controla drivers de puente H **BTS7960 (IBT-2)** en configuración unidireccional (`RPWM` + `EN`, con `LPWM` a GND) o bidireccional.
-   * **Muestreo ADC sincronizado con PWM (`sampleCurrentAdc()`):** En el BTS7960, el espejo de corriente `IS` ($k_{\text{ILIS}} \approx 8500$, ~`24 cuentas ADC/A` sobre la resistencia de $1\text{ k}\Omega$ en placa) solo entrega señal mientras el MOSFET de rama alta conduce (pulso PWM en `HIGH`). Para evitar leer `0` a ciclos de trabajo bajos, `sampleCurrentAdc()` inspecciona directamente el registro de entrada del puerto (`*portInputRegister(port) & bitMask`) esperando el flanco `HIGH` y 15 µs de asentamiento antes de ejecutar `analogRead()`, **sin invocar jamás `digitalRead()`** (ya que en el core AVR de Arduino `digitalRead()` sobre un pin PWM ejecuta `turnOffPWM()` y apaga la salida PWM).
-   * Aplica media móvil de 8 muestras con redondeo superior para preservar lecturas de baja corriente.
+   * **Muestreo ADC sincronizado con PWM (`sampleCurrentAdc()`):** Lee directamente el registro de entrada del puerto (`*portInputRegister(port) & bitMask`) esperando el flanco `HIGH` del PWM y 15 µs de asentamiento antes de ejecutar `analogRead()`, **sin invocar jamás `digitalRead()`** (que en AVR apaga el PWM). El lazo de 1 ms en `TighteningCap` consulta el promedio cacheado (`getFilteredCurrentAdc()`) actualizado cada 20 ms para no bloquear el super-loop.
 
 3. **[`ConveyorController`](file:///home/think/@ut/SMF-E3/lib/ConveyorController/conveyor_controller.hpp):**
-   * Gestiona la rampa trapezoidal de aceleración (`BELT_ACCEL_PWM_STEP`) y desaceleración (`BELT_DECEL_PWM_STEP`) cada 20 ms, permitiendo pausas suaves (`pauseSmooth()`) al sujetar botellas y paradas inmediatas (`stop()`, `brake()`).
-   * **Compensación lineal de carga $I \times R$ (`ENABLE_BELT_IR_COMP`):** Ajusta automáticamente la tensión efectiva del motor entre `BELT_TARGET_MV` (en vacío, $\le$ `BELT_IDLE_CURRENT_ADC`) y `BELT_MAX_BOOST_MV` (a plena carga, $\ge$ `BELT_FULL_LOAD_ADC`).
-   * **Vigilancia de atasco (`ENABLE_BELT_STALL_PROT`):** Declara fallo `ERR-303` si la corriente filtrada iguala o supera `BELT_CURRENT_LIMIT_ADC` de forma continua durante `BELT_STALL_MS`.
+   * Gestiona la rampa trapezoidal de aceleración (`BELT_ACCEL_PWM_STEP`) y desaceleración (`BELT_DECEL_PWM_STEP`) cada 20 ms, pausas suaves (`pauseSmooth()`), parada libre (`stop()`) y frenado dinámico (`brake()`).
+   * Permite activar o desactivar en caliente mediante `setIrCompEnabled()` y `setStallProtEnabled()` tanto la **compensación lineal de carga $I \times R$** como la **protección contra atasco (`ERR-303`)**.
 
 4. **[`StepperAxis`](file:///home/think/@ut/SMF-E3/lib/StepperAxis/stepper_axis.hpp):**
-   * Gobierna los drivers de motor a pasos (TB6600) de los ejes verticales `FillZ` (Z1) y `CapZ` (Z2).
-   * Genera pulsos `STEP` a 20 kHz desde la ISR del Timer3 usando punteros volátiles al registro de puerto de cada pin (`stepOutReg_`, `limitInReg_`), y calcula la rampa trapezoidal de velocidad cada 20 ms en `updateMotionProfile()` (soportando cambios de velocidad de crucero en vuelo mediante `setCruiseSpeed()`).
-   * **Seguridad en tiempo real duro dentro de la ISR:**
-     * Al subir (`!dirDown_`), lee directamente el registro de entrada del puerto (`*limitInReg_ & limitBitMask_`) en cada tick de 50 µs; en cuanto se activa el fin de carrera superior (`limitSwitchActiveLow`), detiene el motor en el acto y fija `currentSteps_ = 0` (`HOME = 0`).
-     * En secuencia `home()`, tras tocar el fin de carrera retrocede `Z_HOME_BACKOFF_STEPS` hacia abajo y establece el cero definitivo.
-     * Al bajar (`dirDown_`), evalúa `currentSteps_ >= maxTravelSteps_` en la propia ISR, deteniendo el eje inmediatamente y activando `softLimitTripped_` (`ERR-202` / `ERR-212`).
-   * Incluye movimientos manuales seguros `jogUp()` (reinicia el contador a `0` al tocar el fin de carrera) y `jogDown()` (acotado por `maxTravelSteps_`).
+   * Gobierna los drivers de motor a pasos (TB6600) de los ejes verticales `FillZ` (Z1) y `CapZ` (Z2) con pulsos `STEP` a 20 kHz desde la ISR del Timer3 y vigilancia en tiempo real de fin de carrera superior (`HOME = 0`) y `softLimitTripped_` (`ERR-202` / `ERR-212`).
+   * Al deshabilitar el driver (`setDriverEnabled(false)`), invalida de forma atómica `homingPhase_ = HomingPhase::Unhomed` para garantizar que jamás se ejecute un descenso sin re-referenciar el eje a cero.
 
 5. **[`BottleGate`](file:///home/think/@ut/SMF-E3/lib/BottleGate/bottle_gate.hpp):**
-   * Administra el par de servomotores de cada estación (*brazo de tope* y *brazo de sujeción*).
-   * Soporta inversión de giro mecánico por servomotor mediante `ServoDir::CW` (ángulo directo `0°..180°`) o `ServoDir::CCW` (`180° - ángulo`).
-   * Ofrece accionamiento individual (`lowerStopArm()`, `raiseStopArm()`, `lowerClampArm()`, `raiseClampArm()`), levantamiento inmediato (`raiseArmsImmediate()`) y secuencia no bloqueante de liberación escalonada (`releaseBottle()`).
+   * Administra el par de servomotores de cada estación (*brazo de tope* y *brazo de sujeción*) con inversión `CW`/`CCW`, accionamiento individual (`lowerStopArm()`, `raiseStopArm()`, `lowerClampArm()`, `raiseClampArm()`), levantamiento inmediato (`raiseArmsImmediate()`) y liberación escalonada (`releaseBottle()`).
 
 6. **[`FillPump`](file:///home/think/@ut/SMF-E3/lib/FillPump/fill_pump.hpp):**
-   * Controla la bomba de dosificación (con polaridad activa en alto o bajo configurable mediante `PUMP_RELAY_ACTIVE_LOW`) y corte autónomo de seguridad al alcanzar `MAX_PUMP_ON_MS`, independientemente del estado de la FSM.
+   * Controla la bomba de dosificación (polaridad `PUMP_RELAY_ACTIVE_LOW`) y corte autónomo de seguridad al alcanzar `MAX_PUMP_ON_MS` (`12500 ms`).
 
 7. **[`AlarmBuzzer`](file:///home/think/@ut/SMF-E3/lib/AlarmBuzzer/alarm_buzzer.hpp):**
-   * Generador no bloqueante de patrones acústicos (`Silent`, `BootReady`, `Warning`, `Fault`, `EmergencyStop`) mediante `millis()` y soporte de accionamiento directo (`setManualOverride()`), evitando el uso de `tone()` para no interferir con el Timer2 (PWM de la banda en Pin 10).
+   * Generador no bloqueante de patrones acústicos (`Silent`, `BootReady`, `Warning`, `Fault`, `EmergencyStop`) mediante `millis()` respetando en tiempo real `ConfigFlags::BUZZER_ENABLED` y sin interferir con Timer2.
 
 8. **[`DisplayManager`](file:///home/think/@ut/SMF-E3/lib/DisplayManager/display_manager.hpp):**
-   * Arquitectura HMI modularizada: el núcleo ([`display_manager.cpp`](file:///home/think/@ut/SMF-E3/lib/DisplayManager/display_manager.cpp)) gestiona la inicialización del bus TFT (`MCUFRIEND_kbv`), la barra de navegación inferior y el muestreo táctil (`TouchScreen`), delegando cada vista a su propia unidad de traducción ([`screen_home.cpp`](file:///home/think/@ut/SMF-E3/lib/DisplayManager/screen_home.cpp), [`screen_automaton.cpp`](file:///home/think/@ut/SMF-E3/lib/DisplayManager/screen_automaton.cpp), [`screen_debug.cpp`](file:///home/think/@ut/SMF-E3/lib/DisplayManager/screen_debug.cpp), [`screen_settings.cpp`](file:///home/think/@ut/SMF-E3/lib/DisplayManager/screen_settings.cpp)) con tema visual y widgets compartidos en [`ui_theme.hpp`](file:///home/think/@ut/SMF-E3/lib/DisplayManager/ui_theme.hpp) y catálogo de textos `PROGMEM` en [`ui_strings.hpp`](file:///home/think/@ut/SMF-E3/lib/DisplayManager/ui_strings.hpp).
-   * Restaura inmediatamente la dirección `OUTPUT` y el estado `HIGH` de los pines compartidos (`XM = A2/LCD_RS`, `YP = A1/LCD_WR`, `XP = 6`, `YM = 7`) tras cada lectura táctil en `restoreSharedTftPins()`.
-   * Implementa **filtro de retención táctil (`TOUCH_RELEASE_TICKS = 3`) y *cooldown* antirrebote (`TOUCH_COOLDOWN_MS = 220 ms`)** para impedir dobles pulsaciones por ruido eléctrico al conmutar motores o relés.
+   * Arquitectura HMI modularizada (`display_manager.cpp`, `screen_home.cpp`, `screen_automaton.cpp`, `screen_debug.cpp`, `screen_settings.cpp`, `ui_theme.hpp`, `ui_strings.hpp/.cpp`, `ui_icons.hpp`).
+   * Soporta **3 subpáginas en `Settings`**, el **`OVERLAY V/I`** superpuesto en esquina superior derecha (`CLAMP/FILL ADC | A`) y la vista **`ManualRecovery` a pantalla completa bloqueada**.
 
 ---
 
@@ -170,19 +165,19 @@ El firmware evita el uso de RTOS para preservar los 8 KB de SRAM (~16.1 % de uso
 
 ### 4.1 Modos Globales en `StationController` (`StationMode`)
 
-[`StationController`](file:///home/think/@ut/SMF-E3/src/station/station_controller.hpp) utiliza [`StationHardwareFactory`](file:///home/think/@ut/SMF-E3/src/station/station_hardware_factory.hpp) para instanciar sus periféricos HAL y organiza su lógica de supervisión en manejadores dedicados por modo (`updateBootMode()`, `updateRunningMode()`, `updateTestMode()`, `handleTestModeCommand()`).
+[`StationController`](file:///home/think/@ut/SMF-E3/src/station/station_controller.hpp) utiliza [`StationHardwareFactory`](file:///home/think/@ut/SMF-E3/src/station/station_hardware_factory.hpp) para instanciar los periféricos HAL y coordina ambos autómatas:
 
 | Modo (`StationMode`) | Comportamiento y Transiciones |
 | :---- | :---- |
-| **`Boot`** | Estado inicial al energizar (si `E-STOP` no está activo). Levanta los 4 brazos, apaga bomba/banda/cabezal y ejecuta el *homing* simultáneo de `FillZ` (y `CapZ` si `ENABLE_CAPPING_STATION = true`). Al llegar ambos ejes a `Home`, activa torreta verde, emite 2 pitidos (`BootReady`) y pasa a `Running`. Si excede `Z_HOMING_TIMEOUT_MS`, salta a `ErrorStop` (`ERR-201` / `ERR-211`). |
-| **`Running`** | Operación automática en línea. Mantiene la banda en marcha continua (pausándola suavemente con `pauseSmooth()` únicamente mientras `isHoldingBottle()` está activo en cualquiera de los autómatas) y ejecuta en paralelo `FillingAutomaton` y `CappingAutomaton`. Cualquier fallo habilitado en `ProcessParams::isErrorEnabled()` transiciona toda la estación a `ErrorStop`. |
-| **`ErrorStop`** | Parada segura inmediata: apaga la bomba, detiene el motor de apriete, aplica freno dinámico a la banda (`conveyor_.brake()`), detiene y deshabilita los drivers de ambos ejes Z (`EN` inactivo), enciende la luz roja de la torreta y activa el patrón acústico de alarma. Al liberar `E-STOP` y presionar `RECONOCER ALARMA` en pantalla (o el botón físico `RESET`), pasa a `ManualRecovery`. |
-| **`ManualRecovery`** | Silencia el buzzer y muestra la pantalla `Settings` con los 4 botones de despeje asistido (`SUBIR Z LLENADO`, `SUBIR Z TAPADO`, `SOLTAR BRAZOS`, `LINEA DESPEJADA`). Al confirmar `LINEA DESPEJADA` (o presionar el botón físico `START`), reinicia `Boot`. |
-| **`TestMode`** | **Modo de prueba manual y calibración en banco/planta.** Se activa/desactiva desde el checkbox **`TEST MODE`** en la pestaña `Settings` (permitiendo operar incluso sin la botonera física conectada). Detiene las FSM automáticas, habilita los drivers de los ejes Z y transforma las pantallas `Home`, `AutoFill` y `AutoCap` en paneles de control manual individual para cada actuador, mientras `Debug` muestra en tiempo real las entradas digitales, pasos Z y corriente/voltaje de banda. |
+| **`Boot`** | Estado inicial al energizar (si `E-STOP` no está activo). Levanta brazos, apaga actuadores y ejecuta *homing* simultáneo de los ejes habilitados (`FILL_STATION` / `CAP_STATION`). Al concluir, activa torreta verde, emite 2 pitidos (`BootReady`) y pasa a `Running`. |
+| **`Running`** | Operación automática en línea. Coordina la banda (pausa por `STOP` físico o mientras algún autómata retiene botella), actualiza ambos autómatas y la cola WIP. Ante falla crítica (`ERR-101..303`, `ERR-901`), entra a `ErrorStop`; ante alarma de visión (`ERR-304`), detiene la banda y activa torreta/buzzer permitiendo a Llenado completar su ciclo hasta `WaitingQueueSlot` y reanudar sin reiniciar `Boot`. |
+| **`ErrorStop`** | Parada segura inmediata: apaga bomba y motor de apriete, aplica freno dinámico a la banda (`conveyor_.brake()`), deshabilita drivers Z (marcándolos `Unhomed`), enciende luz roja y activa alarma acústica. Al liberar `E-STOP` y presionar el banner rojo en `Home` (o `RESET`), pasa a `ManualRecovery`. |
+| **`ManualRecovery`** | Toma el control de toda la pantalla (`320×240`), ocultando y bloqueando la barra de navegación inferior para impedir salir hasta resolver la falla. Muestra la causa del paro, posición en vivo y `[HOME]` de `Z1`/`Z2`, estado de `ESTOP`, y botones grandes para `SUBIR Z1 (+JOG)`, `SUBIR Z2 (+JOG)`, `SOLTAR BRAZOS DE RETENCION` y `LINEA DESPEJADA` (que reinicia `Boot`, también confirmable con `START`). |
+| **`TestMode`** | Modo de prueba manual y calibración en banco/planta activado desde `AJUSTES 1/3`. Desbloquea la prueba individual de actuadores en `Home`, `AutoFill` y `AutoCap` mientras `Debug` muestra telemetría en vivo. |
 
 ### 4.2 Flujo de Estados de `FillingAutomaton` y `CappingAutomaton`
 
-Ambos autómatas heredan de la plantilla base **[`StationAutomatonBase<StateEnum>`](file:///home/think/@ut/SMF-E3/src/station/station_automaton_base.hpp)**, que implementa el motor común del patrón **FSM de 3 fases (`onEntry`, `onDuring`, `onExit`)**, la gestión de sensores ópticos/compuertas/eje Z, el filtrado de pérdida de botella (`BOTTLE_LOST_GRACE_MS`), el predicado `isHoldingBottle()` y el disparo de fallos filtrado por `ProcessParams::isErrorEnabled()`:
+Ambos autómatas heredan de **[`StationAutomatonBase<StateEnum>`](file:///home/think/@ut/SMF-E3/src/station/station_automaton_base.hpp)**, con soporte por instancia de `singleSensorFlagMask_` (`ConfigFlags::FILL_SINGLE_POS_SENSOR` o `ConfigFlags::CAP_SINGLE_POS_SENSOR`):
 
 ```mermaid
 flowchart TD
@@ -193,10 +188,11 @@ flowchart TD
     Process["Filling (Bomba ON por fillMs) / TighteningCap (Motor DC + vigilancia IS)"]
     Drain["Draining (Escurrimiento DRIP_MS, solo en Llenado)"]
     RaiseZ["RaisingNozzle / RaisingHead (Sube eje Z hasta FC superior = 0)"]
-    WaitQ["WaitingQueueSlot (Espera cupo en cola intermedia, solo en Llenado)"]
-    Release["ReleasingBottle (Sube sujeción y tras RELEASE_GAP_MS sube tope)"]
+    WaitQ["WaitingQueueSlot (Solo Llenado: espera cupo WIP y !linePaused_ y !E304)"]
+    Vision["VisionInspect (Solo Tapado: avance opcional + espera VISION_SETTLE_MS)"]
+    Release["ReleasingBottle (Libera brazos; espera RELEASE_MS && POS == OFF)"]
 
-    Idle -->|"presenceSensor_ == ON && !needsClear_"| StopArm
+    Idle -->|"PRE (o POS si modo 1 sensor) == ON && !needsClear_"| StopArm
     StopArm -->|"positionSensor_ == ON (< CLAMP_SENSOR_TIMEOUT_MS)"| ClampArm
     StopArm -->|"Timeout 3000 ms"| Err101["ERR-101 / ERR-102 (Botella perdida)"]
     ClampArm -->|"ARM_MOVE_MS (600 ms) && positionSensor_ == ON"| LowerZ
@@ -205,41 +201,32 @@ flowchart TD
     LowerZ -->|"Timeout / Soft Limit"| Err200["ERR-202..203 / ERR-212..213"]
     Process -->|"fillMs cumplido (Llenado)"| Drain
     Process -->|"TIGHTEN_MS cumplido (Tapado)"| RaiseZ
-    Process -->|"IS >= CHUCK_CURRENT_LIMIT_ADC o Stall"| Err300["ERR-301 / ERR-302"]
+    Process -->|"IS >= Limite / Stall"| Err300["ERR-301 / ERR-302"]
     Drain -->|"DRIP_MS (1000 ms)"| RaiseZ
-    RaiseZ -->|"limitSwitch_ == ON (Home = 0)"| WaitQ
-    WaitQ -->|"Cola con cupo (o en Tapado directo)"| Release
-    Release -->|"RELEASE_MS (1500 ms)"| Idle
+    RaiseZ -->|"limitSwitch_ == ON (Home = 0) [Llenado]"| WaitQ
+    RaiseZ -->|"limitSwitch_ == ON (Home = 0) [Tapado]"| Vision
+    Vision -->|"Tapa OK (o visión deshabilitada)"| Release
+    Vision -->|"Sin tapa tras VISION_SETTLE_MS"| Err304["ERR-304 (Pausa banda, Llenado termina a WaitQ)"]
+    Err304 -->|"Operador coloca tapa + START/RESET/Banner"| Release
+    WaitQ -->|"Permiso de liberación activo"| Release
+    Release -->|"RELEASE_MS && positionSensor_ == OFF"| Idle
 ```
 
 ---
 
-## 5. Interfaz HMI de 5 Pestañas (`DisplayManager`)
+## 5. Interfaz HMI de 5 Pestañas (`DisplayManager`) y Activos Figma
 
-La pantalla TFT 320×240 mantiene fija una barra de navegación inferior (`Y = 190..239`) con 5 pestañas e iconos `48×48` en `PROGMEM` ([`lib/DisplayManager/ui_icons.hpp`](file:///home/think/@ut/SMF-E3/lib/DisplayManager/ui_icons.hpp)). Al cambiar de pestaña, solo se redibujan los 2 iconos de navegación que cambiaron de color (`drawSingleNavTab`) y el área de contenido necesaria:
+La pantalla TFT 320×240 mantiene fija una barra de navegación inferior (`Y = 190..239`) con 5 pestañas e iconos `48×48` vectoriales en `PROGMEM` ([`lib/DisplayManager/ui_icons.hpp`](file:///home/think/@ut/SMF-E3/lib/DisplayManager/ui_icons.hpp)), salvo en `ManualRecovery` donde la pantalla se bloquea a pantalla completa.
 
-1. **Pestaña 1 — `Home` (Pantalla Principal):**
-   * **Modo Normal:** Muestra el banner superior de modo global, contador de botellas producidas (`PROD`), cola intermedia (`COLA`), estado resumido de `LLENADO` y `TAPADO`, y recuadro inferior de alarma (que se convierte en el botón táctil **`RECONOCER ALARMA`** cuando la estación está en `ErrorStop`).
-   * **En `TestMode`:** Muestra una cuadrícula de 4 botones manuales: **`BANDA: ON/OFF`**, **`BUZZER: ON/OFF`**, **`LUZ VERDE: ON/OFF`** y **`LUZ ROJA: ON/OFF`**.
-
-2. **Pestaña 2 — `AutoFill` (Autómata 1: Llenado):**
-   * **Modo Normal:** Muestra el estado actual del proceso de llenado y dosificación.
-   * **En `TestMode`:** Muestra en el encabezado la posición en vivo **`Z1: xxxx`** (con indicador `H` cuando pisa el fin de carrera) y 5 botones táctiles: **`TOPE 1: ARRIBA/ABAJO`**, **`SUJEC 1: ARRIBA/ABAJO`**, **`BOMBA LLENADO: ENCENDIDA/APAGADA`**, **`SUBIR Z1 (+JOG)`** y **`BAJAR Z1 (-JOG)`**.
-
-3. **Pestaña 3 — `AutoCap` (Autómata 2: Tapado):**
-   * **Modo Normal:** Muestra el estado actual del proceso de tapado y apriete.
-   * **En `TestMode`:** Muestra en el encabezado la posición en vivo **`Z2: xxxx`** y 5 botones táctiles: **`TOPE 2: ARRIBA/ABAJO`**, **`SUJEC 2: ARRIBA/ABAJO`**, **`MOTOR APRIETE: ENCENDIDO/APAGADO`**, **`SUBIR Z2 (+JOG)`** y **`BAJAR Z2 (-JOG)`**.
-
-4. **Pestaña 4 — `Debug` (Diagnóstico y Telemetría I/O en Tiempo Real):**
-   * **Tarjeta 1 (Sensores Ópticos y Limit Switches):** Muestra el estado en vivo `[ON ]` / `[OFF]` de `PRE1` (Pin 15), `POS1` (Pin 16), `FC-Z1` (Pin 23), `PRE2` (Pin 17), `POS2` (Pin 18) y `FC-Z2` (Pin 25).
-   * **Tarjeta 2 (Botonera Física y E-STOP):** Muestra el estado en vivo `[ON ]` / `[OFF]` de `STRT` (Pin 46), `STOP` (Pin 48), `RST` (Pin 52) y `ESTOP` (Pin 50, resaltado en rojo al activarse).
-   * **Tarjeta 3 (Posición Ejes Z):** Cuenta de micropasos en tiempo real de `Z1 (LLENADO)` y `Z2 (TAPADO)` desde `0`, mostrando `[HOME=0]` en verde cuando el eje toca su fin de carrera superior.
-   * **Tarjeta 4 (Banda y Alarma):** Muestra la tensión efectiva enviada al motor (`V`), el ciclo `PWM` (`0..255`), la lectura del espejo de corriente `IS` en `A8` (`ADC`) y el código de alarma activa.
-
-5. **Pestaña 5 — `Settings` (Configuración, Modo Test y Recuperación Manual):**
-   * **Checkbox `TEST MODE` (`48×48 px`):** Activa o desactiva `StationMode::TestMode` en cualquier momento.
-   * **Selector de Perfil (`PEQUENA` / `GRANDE`):** Botón `CAMBIAR PERFIL` habilitado cuando ambos autómatas están en reposo.
-   * **Botonera de Recuperación Manual:** Botones `SUBIR Z LLENADO`, `SUBIR Z TAPADO`, `SOLTAR BRAZOS` y `LINEA DESPEJADA` (activos en `ManualRecovery`).
+1. **Pestaña 1 — `Home`:** Estado global, `LLENADO`, `TAPADO`, `COLA`, `PERFIL`, `PROD` y banner inferior de alarma (táctil para `ErrorStop` y `E304`). En `TestMode`, controla `BANDA`, `BUZZER`, `TORRE VERDE` y `TORRE ROJA`.
+2. **Pestaña 2 — `AutoFill`:** Fase, `PRE1`/`POS1` y `BOMBA / EJE Z1`. En `TestMode`, controla `TOPE 1`, `SUJEC 1`, `BOMBA LLENADO`, `SUBIR Z1 (+JOG)` y `BAJAR Z1 (-JOG)`.
+3. **Pestaña 3 — `AutoCap`:** Fase (incluyendo `VERIFICANDO TAP`), `PRE2`/`POS2` y `PWM`/`IS`/`Z2`. En `TestMode`, controla `TOPE 2`, `SUJEC 2`, `MOTOR APRIETE`, `SUBIR Z2 (+JOG)` y `BAJAR Z2 (-JOG)`.
+4. **Pestaña 4 — `Debug`:** Diagnóstico en vivo `[ON ]` / `[OFF]` de `PRE1`, `POS1`, `FC-Z1`, `PRE2`, `POS2`, `FC-Z2`, botonera (`STRT`, `STOP`, `RST`, `ESTOP`), pasos `Z1`/`Z2` y telemetría de banda (`V`, `PWM`, `IS ADC`, alarma).
+5. **Pestaña 5 — `Settings` (3 Subpáginas Interactivas con botón `PAG SIG. >>`):**
+   * **`AJUSTES 1/3`:** `TEST MODE`, `OVERLAY V/I` (HUD flotante amarillo de `CLAMP`/`FILL` en `ADC | A`), `EST. LLENADO`, `EST. TAPADO` y selector de `FORMATO` (`CAMBIAR PERFIL`).
+   * **`AJUSTES 2/3`:** `VISION ESP32`, `AVANCE VISION`, `COLA WIP`, `BUZZER ALARMA`, `COMP. I*R` y `ATASCO BANDA` (`E303`).
+   * **`AJUSTES 3/3`:** `E101/102 BOT.`, `E201..214 EJES`, `E301/02 APR.`, `E901 E-STOP`, **`SOLO POS1 LLEN`** (`Ignorar PRE1`) y **`SOLO POS2 TAP.`** (`Ignorar PRE2`).
+6. **Activos SVG editables para Figma (`assets/ui/`):** Incluye el tablero maestro [hmi_figma_master.svg](file:///home/think/@ut/SMF-E3/assets/ui/hmi_figma_master.svg) y las 12 vistas individuales (`layout_base.svg`, `screen_home.svg`, `screen_home_test.svg`, `screen_auto_fill.svg`, `screen_auto_fill_test.svg`, `screen_auto_cap.svg`, `screen_auto_cap_test.svg`, `screen_debug.svg`, `screen_settings.svg`, `screen_settings_p2.svg`, `screen_settings_p3.svg`, `screen_recovery.svg`) con todos los iconos `48×48` convertidos a trazos vectoriales `<path>`.
 
 ---
 
@@ -249,14 +236,13 @@ La pantalla TFT 320×240 mantiene fija una barra de navegación inferior (`Y = 1
 | :---- | :---- | :---- | :---- |
 | **TFT 2.4" + Touch** | `PIN_TFT_RD`, `WR`, `RS`, `CS`, `RST` | `A0` – `A4` | Bus de control TFT (`D2`–`D9` = bus paralelo de datos de 8 bits). |
 | **Panel Táctil** | `PIN_TOUCH_XP`, `XM`, `YP`, `YM` | `6`, `A2`, `A1`, `7` | Líneas resistivas compartidas con el bus TFT (`restoreSharedTftPins()`). |
-| **Banda (BTS7960)** | `PIN_BTS_CONV_RPWM` | `10` | Salida PWM Timer2 (`OC2A`, 490 Hz). `LPWM` cableado a GND. |
-| **Banda (BTS7960)** | `PIN_BTS_CONV_EN` | `12` | Habilitación del puente H de la banda (`R_EN` + `L_EN`). |
+| **Banda (BTS7960)** | `PIN_BTS_CONV_RPWM`, `EN` | `10`, `12` | Salida PWM Timer2 (`OC2A`, 490 Hz) y habilitación. `LPWM` a GND. |
 | **Banda (Corriente)** | `PIN_ADC_CONV_CURRENT` | `A8` | Entrada analógica conectada a `R_IS` del BTS7960 (~24 cuentas ADC/A). |
-| **Apriete (BTS7960)** | `PIN_BTS_CHUCK_RPWM` | `11` | Salida PWM Timer1 (`OC1A`, 490 Hz) para el cabezal de tapado. |
-| **Apriete (BTS7960)** | `PIN_BTS_CHUCK_EN` | `32` | Habilitación del puente H del cabezal de apriete. |
+| **Apriete (BTS7960)** | `PIN_BTS_CHUCK_RPWM`, `EN` | `11`, `32` | Salida PWM Timer1 (`OC1A`, 490 Hz) y habilitación del cabezal de tapado. |
 | **Apriete (Corriente)** | `PIN_ADC_CHUCK_CURRENT` | `A9` | Entrada analógica conectada a `R_IS` del BTS7960 de apriete. |
 | **Sensores Llenado** | `PIN_PRESENCE_FILL`, `PIN_POS_FILL` | `15`, `16` | Sensores ópticos de aproximación (15) y posición exacta (16) en Llenado. |
 | **Sensores Tapado** | `PIN_PRESENCE_CAP`, `PIN_POS_CAP` | `17`, `18` | Sensores ópticos de aproximación (17) y posición exacta (18) en Tapado. |
+| **Visión Artificial** | `PIN_VISION_SENSOR` | `22` | Entrada digital directa 3.3 V desde ESP32 (`INPUT` sin pull-up; requiere GND común). |
 | **Fines de Carrera Z** | `PIN_LIMIT_SWITCH_FILL`, `CAP` | `23` (`PA1`), `25` (`PA3`) | Fines de carrera superiores (`INPUT_PULLUP`, leídos por registro en ISR). |
 | **Stepper Z2 (Tapado)** | `EN`, `DIR`, `STEP` | `27`, `29`, `31` (`PC6`) | Driver TB6600 del eje Z de tapado (`STEP` emitido por registro en ISR). |
 | **Stepper Z1 (Llenado)** | `EN`, `DIR`, `STEP` | `33`, `35`, `37` (`PC0`) | Driver TB6600 del eje Z de llenado (`STEP` emitido por registro en ISR). |
@@ -270,18 +256,13 @@ La pantalla TFT 320×240 mantiene fija una barra de navegación inferior (`Y = 1
 
 ## 7. Guía Rápida de Calibración en Planta (`include/config/process_params.hpp`)
 
-Con el **`TEST MODE`** integrado en la pantalla `Settings` y la telemetría en vivo en `Debug`, la puesta a punto de la estación sigue 4 pasos directos:
+Con el **`TEST MODE`** y las opciones en vivo de **`Settings` (`1/3..3/3`)**, la puesta a punto sigue 5 pasos directos:
 
-1. **Verificar Entradas (`Debug`):**
-   * Pasar una botella frente a los 4 sensores ópticos (`PRE1`, `POS1`, `PRE2`, `POS2`) y pulsar los fines de carrera (`FC-Z1`, `FC-Z2`) verificando que pasen de `[OFF]` a `[ON ]`. Si la polaridad de los sensores ópticos cambia según el modelo (NPN vs PNP), ajustar `OPTICAL_ACTIVE_HIGH` en `process_params.hpp`.
-2. **Ajustar Sentido y Ángulos de Servomotores (`Auto 1` / `Auto 2` en `TestMode`):**
-   * Probar `TOPE 1`, `SUJEC 1`, `TOPE 2` y `SUJEC 2`. Si un brazo gira en sentido opuesto por su montaje mecánico, cambiar su constante `FILL_STOP_DIR`, `FILL_CLAMP_DIR`, `CAP_STOP_DIR` o `CAP_CLAMP_DIR` entre `ServoDir::CW` y `ServoDir::CCW`.
-3. **Medir Cotas de los Ejes Z1 y Z2 (`Auto 1` / `Auto 2` y `Debug` en `TestMode`):**
-   * Subir cada eje con `+JOG` hasta tocar su fin de carrera superior (`[HOME=0]`, donde el contador de pasos se pone en `0`).
-   * Bajar con `-JOG` (`Z_JOG_STEPS` por toque) hasta la altura exacta de la botella pequeña y grande, leer los pasos acumulados en pantalla y anotarlos en `BOTTLE_PROFILES[]` (`fillZSteps` y `capZSteps`).
-4. **Calibrar Velocidad y Corriente de la Banda (`Home` y `Debug` en `TestMode`):**
-   * Encender la banda en vacío y observar `IS: xxxx ADC` en `Debug` para fijar `BELT_IDLE_CURRENT_ADC`.
-   * Colocar la carga máxima (botellas llenas retenidas en los topes), observar la lectura `IS` y anotarla en `BELT_FULL_LOAD_ADC`, activando `ENABLE_BELT_IR_COMP = true` si se desea compensación automática de tensión entre `BELT_TARGET_MV` y `BELT_MAX_BOOST_MV`.
+1. **Verificar Entradas (`Debug`):** Pasar una botella frente a `PRE1`, `POS1`, `PRE2`, `POS2` y pulsar `FC-Z1`, `FC-Z2` verificando `[OFF]` $\rightarrow$ `[ON ]`. Ajustar `OPTICAL_ACTIVE_HIGH` si cambia la lógica del sensor. Si el acople anterior entrega las botellas sobre el sensor de entrada, habilitar `ENABLE_FILL_SINGLE_POS_SENSOR` y/o `ENABLE_CAP_SINGLE_POS_SENSOR` (o activarlo en caliente en `AJUSTES 3/3`).
+2. **Ajustar Sentido y Ángulos de Servomotores (`Auto 1` / `Auto 2` en `TestMode`):** Probar `TOPE 1`, `SUJEC 1`, `TOPE 2` y `SUJEC 2` ajustando `ServoDir::CW` / `CCW` según el montaje físico.
+3. **Medir Cotas de los Ejes Z1 y Z2 (`Auto 1` / `Auto 2` y `Debug` en `TestMode`):** Subir a `[HOME=0]` con `+JOG` y bajar con `-JOG` para registrar `fillZSteps`, `capEngageSteps` y `capZSteps` en `BOTTLE_PROFILES[]`.
+4. **Calibrar Banda y Corriente (`Home`, `Debug` y `OVERLAY V/I`):** Medir `IS: xxxx ADC` en vacío (`BELT_IDLE_CURRENT_ADC`) y con carga máxima (`BELT_FULL_LOAD_ADC`), activando `COMP. I*R` o `ATASCO BANDA` desde `AJUSTES 2/3`.
+5. **Ajustar Visión Artificial (`AJUSTES 2/3` y `process_params.hpp`):** Conectar salida digital del ESP32 al Pin 22 + GND común, definir `VISION_ALARM_ACTIVE_HIGH`, activar `AVANCE VISION` (`VISION_ADVANCE_MS`) si la cámara está después del tope 2, y ajustar `VISION_SETTLE_MS` al tiempo de inferencia de MATLAB/ESP32.
 
 ---
 
@@ -291,10 +272,15 @@ Con el **`TEST MODE`** integrado en la pantalla `Settings` y la telemetría en v
 SMF-E3/
 ├── platformio.ini                       # Configuración de entorno megaatmega2560 y librerías fijas
 ├── README.md                            # Documentación técnica integral y guía de la estación
+├── assets/
+│   └── ui/                              # Exportación fiel del HMI y librería de componentes SVG para Figma
+│       ├── hmi_figma_master.svg         # Tablero maestro con las 11 pantallas, iconos, banners y paleta
+│       ├── layout_base.svg              # Barra inferior base de 5 pestañas
+│       ├── screen_*.svg                 # Pantallas individuales (home, auto_fill, auto_cap, debug, settings p1..p3, recovery, test)
 ├── include/
 │   ├── config/
 │   │   ├── hardware_pins.hpp            # Mapeo centralizado de pines GPIO/ADC y validación static_assert
-│   │   └── process_params.hpp           # Parámetros cinemáticos, temporales, eléctricos, errores y perfiles
+│   │   └── process_params.hpp           # Parámetros por defecto, flags en tiempo de ejecución y perfiles
 │   └── types/
 │       └── station_types.hpp            # Enums (ErrorCode, StationMode, TouchCommand), flags y snapshots
 ├── lib/
@@ -302,24 +288,24 @@ SMF-E3/
 │   ├── BottleGate/                      # HAL: Control de pares de servomotores con dirección CW/CCW
 │   ├── ConveyorController/              # HAL: Rampa trapezoidal de banda, compensación I*R y atasco IS
 │   ├── DcMotorBts7960/                  # HAL: Puente H BTS7960 con PWM nativo y muestreo ADC sincronizado
-│   ├── DigitalSensor/                   # HAL: Entradas discretas con antirrebote y detección de flancos
+│   ├── DigitalSensor/                   # HAL: Entradas discretas con antirrebote y pull-up configurable
 │   ├── DisplayManager/                  # HMI modular para TFT 2.4" ILI9341 (320x240)
-│   │   ├── display_manager.hpp/.cpp     # Driver principal, barra de navegación y muestreo táctil
+│   │   ├── display_manager.hpp/.cpp     # Driver principal, navegación bloqueada en Recovery y panel táctil
 │   │   ├── ui_theme.hpp                 # Paleta RGB565, coordenadas UiLayout y widgets compartidos
 │   │   ├── ui_strings.hpp/.cpp          # Catálogo centralizado de textos en PROGMEM
-│   │   ├── ui_icons.hpp                 # Iconos bitmap 48x48 en PROGMEM para la barra de navegación
+│   │   ├── ui_icons.hpp                 # Iconos bitmap 48x48 en PROGMEM
 │   │   ├── screen_home.cpp              # Renderizado de la pestaña Home (normal y TestMode)
 │   │   ├── screen_automaton.cpp         # Renderizado de las pestañas AutoFill y AutoCap
-│   │   ├── screen_debug.cpp             # Renderizado de la pestaña Debug (telemetría I/O en tiempo real)
-│   │   └── screen_settings.cpp          # Renderizado de la pestaña Settings (perfiles, TestMode y despeje)
+│   │   ├── screen_debug.cpp             # Renderizado de la pestaña Debug y HUD OVERLAY V/I
+│   │   └── screen_settings.cpp          # Renderizado de Ajustes 1/3..3/3 y ManualRecovery pantalla completa
 │   ├── FillPump/                        # HAL: Bomba de dosificación con corte de seguridad MAX_PUMP_ON_MS
 │   └── StepperAxis/                     # HAL: Ejes Z paso a paso por ISR en Timer3 COMPB @ 20 kHz
 └── src/
     ├── station/
-    │   ├── station_automaton_base.hpp   # Plantilla base FSM de 3 fases para autómatas de estación
+    │   ├── station_automaton_base.hpp   # Plantilla base FSM de 3 fases, congelamiento de timers y modo 1 sensor
     │   ├── station_hardware_factory.hpp # Fábrica estática de inicialización de periféricos HAL
-    │   ├── station_controller.hpp/.cpp  # Mediador central (Modos, TestMode, Banda, Cola, I/O y Snapshots)
+    │   ├── station_controller.hpp/.cpp  # Mediador central (Modos, TestMode, Visión, Banda, Cola y Snapshots)
     │   ├── filling_automaton.hpp/.cpp   # FSM del Autómata 1 (Llenado)
-    │   └── capping_automaton.hpp/.cpp   # FSM del Autómata 2 (Tapado con descenso en 2 etapas)
+    │   └── capping_automaton.hpp/.cpp   # FSM del Autómata 2 (Tapado en 2 etapas + VisionInspect)
     └── main.cpp                         # Punto de entrada y planificador cooperativo (1 ms / 20 ms / 50 ms)
 ```
