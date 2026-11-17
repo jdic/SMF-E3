@@ -136,11 +136,11 @@ protected:
     }
 
     /**
-     * @brief Libera el candado de re-disparo cuando ambos sensores ópticos quedan despejados.
+     * @brief Libera el candado de re-disparo cuando el sensor de aproximación queda despejado.
      */
     void updateClearLock()
     {
-        if (needsClear_ && !presenceSensor_.isTriggered() && !positionSensor_.isTriggered())
+        if (needsClear_ && !presenceSensor_.isTriggered())
         {
             needsClear_ = false;
         }
@@ -149,13 +149,14 @@ protected:
     /**
      * @brief Congela el temporizador de fases dependientes de movimiento cuando la banda está pausada.
      */
-    void updateBeltDependentTimer()
+    void updateBeltDependentTimer(bool extraBeltDependency = false)
     {
         const uint32_t nowMs = millis();
         const uint32_t dtMs  = nowMs - lastUpdateMs_;
         lastUpdateMs_ = nowMs;
 
         const bool dependsOnBelt =
+            extraBeltDependency ||
             (currentState_ == StateEnum::StopArmDown) ||
             ((currentState_ == StateEnum::ReleasingBottle) && !gate_.isWaitingToClearStop());
 
@@ -172,7 +173,8 @@ protected:
     {
         if (presenceSensor_.isTriggered() && !needsClear_)
         {
-            nextState_ = StateEnum::StopArmDown;
+            needsClear_ = true;
+            nextState_  = StateEnum::StopArmDown;
         }
     }
 
@@ -215,11 +217,11 @@ protected:
     }
 
     /**
-     * @brief Evalúa la fase común ReleasingBottle tras cumplirse RELEASE_MS.
+     * @brief Evalúa la fase común ReleasingBottle tras cumplirse RELEASE_MS y despejar el sensor de posición.
      */
     void evalReleasingBottle(uint32_t elapsedMs)
     {
-        if (elapsedMs >= ProcessParams::RELEASE_MS)
+        if ((elapsedMs >= ProcessParams::RELEASE_MS) && !positionSensor_.isTriggered())
         {
             nextState_ = StateEnum::Idle;
         }

@@ -271,6 +271,15 @@ void StepperAxis::stop()
 
 void StepperAxis::setDriverEnabled(bool enable)
 {
+    if (!enable)
+    {
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+        {
+            moving_ = false;
+            currentSpeedStepsPerSec_ = 0;
+            homingPhase_ = HomingPhase::Unhomed;
+        }
+    }
     const bool pinHigh = config_.enableActiveLow ? !enable : enable;
     digitalWrite(config_.enPin, pinHigh ? HIGH : LOW);
 }

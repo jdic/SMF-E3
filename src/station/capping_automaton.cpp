@@ -49,7 +49,18 @@ void CappingAutomaton::update()
     }
 
     updateClearLock();
-    updateBeltDependentTimer();
+
+    bool visionAdvancingBelt = false;
+    if ((currentState_ == CappingState::VisionInspect) &&
+        ProcessParams::hasConfigFlag(ConfigFlags::VISION_ADVANCE) &&
+        !isFirstRun_)
+    {
+        const uint32_t elapsed   = millis() - stageTimerMs_;
+        const uint32_t moveStart = ProcessParams::ARM_MOVE_MS;
+        const uint32_t moveEnd   = moveStart + ProcessParams::VISION_ADVANCE_MS;
+        visionAdvancingBelt = (elapsed >= moveStart) && (elapsed < moveEnd);
+    }
+    updateBeltDependentTimer(visionAdvancingBelt);
 
     if (nextState_ != currentState_)
     {
@@ -170,7 +181,6 @@ void CappingAutomaton::onEntry(CappingState state)
         case CappingState::ReleasingBottle:
             chuckMotor_.stop();
             bottleEvent_ = true;
-            needsClear_  = true;
             if (visionStopArmRaised_)
             {
                 gate_.raiseArmsImmediate();
@@ -239,7 +249,7 @@ void CappingAutomaton::onDuring(CappingState state)
 
         case CappingState::TighteningCap:
         {
-            const uint16_t currentAdc = chuckMotor_.sampleCurrentAdc();
+            const uint16_t currentAdc = chuckMotor_.getFilteredCurrentAdc();
             if (ProcessParams::isErrorEnabled(ErrorCode::ChuckOvercurrent) &&
                 (currentAdc >= ProcessParams::CHUCK_CURRENT_LIMIT_ADC))
             {

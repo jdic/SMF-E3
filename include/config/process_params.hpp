@@ -117,7 +117,7 @@ namespace ProcessParams
     // ==========================================
     constexpr bool     PUMP_RELAY_ACTIVE_LOW   = true;  ///< Nivel activo del relevador de la bomba (true = LOW, false = HIGH)
     constexpr uint16_t DRIP_MS                 = 1000;  ///< Tiempo de escurrimiento tras corte de bombeo [ms]
-    constexpr uint16_t MAX_PUMP_ON_MS          = 8000;  ///< Límite de seguridad de activación continua de bomba [ms]
+    constexpr uint16_t MAX_PUMP_ON_MS          = 12500; ///< Límite de seguridad de activación continua de bomba [ms]
 
     // ==========================================
     // APRIETE DE TAPA
@@ -273,4 +273,10 @@ namespace ProcessParams
         { 18443, 21240, 16400, 7500 },  // Small
         { 5600, 8800, 2800, 10500 }     // Large
     };
+
+    static_assert(
+        (MAX_PUMP_ON_MS > BOTTLE_PROFILES[static_cast<uint8_t>(BottleProfile::Small)].fillMs) &&
+        (MAX_PUMP_ON_MS > BOTTLE_PROFILES[static_cast<uint8_t>(BottleProfile::Large)].fillMs),
+        "Error en ProcessParams: MAX_PUMP_ON_MS debe ser mayor que fillMs en todos los perfiles de BOTTLE_PROFILES."
+    );
 }

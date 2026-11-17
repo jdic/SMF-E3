@@ -128,7 +128,6 @@ void FillingAutomaton::onEntry(FillState state)
 
         case FillState::ReleasingBottle:
             bottleEvent_ = true;
-            needsClear_  = true;
             gate_.releaseBottle();
             break;
     }

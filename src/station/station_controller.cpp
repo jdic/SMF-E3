@@ -348,6 +348,7 @@ void StationController::updateRunningMode(uint32_t nowMs)
     if (fillEnabled)
     {
         const bool canReleaseFromFill =
+            !linePaused_ &&
             !visionFaultBefore &&
             (!queueEnabled ||
              (interstageQueueCount_ < ProcessParams::MAX_INTERSTAGE_QUEUE));
@@ -383,9 +384,11 @@ void StationController::updateRunningMode(uint32_t nowMs)
     const bool fillHolding = fillEnabled && fillingAutomaton_.isHoldingBottle();
     const bool capHolding  = capEnabled && cappingAutomaton_.isHoldingBottle();
     const bool pauseBelt   = linePaused_ || fillHolding || capHolding;
+    const bool beltNotAtCruise =
+        pauseBelt || (conveyor_.getCurrentPwm() < ProcessParams::BELT_PWM);
 
-    fillingAutomaton_.setBeltPaused(pauseBelt);
-    cappingAutomaton_.setBeltPaused(pauseBelt);
+    fillingAutomaton_.setBeltPaused(beltNotAtCruise);
+    cappingAutomaton_.setBeltPaused(beltNotAtCruise);
 
     if (pauseBelt)
     {
@@ -586,6 +589,12 @@ void StationController::handleTouchCommand(TouchCommand cmd)
             break;
 
         case TouchCommand::ToggleFillStation:
+            if ((mode_ == StationMode::Running) &&
+                ProcessParams::hasConfigFlag(ConfigFlags::FILL_STATION) &&
+                !fillingAutomaton_.isIdle())
+            {
+                break;
+            }
             ProcessParams::runtimeConfigFlags() ^= ConfigFlags::FILL_STATION;
             if (!ProcessParams::hasConfigFlag(ConfigFlags::FILL_STATION))
             {
@@ -600,6 +609,13 @@ void StationController::handleTouchCommand(TouchCommand cmd)
             break;
 
         case TouchCommand::ToggleCapStation:
+            if ((mode_ == StationMode::Running) &&
+                ProcessParams::hasConfigFlag(ConfigFlags::CAP_STATION) &&
+                !cappingAutomaton_.isIdle() &&
+                (cappingAutomaton_.getState() != CappingState::VisionInspect))
+            {
+                break;
+            }
             ProcessParams::runtimeConfigFlags() ^= ConfigFlags::CAP_STATION;
             if (!ProcessParams::hasConfigFlag(ConfigFlags::CAP_STATION))
             {
