@@ -181,7 +181,7 @@ protected:
         const bool triggerActive = singleSensor
                                        ? positionSensor_.isTriggered()
                                        : presenceSensor_.isTriggered();
-        if (triggerActive && !needsClear_)
+        if (triggerActive && !needsClear_ && gate_.isSettled())
         {
             needsClear_ = true;
             nextState_  = StateEnum::StopArmDown;

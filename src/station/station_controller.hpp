@@ -104,6 +104,7 @@ public:
     uint8_t getQueueCount() const;
 
 private:
+    void enterLinePowerWait();
     void enterBootMode();
     void enterRunningMode();
     void enterErrorStop(ErrorCode error);
@@ -130,6 +131,7 @@ private:
     DigitalSensor      estopAux_;             ///< Contacto auxiliar de parada de emergencia
     DigitalSensor      btnReset_;             ///< Pulsador de rearme de alarmas (RESET)
     DigitalSensor      visionSensor_;         ///< Entrada digital de alarma de visión artificial (ESP32)
+    DigitalSensor      lineEnableSensor_;     ///< Habilitación global continua 5V desde Estación 1
 
     // Actuadores y controladores de lazo local
     BottleGate         fillGate_;             ///< Compuerta de retención de llenado
@@ -153,6 +155,8 @@ private:
     uint32_t           bottleCount_;          ///< Conteo total de botellas terminadas [unidades]
     uint32_t           bootStartTimeMs_;      ///< Marca de tiempo de inicio de secuencia de origen [ms]
     bool               linePaused_;           ///< Estado de pausa temporal solicitado por STOP
+    bool               homeBeltEnabled_;      ///< Checkbox de Home: habilita el giro de banda en modo Running
+    bool               waitingExternalPower_; ///< Espera señal continua de 5V en PIN_LINE_ENABLE (fuentes energizadas)
     bool               networkWarningActive_; ///< Estado de pérdida de enlace de telemetría
     uint16_t           testFlags_;            ///< Máscara de actuadores encendidos manualmente en TestMode
     DisplaySnapshot    lastSnapshot_;         ///< Última instantánea entregada a DisplayManager

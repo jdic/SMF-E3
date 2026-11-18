@@ -18,30 +18,37 @@ void DisplayManager::drawHomeStaticFrame()
         return;
     }
 
-    // Tarjeta Etapa 1: Llenado (Y = 34..68)
-    tft_.drawRect(6, 34, 308, 34, UiTheme::COLOR_DARK_GRAY);
+    // Tarjeta Etapa 1: Llenado (Y = 31..62)
+    tft_.drawRect(6, 31, 308, 31, UiTheme::COLOR_DARK_GRAY);
     tft_.setTextSize(1);
     tft_.setTextColor(UiTheme::COLOR_LIGHT_GRAY, UiTheme::COLOR_BG);
-    tft_.setCursor(14, 47);
+    tft_.setCursor(14, 42);
     tft_.print(F("LLENADO:"));
 
-    // Tarjeta Etapa 2: Tapado (Y = 72..106)
-    tft_.drawRect(6, 72, 308, 34, UiTheme::COLOR_DARK_GRAY);
+    // Tarjeta Etapa 2: Tapado (Y = 65..96)
+    tft_.drawRect(6, 65, 308, 31, UiTheme::COLOR_DARK_GRAY);
     tft_.setTextSize(1);
     tft_.setTextColor(UiTheme::COLOR_LIGHT_GRAY, UiTheme::COLOR_BG);
-    tft_.setCursor(14, 85);
+    tft_.setCursor(14, 76);
     tft_.print(F("TAPADO :"));
 
-    // Tarjeta de Contadores y Perfil (Y = 110..140)
-    tft_.drawRect(6, 110, 308, 30, UiTheme::COLOR_DARK_GRAY);
+    // Tarjeta izquierda: Perfil, Cola y Producción (Y = 99..147)
+    tft_.drawRect(6, 99, 176, 48, UiTheme::COLOR_DARK_GRAY);
     tft_.setTextSize(1);
     tft_.setTextColor(UiTheme::COLOR_LIGHT_GRAY, UiTheme::COLOR_BG);
-    tft_.setCursor(14, 121);
-    tft_.print(F("COLA:"));
-    tft_.setCursor(104, 121);
+    tft_.setCursor(14, 106);
     tft_.print(F("PERFIL:"));
-    tft_.setCursor(218, 121);
-    tft_.print(F("PROD:"));
+    tft_.setCursor(14, 119);
+    tft_.print(F("COLA  :"));
+    tft_.setCursor(14, 132);
+    tft_.print(F("PROD  :"));
+
+    // Tarjeta derecha: Checkbox de habilitación global de banda
+    const UiRect beltCard = UiLayout::HOME_BTN_BELT_ENABLE;
+    tft_.drawRect(beltCard.x, beltCard.y, beltCard.w, beltCard.h, UiTheme::COLOR_DARK_GRAY);
+    tft_.setTextColor(UiTheme::COLOR_WHITE, UiTheme::COLOR_BG);
+    tft_.setCursor(beltCard.x + 50, beltCard.y + 12);
+    tft_.print(F("BANDA AUTO"));
 }
 
 void DisplayManager::renderHomeDynamic(const DisplaySnapshot& snapshot, bool fullRedraw)
@@ -122,7 +129,7 @@ void DisplayManager::renderHomeDynamic(const DisplaySnapshot& snapshot, bool ful
             (snapshot.fillState == FillState::Idle) ? UiTheme::COLOR_LIGHT_GRAY : UiTheme::COLOR_CYAN;
         tft_.setTextSize(2);
         tft_.setTextColor(stateColor, UiTheme::COLOR_BG);
-        tft_.setCursor(74, 43);
+        tft_.setCursor(74, 39);
         tft_.print(UiStrings::getFillStateProgmem(snapshot.fillState));
     }
 
@@ -133,7 +140,7 @@ void DisplayManager::renderHomeDynamic(const DisplaySnapshot& snapshot, bool ful
             (snapshot.capState == CappingState::Idle) ? UiTheme::COLOR_LIGHT_GRAY : UiTheme::COLOR_CYAN;
         tft_.setTextSize(2);
         tft_.setTextColor(stateColor, UiTheme::COLOR_BG);
-        tft_.setCursor(74, 81);
+        tft_.setCursor(74, 73);
         tft_.print(UiStrings::getCapStateProgmem(snapshot.capState));
     }
 
@@ -144,7 +151,7 @@ void DisplayManager::renderHomeDynamic(const DisplaySnapshot& snapshot, bool ful
         snprintf(qBuf, sizeof(qBuf), "%u/%u ", snapshot.queueCount, ProcessParams::MAX_INTERSTAGE_QUEUE);
         tft_.setTextSize(1);
         tft_.setTextColor(UiTheme::COLOR_WHITE, UiTheme::COLOR_BG);
-        tft_.setCursor(48, 121);
+        tft_.setCursor(64, 119);
         tft_.print(qBuf);
     }
 
@@ -153,7 +160,7 @@ void DisplayManager::renderHomeDynamic(const DisplaySnapshot& snapshot, bool ful
     {
         tft_.setTextSize(1);
         tft_.setTextColor(UiTheme::COLOR_CYAN, UiTheme::COLOR_BG);
-        tft_.setCursor(150, 121);
+        tft_.setCursor(64, 106);
         tft_.print(UiStrings::getProfileProgmem(snapshot.profile));
     }
 
@@ -161,14 +168,38 @@ void DisplayManager::renderHomeDynamic(const DisplaySnapshot& snapshot, bool ful
     if (fullRedraw || (snapshot.bottleCount != renderedSnapshot_.bottleCount))
     {
         char prodBuf[10];
-        snprintf(prodBuf, sizeof(prodBuf), "%5lu", static_cast<unsigned long>(snapshot.bottleCount));
+        snprintf(prodBuf, sizeof(prodBuf), "%-5lu", static_cast<unsigned long>(snapshot.bottleCount));
         tft_.setTextSize(1);
         tft_.setTextColor(UiTheme::COLOR_GREEN_OK, UiTheme::COLOR_BG);
-        tft_.setCursor(252, 121);
+        tft_.setCursor(64, 132);
         tft_.print(prodBuf);
     }
 
-    // 7. Banner inferior de diagnóstico / código de error (Y = 144..178)
+    // 7. Checkbox de habilitación global de banda en Home
+    if (fullRedraw || (((snapshot.testFlags ^ renderedSnapshot_.testFlags) & TestFlags::HOME_BELT_ENABLE) != 0U))
+    {
+        const UiRect card = UiLayout::HOME_BTN_BELT_ENABLE;
+        const bool enabled = (snapshot.testFlags & TestFlags::HOME_BELT_ENABLE) != 0U;
+
+        if (!fullRedraw)
+        {
+            tft_.fillRect(card.x + 6, card.y + 4, 40, 40, UiTheme::COLOR_BG);
+        }
+        tft_.drawBitmap(
+            card.x + 2,
+            card.y,
+            enabled ? UIIcons::ICON_CHECKBOX_ON_48x48 : UIIcons::ICON_CHECKBOX_OFF_48x48,
+            48,
+            48,
+            enabled ? UiTheme::COLOR_GREEN_OK : UiTheme::COLOR_WHITE);
+
+        tft_.setTextSize(1);
+        tft_.setTextColor(enabled ? UiTheme::COLOR_GREEN_OK : UiTheme::COLOR_LIGHT_GRAY, UiTheme::COLOR_BG);
+        tft_.setCursor(card.x + 50, card.y + 26);
+        tft_.print(enabled ? F("FLUJO: ON ") : F("FLUJO: OFF"));
+    }
+
+    // 8. Banner inferior de diagnóstico / código de error (Y = 151..185)
     if (fullRedraw || (snapshot.error != renderedSnapshot_.error))
     {
         uint16_t errBg = UiTheme::COLOR_BG;

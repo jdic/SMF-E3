@@ -16,7 +16,8 @@ FillingAutomaton::FillingAutomaton(
           zAxis,
           ConfigFlags::FILL_SINGLE_POS_SENSOR),
       pump_(pump),
-      canReleaseBottle_(true)
+      canReleaseBottle_(true),
+      placerCycleActive_(false)
 {
 }
 
@@ -24,7 +25,8 @@ void FillingAutomaton::reset()
 {
     pump_.off();
     resetBaseState();
-    canReleaseBottle_ = true;
+    canReleaseBottle_  = true;
+    placerCycleActive_ = false;
 }
 
 void FillingAutomaton::stopImmediate()
@@ -51,7 +53,9 @@ void FillingAutomaton::update()
     }
 
     updateClearLock();
-    updateBeltDependentTimer();
+
+    const bool beltDep = (!isFirstRun_) && (currentState_ == FillState::PlacerExitBottle);
+    updateBeltDependentTimer(beltDep);
 
     if (nextState_ != currentState_)
     {
@@ -68,6 +72,21 @@ void FillingAutomaton::update()
     }
 
     onDuring(currentState_);
+}
+
+bool FillingAutomaton::isHoldingBottle() const
+{
+    if (currentState_ == FillState::PlacerExitBottle)
+    {
+        return false;
+    }
+
+    if ((currentState_ == FillState::RaisingNozzle) && placerCycleActive_)
+    {
+        return false;
+    }
+
+    return StationAutomatonBase<FillState>::isHoldingBottle();
 }
 
 void FillingAutomaton::setReleasePermitted(bool canRelease)
@@ -87,6 +106,7 @@ void FillingAutomaton::onEntry(FillState state)
     switch (state)
     {
         case FillState::Idle:
+            placerCycleActive_ = false;
             pump_.off();
             gate_.raiseArmsImmediate();
             break;
@@ -123,6 +143,23 @@ void FillingAutomaton::onEntry(FillState state)
 
         case FillState::Draining:
             pump_.off();
+            break;
+
+        case FillState::PlacerApplyCap:
+        {
+            placerCycleActive_ = true;
+            gate_.raiseStopArm();
+            const uint8_t idx = static_cast<uint8_t>(profile_);
+            const int32_t applyTarget = ProcessParams::BOTTLE_PROFILES[idx].capPlacerApplyZSteps;
+            if (!zAxis_.moveToTarget(applyTarget, ProcessParams::Z_CRUISE_SPEED))
+            {
+                triggerFault(ErrorCode::FillZSoftLimitHit);
+            }
+            break;
+        }
+
+        case FillState::PlacerExitBottle:
+            bottleEvent_ = true;
             break;
 
         case FillState::RaisingNozzle:
@@ -195,6 +232,38 @@ void FillingAutomaton::onDuring(FillState state)
         case FillState::Draining:
             if (elapsedMs >= ProcessParams::DRIP_MS)
             {
+                nextState_ = ProcessParams::ENABLE_MECH_CAP_PLACER
+                                 ? FillState::PlacerApplyCap
+                                 : FillState::RaisingNozzle;
+            }
+            break;
+
+        case FillState::PlacerApplyCap:
+            if (zAxis_.hasSoftLimitTripped())
+            {
+                triggerFault(ErrorCode::FillZSoftLimitHit);
+            }
+            else if (limitSwitch_.isTriggered() || zAxis_.isTargetReached())
+            {
+                zAxis_.stop();
+                if (gate_.isSettled() && canReleaseBottle_)
+                {
+                    nextState_ = FillState::PlacerExitBottle;
+                }
+            }
+            else if (elapsedMs >= ProcessParams::Z_MOVE_TIMEOUT_MS)
+            {
+                const uint8_t idx = static_cast<uint8_t>(profile_);
+                const auto& prof  = ProcessParams::BOTTLE_PROFILES[idx];
+                triggerFault((prof.capPlacerApplyZSteps < prof.fillZSteps)
+                                 ? ErrorCode::FillZRaisingTimeout
+                                 : ErrorCode::FillZLoweringTimeout);
+            }
+            break;
+
+        case FillState::PlacerExitBottle:
+            if ((elapsedMs >= ProcessParams::RELEASE_MS) && !positionSensor_.isTriggered())
+            {
                 nextState_ = FillState::RaisingNozzle;
             }
             break;
@@ -203,7 +272,7 @@ void FillingAutomaton::onDuring(FillState state)
             if (limitSwitch_.isTriggered() || (!zAxis_.isBusy() && zAxis_.getCurrentSteps() == 0))
             {
                 zAxis_.stop();
-                nextState_ = FillState::WaitingQueueSlot;
+                nextState_ = placerCycleActive_ ? FillState::Idle : FillState::WaitingQueueSlot;
             }
             else if (elapsedMs >= ProcessParams::Z_MOVE_TIMEOUT_MS)
             {

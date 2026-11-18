@@ -27,6 +27,7 @@ public:
     void stopImmediate();
     void update();
 
+    bool isHoldingBottle() const;
     void setReleasePermitted(bool canRelease);
     bool consumeBottleReleasedEvent();
 
@@ -36,6 +37,7 @@ private:
     void onExit(FillState state);
     void triggerFault(ErrorCode error);
 
-    FillPump& pump_;             ///< Bomba peristáltica / de diafragma de llenado
-    bool      canReleaseBottle_; ///< Habilitación desde StationController cuando hay cupo en la cola intermedia
+    FillPump& pump_;              ///< Bomba peristáltica / de diafragma de llenado
+    bool      canReleaseBottle_;  ///< Habilitación desde StationController cuando hay cupo en la cola intermedia
+    bool      placerCycleActive_; ///< Indica que RaisingNozzle viene de PlacerExitBottle y debe ir directo a Idle
 };

@@ -76,6 +76,8 @@ enum class FillState : uint8_t
     LoweringNozzle,   ///< Desciende el eje Z de llenado hasta la cota del perfil activo
     Filling,          ///< Energiza la bomba de llenado durante fillMs del perfil activo
     Draining,         ///< Espera DRIP_MS con la bomba apagada para escurrimiento de boquilla
+    PlacerApplyCap,   ///< Dispensador mecánico Paso 1: sube brazo de tope y posiciona Z1 en capPlacerApplyZSteps desde Home
+    PlacerExitBottle, ///< Dispensador mecánico Paso 2: activa banda para sacar botella con tapa antes de subir Z1 a Home
     RaisingNozzle,    ///< Asciende el eje Z de llenado hasta accionar el fin de carrera superior
     WaitingQueueSlot, ///< Retiene la botella llena si la cola intermedia alcanzó MAX_INTERSTAGE_QUEUE
     ReleasingBottle   ///< Sube el brazo de sujeción y, tras RELEASE_GAP_MS, sube el de tope
@@ -108,6 +110,7 @@ enum class TouchCommand : uint8_t
     None = 0,               ///< Sin comando táctil pendiente
     CycleBottleProfile,     ///< En Running con ambos autómatas en Idle: alterna entre Small y Large
     AcknowledgeAlarm,       ///< En ErrorStop (con seta liberada): transiciona a ManualRecovery
+    ToggleHomeBelt,         ///< En Home: habilita o pausa el flujo de banda desde checkbox de pantalla principal
     JogFillZUp,             ///< En ManualRecovery / TestMode: sube el eje Z de llenado en pasos seguros (Z_JOG_STEPS)
     JogCapZUp,              ///< En ManualRecovery / TestMode: sube el eje Z de tapado en pasos seguros (Z_JOG_STEPS)
     ReleaseArms,            ///< En ManualRecovery: levanta inmediatamente ambos pares de brazos
@@ -163,8 +166,9 @@ namespace TestFlags
     constexpr uint16_t CAP_STOP_DN    = (1U << 7); ///< Brazo de tope 2 (Tapado) abajo
     constexpr uint16_t CAP_CLAMP_DN   = (1U << 8); ///< Brazo de sujeción 2 (Tapado) abajo
     constexpr uint16_t CAP_CHUCK_ON   = (1U << 9); ///< Motor de apriete de tapas encendido
-    constexpr uint16_t FILL_HOME_SW   = (1U << 10); ///< Fin de carrera superior Z1 activado (Home = 0)
-    constexpr uint16_t CAP_HOME_SW    = (1U << 11); ///< Fin de carrera superior Z2 activado (Home = 0)
+    constexpr uint16_t FILL_HOME_SW     = (1U << 10); ///< Fin de carrera superior Z1 activado (Home = 0)
+    constexpr uint16_t CAP_HOME_SW      = (1U << 11); ///< Fin de carrera superior Z2 activado (Home = 0)
+    constexpr uint16_t HOME_BELT_ENABLE = (1U << 12); ///< Checkbox de Home: habilita giro de banda en Running
 }
 
 /**

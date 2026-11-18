@@ -55,7 +55,7 @@ namespace HardwarePins
     constexpr uint8_t PIN_POS_FILL          = 16; ///< Sensor óptico de posición exacta en módulo de llenado
     constexpr uint8_t PIN_PRESENCE_CAP      = 17; ///< Sensor óptico de aproximación en módulo de tapado
     constexpr uint8_t PIN_POS_CAP           = 18; ///< Sensor óptico de posición exacta en módulo de tapado
-    constexpr uint8_t PIN_VISION_SENSOR     = 22; ///< Entrada digital de alarma desde ESP32 de visión artificial (3.3V directo, sin pullup)
+    constexpr uint8_t PIN_VISION_SENSOR     = 36; ///< Entrada digital de alarma desde ESP32 de visión artificial (3.3V directo, sin pullup)
 
     // =========================================================================
     // BOTONERA DE CONTROL Y SEGURIDAD
@@ -64,6 +64,7 @@ namespace HardwarePins
     constexpr uint8_t PIN_BTN_STOP          = 48; ///< Pulsador de parada de ciclo (STOP)
     constexpr uint8_t PIN_ESTOP_AUX         = 50; ///< Contacto auxiliar de la parada de emergencia
     constexpr uint8_t PIN_BTN_RESET         = 52; ///< Pulsador de rearme de alarmas (RESET)
+    constexpr uint8_t PIN_LINE_ENABLE       = 34; ///< Habilitación global desde Estación 1 (5V continuo = fuentes con energía)
 
     // =========================================================================
     // SENSORES DE LÍMITE (FINES DE CARRERA EJES Z)
@@ -174,6 +175,7 @@ namespace HardwarePins
             PIN_BTN_STOP,
             PIN_ESTOP_AUX,
             PIN_BTN_RESET,
+            PIN_LINE_ENABLE,
             // Fines de carrera ejes Z
             PIN_LIMIT_SWITCH_FILL,
             PIN_LIMIT_SWITCH_CAP,

@@ -57,7 +57,8 @@ namespace UiLayout
     constexpr UiRect HOME_BTN_TEST_BUZZER      = { 164,  48, 148, 56 };
     constexpr UiRect HOME_BTN_TEST_TOWER_GREEN = {   8, 114, 148, 56 };
     constexpr UiRect HOME_BTN_TEST_TOWER_RED   = { 164, 114, 148, 56 };
-    constexpr UiRect HOME_BANNER_ALARM_ACK     = {   6, 144, 308, 34 };
+    constexpr UiRect HOME_BTN_BELT_ENABLE      = { 186,  99, 128, 48 };
+    constexpr UiRect HOME_BANNER_ALARM_ACK     = {   6, 151, 308, 34 };
 
     // --- Pantallas AUTO 1 (Llenado) y AUTO 2 (Tapado) en TestMode ---
     constexpr UiRect AUTO_BTN_TEST_STOP_ARM    = {   8,  34, 148, 44 };

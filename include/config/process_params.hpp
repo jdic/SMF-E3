@@ -25,12 +25,15 @@ namespace ProcessParams
     // ==========================================
     // FLUJO ENTRE ETAPAS Y HABILITACIÓN DE MÓDULOS
     // ==========================================
-    constexpr bool     ENABLE_INTERSTAGE_QUEUE = false; ///< Retiene botellas en llenado cuando la cola alcanza MAX_INTERSTAGE_QUEUE
+    constexpr bool     ENABLE_INTERSTAGE_QUEUE       = false; ///< Retiene botellas en llenado cuando la cola alcanza MAX_INTERSTAGE_QUEUE
     constexpr bool     ENABLE_FILLING_STATION        = true;  ///< Habilita el autómata de llenado (false opera únicamente tapado/banda)
     constexpr bool     ENABLE_CAPPING_STATION        = true;  ///< Habilita el autómata de tapado (false opera únicamente llenado/banda)
     constexpr bool     ENABLE_FILL_SINGLE_POS_SENSOR = false; ///< true: Llenado opera solo con POS1 (ignora PRE1); false: usa PRE1 + POS1
     constexpr bool     ENABLE_CAP_SINGLE_POS_SENSOR  = false; ///< true: Tapado opera solo con POS2 (ignora PRE2); false: usa PRE2 + POS2
-    constexpr uint8_t  MAX_INTERSTAGE_QUEUE    = 2;     ///< Capacidad máxima de botellas entre etapas [unidades]
+    constexpr bool     ENABLE_MECH_CAP_PLACER        = true;  ///< Habilita la secuencia del dispensador mecánico de tapas al salir de llenado
+    constexpr bool     ENABLE_EXTERNAL_LINE_ENABLE   = true;  ///< true: exige 5V continuos en PIN_LINE_ENABLE (Estación 1); sin 5V apaga todo y hace Boot al volver
+    constexpr bool     DEFAULT_HOME_BELT_ENABLED     = true;  ///< Estado inicial del checkbox de habilitación de banda en Home
+    constexpr uint8_t  MAX_INTERSTAGE_QUEUE          = 2;     ///< Capacidad máxima de botellas entre etapas [unidades]
 
     // ==========================================
     // EJES Z (MOTORES A PASOS)
@@ -134,10 +137,10 @@ namespace ProcessParams
     // VISIÓN ARTIFICIAL (ESP32 + MATLAB)
     // ==========================================
     constexpr bool     ENABLE_VISION_INSPECTION   = true;  ///< Habilita la inspección de tapa por visión artificial tras tapado
-    constexpr bool     ENABLE_VISION_BELT_ADVANCE = false; ///< true: levanta brazo de tope y avanza la banda antes de evaluar visión
+    constexpr bool     ENABLE_VISION_BELT_ADVANCE = true; ///< true: levanta brazo de tope y avanza la banda antes de evaluar visión
     constexpr bool     VISION_ALARM_ACTIVE_HIGH   = true;  ///< true: 3.3V (HIGH) del ESP32 = sin tapa (alarma); false: 0V (LOW) = alarma
-    constexpr uint16_t VISION_ADVANCE_MS          = 400;   ///< Tiempo que camina la banda para llevar la botella a la cámara [ms]
-    constexpr uint16_t VISION_SETTLE_MS           = 2000;  ///< Tiempo con banda detenida esperando el resultado de MATLAB/ESP32 [ms]
+    constexpr uint16_t VISION_ADVANCE_MS          = 1000;   ///< Tiempo que camina la banda para llevar la botella a la cámara [ms]
+    constexpr uint16_t VISION_SETTLE_MS           = 2500;  ///< Tiempo con banda detenida esperando el resultado de MATLAB/ESP32 [ms]
 
     // ==========================================
     // SEÑALIZACIÓN (TORRETA Y ALARMA SONORA)
@@ -169,7 +172,7 @@ namespace ProcessParams
     // ==========================================
     // HABILITACIÓN DE CÓDIGOS DE ERROR (true = activo, false = ignorar en pruebas)
     // ==========================================
-    constexpr bool     ENABLE_ERR_101_FILL_BOTTLE_LOST     = true; ///< ERR-101: Botella perdida en llenado
+    constexpr bool     ENABLE_ERR_101_FILL_BOTTLE_LOST     = false; ///< ERR-101: Botella perdida en llenado
     constexpr bool     ENABLE_ERR_102_CAP_BOTTLE_LOST      = true; ///< ERR-102: Botella perdida en tapado
     constexpr bool     ENABLE_ERR_201_FILL_Z_HOME_FAILED   = true; ///< ERR-201: Fallo de homing en eje Z de llenado
     constexpr bool     ENABLE_ERR_202_FILL_Z_SOFT_LIMIT    = true; ///< ERR-202: Soft limit inferior en eje Z de llenado
@@ -263,10 +266,11 @@ namespace ProcessParams
      */
     struct BottleProfileParams
     {
-        int32_t  fillZSteps;     ///< Desplazamiento vertical de boquilla [step]
-        int32_t  capZSteps;      ///< Desplazamiento vertical de cabezal [step]
-        int32_t  capEngageSteps; ///< Paso desde el cual enciende el motor de tapado y baja lento hasta capZSteps [step]
-        uint16_t fillMs;         ///< Tiempo de dosificación [ms]
+        int32_t  fillZSteps;            ///< Desplazamiento vertical de boquilla desde Home [step]
+        int32_t  capPlacerApplyZSteps;  ///< Cota en pasos totales desde Home a la que se posiciona Z1 para aplicar la tapa [step]
+        int32_t  capZSteps;             ///< Desplazamiento vertical de cabezal de tapado desde Home [step]
+        int32_t  capEngageSteps;        ///< Paso desde el cual enciende el motor de tapado y baja lento hasta capZSteps [step]
+        uint16_t fillMs;                ///< Tiempo de dosificación [ms]
     };
 
     /**
@@ -274,8 +278,9 @@ namespace ProcessParams
      */
     constexpr BottleProfileParams BOTTLE_PROFILES[] =
     {
-        { 18443, 21240, 16400, 7500 },  // Small
-        { 5600, 8800, 2800, 10500 }     // Large
+        // fillZSteps, capPlacerApplyZSteps, capZSteps, capEngageSteps, fillMs
+        { 18443, 12923, 21240, 16400, 8000 },  // Small
+        { 5600,  0,  8850,  2800,  11000 }  // Large
     };
 
     static_assert(

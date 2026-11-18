@@ -25,6 +25,8 @@ namespace UiStrings
         const char STR_FILL_LOWER_Z[]  PROGMEM = "BAJANDO BOQUILL";
         const char STR_FILL_PUMPING[]  PROGMEM = "BOMBEANDO      ";
         const char STR_FILL_DRAINING[] PROGMEM = "ESCURRIENDO    ";
+        const char STR_FILL_APPLY[]    PROGMEM = "PONIENDO TAPA  ";
+        const char STR_FILL_EXIT[]     PROGMEM = "SALIENDO C/TAPA";
         const char STR_FILL_RAISE_Z[]  PROGMEM = "SUBIENDO BOQUIL";
         const char STR_FILL_WAIT_Q[]   PROGMEM = "COLA LLENA     ";
         const char STR_FILL_RELEASE[]  PROGMEM = "LIBERANDO      ";
@@ -105,6 +107,8 @@ namespace UiStrings
             case FillState::LoweringNozzle:   return reinterpret_cast<const __FlashStringHelper*>(STR_FILL_LOWER_Z);
             case FillState::Filling:          return reinterpret_cast<const __FlashStringHelper*>(STR_FILL_PUMPING);
             case FillState::Draining:         return reinterpret_cast<const __FlashStringHelper*>(STR_FILL_DRAINING);
+            case FillState::PlacerApplyCap:   return reinterpret_cast<const __FlashStringHelper*>(STR_FILL_APPLY);
+            case FillState::PlacerExitBottle: return reinterpret_cast<const __FlashStringHelper*>(STR_FILL_EXIT);
             case FillState::RaisingNozzle:    return reinterpret_cast<const __FlashStringHelper*>(STR_FILL_RAISE_Z);
             case FillState::WaitingQueueSlot: return reinterpret_cast<const __FlashStringHelper*>(STR_FILL_WAIT_Q);
             case FillState::ReleasingBottle:

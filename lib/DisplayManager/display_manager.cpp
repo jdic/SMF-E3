@@ -488,6 +488,10 @@ TouchCommand DisplayManager::pollTouchCommand()
             else if (inRect(px, py, UiLayout::HOME_BTN_TEST_TOWER_GREEN)) { cmd = TouchCommand::TestToggleTowerGreen; }
             else if (inRect(px, py, UiLayout::HOME_BTN_TEST_TOWER_RED))   { cmd = TouchCommand::TestToggleTowerRed; }
         }
+        else if (inRect(px, py, UiLayout::HOME_BTN_BELT_ENABLE))
+        {
+            cmd = TouchCommand::ToggleHomeBelt;
+        }
         else if (hasRenderedSnapshot_ &&
                  ((renderedSnapshot_.mode == StationMode::ErrorStop) ||
                   (renderedSnapshot_.error == ErrorCode::CapMissingVision)) &&

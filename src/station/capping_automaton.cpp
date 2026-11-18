@@ -64,7 +64,7 @@ void CappingAutomaton::update()
         const uint32_t elapsed   = millis() - stageTimerMs_;
         const uint32_t moveStart = ProcessParams::ARM_MOVE_MS;
         const uint32_t moveEnd   = moveStart + ProcessParams::VISION_ADVANCE_MS;
-        visionAdvancingBelt = (elapsed >= moveStart) && (elapsed < moveEnd);
+        visionAdvancingBelt = (elapsed > moveStart) && (elapsed < moveEnd);
     }
     updateBeltDependentTimer(visionAdvancingBelt);
 

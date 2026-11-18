@@ -59,6 +59,11 @@ StationController::StationController()
           ProcessParams::SENSOR_DEBOUNCE_MS,
           ProcessParams::VISION_ALARM_ACTIVE_HIGH,
           false), // usePullup = false (3.3V directo desde ESP32 sin inyectar 5V)
+      lineEnableSensor_(
+          HardwarePins::PIN_LINE_ENABLE,
+          ProcessParams::SENSOR_DEBOUNCE_MS,
+          true,
+          false), // usePullup = false (requiere 5V continuos externos desde Estación 1)
       fillGate_(StationHardwareFactory::makeFillGateConfig()),
       capGate_(StationHardwareFactory::makeCapGateConfig()),
       fillZ_(StationHardwareFactory::makeFillZConfig()),
@@ -96,6 +101,8 @@ StationController::StationController()
       bottleCount_(0),
       bootStartTimeMs_(0),
       linePaused_(false),
+      homeBeltEnabled_(ProcessParams::DEFAULT_HOME_BELT_ENABLED),
+      waitingExternalPower_(false),
       networkWarningActive_(false),
       testFlags_(0U),
       lastSnapshot_{
@@ -137,6 +144,7 @@ void StationController::init()
     estopAux_.init();
     btnReset_.init();
     visionSensor_.init();
+    lineEnableSensor_.init();
 
     fillPump_.init();
     chuckMotor_.init();
@@ -151,7 +159,11 @@ void StationController::init()
     fillingAutomaton_.setProfile(profile_);
     cappingAutomaton_.setProfile(profile_);
 
-    if (ProcessParams::isErrorEnabled(ErrorCode::EmergencyStopPressed) && estopAux_.isTriggered())
+    if (ProcessParams::ENABLE_EXTERNAL_LINE_ENABLE && !lineEnableSensor_.isTriggered())
+    {
+        enterLinePowerWait();
+    }
+    else if (ProcessParams::isErrorEnabled(ErrorCode::EmergencyStopPressed) && estopAux_.isTriggered())
     {
         enterErrorStop(ErrorCode::EmergencyStopPressed);
     }
@@ -177,10 +189,39 @@ void StationController::update()
     estopAux_.update();
     btnReset_.update();
     visionSensor_.update();
+    lineEnableSensor_.update();
 
     fillPump_.update();
     fillGate_.update();
     capGate_.update();
+
+    // Habilitación global desde Estación 1 (5V continuos en PIN_LINE_ENABLE = fuentes energizadas)
+    if (ProcessParams::ENABLE_EXTERNAL_LINE_ENABLE && (mode_ != StationMode::TestMode))
+    {
+        if (!lineEnableSensor_.isTriggered())
+        {
+            if (!waitingExternalPower_)
+            {
+                enterLinePowerWait();
+            }
+            refreshDisplaySnapshot();
+            return;
+        }
+        else if (waitingExternalPower_)
+        {
+            waitingExternalPower_ = false;
+            if (ProcessParams::isErrorEnabled(ErrorCode::EmergencyStopPressed) && estopAux_.isTriggered())
+            {
+                enterErrorStop(ErrorCode::EmergencyStopPressed);
+            }
+            else
+            {
+                enterBootMode();
+            }
+            refreshDisplaySnapshot();
+            return;
+        }
+    }
 
     // 2. Prioridad de seguridad: contacto de parada de emergencia (en TestMode permite operar en banco)
     if (ProcessParams::isErrorEnabled(ErrorCode::EmergencyStopPressed) &&
@@ -380,15 +421,13 @@ void StationController::updateRunningMode(uint32_t nowMs)
         capEnabled &&
         (cappingAutomaton_.getError() == ErrorCode::CapMissingVision);
 
-    // Coordinación de banda: se pausa por STOP o mientras algún autómata tenga botella retenida
+    // Coordinación de banda: se pausa por checkbox de Home, por STOP o mientras algún autómata retenga botella
     const bool fillHolding = fillEnabled && fillingAutomaton_.isHoldingBottle();
     const bool capHolding  = capEnabled && cappingAutomaton_.isHoldingBottle();
-    const bool pauseBelt   = linePaused_ || fillHolding || capHolding;
-    const bool beltNotAtCruise =
-        pauseBelt || (conveyor_.getCurrentPwm() < ProcessParams::BELT_PWM);
+    const bool pauseBelt   = !homeBeltEnabled_ || linePaused_ || fillHolding || capHolding;
 
-    fillingAutomaton_.setBeltPaused(beltNotAtCruise);
-    cappingAutomaton_.setBeltPaused(beltNotAtCruise);
+    fillingAutomaton_.setBeltPaused(pauseBelt);
+    cappingAutomaton_.setBeltPaused(pauseBelt);
 
     if (pauseBelt)
     {
@@ -505,6 +544,7 @@ void StationController::handleTouchCommand(TouchCommand cmd)
         (mode_ != StationMode::TestMode) &&
         (cmd != TouchCommand::ToggleTestMode) &&
         (cmd != TouchCommand::CycleBottleProfile) &&
+        (cmd != TouchCommand::ToggleHomeBelt) &&
         !isRuntimeConfigCmd)
     {
         return;
@@ -512,6 +552,10 @@ void StationController::handleTouchCommand(TouchCommand cmd)
 
     switch (cmd)
     {
+        case TouchCommand::ToggleHomeBelt:
+            homeBeltEnabled_ = !homeBeltEnabled_;
+            break;
+
         case TouchCommand::CycleBottleProfile:
             if (fillingAutomaton_.isIdle() &&
                 cappingAutomaton_.isIdle() &&
@@ -861,8 +905,39 @@ uint8_t StationController::getQueueCount() const
     return interstageQueueCount_;
 }
 
+void StationController::enterLinePowerWait()
+{
+    waitingExternalPower_ = true;
+    mode_ = StationMode::Boot;
+    activeError_ = ErrorCode::None;
+    interstageQueueCount_ = 0;
+    linePaused_ = false;
+    testFlags_ = 0U;
+
+    StationHardwareFactory::setTowerLights(false, false);
+    buzzer_.silence();
+
+    fillPump_.off();
+    chuckMotor_.stop();
+    conveyor_.stop();
+    conveyor_.clearStall();
+
+    fillingAutomaton_.reset();
+    cappingAutomaton_.reset();
+
+    fillZ_.stop();
+    capZ_.stop();
+    fillZ_.clearSoftLimitFault();
+    capZ_.clearSoftLimitFault();
+    fillZ_.setDriverEnabled(false);
+    capZ_.setDriverEnabled(false);
+
+    refreshDisplaySnapshot();
+}
+
 void StationController::enterBootMode()
 {
+    waitingExternalPower_ = false;
     mode_ = StationMode::Boot;
     activeError_ = ErrorCode::None;
     interstageQueueCount_ = 0;
@@ -919,7 +994,14 @@ void StationController::enterRunningMode()
     cappingAutomaton_.setProfile(profile_);
 
     conveyor_.clearStall();
-    conveyor_.start();
+    if (homeBeltEnabled_)
+    {
+        conveyor_.start();
+    }
+    else
+    {
+        conveyor_.stop();
+    }
 
     StationHardwareFactory::setTowerLights(true, false);
     buzzer_.triggerBootReady(millis());
@@ -971,6 +1053,7 @@ void StationController::enterErrorStop(ErrorCode error)
 
 void StationController::enterTestMode()
 {
+    waitingExternalPower_ = false;
     mode_ = StationMode::TestMode;
     activeError_ = ErrorCode::None;
     interstageQueueCount_ = 0;
@@ -1001,9 +1084,11 @@ void StationController::enterTestMode()
 
 void StationController::refreshDisplaySnapshot()
 {
-    uint16_t effectiveFlags = testFlags_ & static_cast<uint16_t>(~(TestFlags::FILL_HOME_SW | TestFlags::CAP_HOME_SW));
+    uint16_t effectiveFlags = testFlags_ &
+        static_cast<uint16_t>(~(TestFlags::FILL_HOME_SW | TestFlags::CAP_HOME_SW | TestFlags::HOME_BELT_ENABLE));
     if (limitSwitchFill_.isTriggered()) { effectiveFlags |= TestFlags::FILL_HOME_SW; }
     if (limitSwitchCap_.isTriggered())  { effectiveFlags |= TestFlags::CAP_HOME_SW; }
+    if (homeBeltEnabled_)               { effectiveFlags |= TestFlags::HOME_BELT_ENABLE; }
 
     uint16_t inFlags = 0U;
     if (presenceFill_.isTriggered())    { inFlags |= InputFlags::PRESENCE_FILL; }
